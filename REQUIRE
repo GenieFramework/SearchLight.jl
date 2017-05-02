@@ -13,6 +13,5 @@ MySQL
 Reexport
 SHA
 YAML
-
-https://github.com/JuliaDB/DBI.jl
-https://github.com/JuliaDB/PostgreSQL.jl
+DBI
+PostgreSQL

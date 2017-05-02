@@ -1,4 +1,5 @@
 module PostgreSQLDatabaseAdapter
+
 using PostgreSQL, DataFrames, Genie, Database, Logger, SearchLight, Util
 
 export DatabaseHandle, ResultHandle
@@ -15,6 +16,12 @@ const DEFAULT_PORT = 5432
 typealias DatabaseHandle  PostgreSQL.PostgresDatabaseHandle
 typealias ResultHandle    PostgreSQL.PostgresResultHandle
 
+
+"""
+    db_adapter() :: Symbol
+
+The name of the underlying database adapter (driver).
+"""
 function db_adapter() :: Symbol
   :PostgreSQL
 end

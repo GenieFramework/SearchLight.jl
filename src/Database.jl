@@ -2,7 +2,7 @@ module Database
 
 using YAML, Genie, Memoize, SearchLight, DataFrames, Logger
 
-if isdefined(Genie, :config)
+if IS_IN_APP
   eval(:(using $(Genie.config.db_adapter)))
   eval(:(const DatabaseAdapter = $(Genie.config.db_adapter)))
   eval(:(export DatabaseAdapter))

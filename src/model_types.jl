@@ -15,16 +15,21 @@ export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
 
 export is_lazy
 
-abstract SQLType <: Genie.GenieType
-abstract AbstractModel <: Genie.GenieType
+abstract SQLType# <: Genie.GenieType
+abstract AbstractModel# <: Genie.GenieType
 
 typealias DbId Int32
 convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
+
 
 #
 # SearchLight validations
 #
 
+
+"""
+The object that defines the rules and stores the validation errors associated with the fields of a `model`.
+"""
 immutable ModelValidator <: SQLType
   rules::Vector{Tuple{Symbol,Function,Vararg{Any}}} # [(:title, :not_empty), (:title, :min_length, (20)), (:content, :not_empty_if_published), (:email, :matches, (r"(.*)@(.*)"))]
   errors::Vector{Tuple{Symbol,Symbol,String}} # [(:title, :not_empty, "title not empty"), (:title, :min_length, "min length 20"), (:content, :min_length, "min length 200")]
@@ -37,6 +42,9 @@ end
 #
 
 
+"""
+Provides safe input into SQL queries and operations related to that.
+"""
 type SQLInput <: SQLType
   value::Union{String,Real}
   escaped::Bool
@@ -93,6 +101,10 @@ end
 # SQLColumn
 #
 
+
+"""
+Represents a SQL column when building SQL queries.
+"""
 type SQLColumn <: SQLType
   value::String
   escaped::Bool
@@ -164,6 +176,9 @@ end
 #
 
 
+"""
+Represents the logic operators (OR, AND) as part of SQL queries.
+"""
 immutable SQLLogicOperator <: SQLType
   value::String
   SQLLogicOperator(v::String) = new( v == "OR" ? "OR" : "AND" )
@@ -177,6 +192,10 @@ string(s::SQLLogicOperator) = s.value
 # SQLWhere
 #
 
+
+"""
+Provides functionality for building and manipulating SQL `WHERE` conditions.
+"""
 immutable SQLWhere <: SQLType
   column::SQLColumn
   value::SQLInput
@@ -300,6 +319,9 @@ typealias SQLHaving Union{SQLWhere,SQLWhereExpression}
 #
 
 
+"""
+Wrapper around SQL `limit` operator.
+"""
 immutable SQLLimit <: SQLType
   value::Union{Int, String}
   SQLLimit(v::Int) = new(v)
@@ -327,6 +349,10 @@ convert(::Type{SQLLimit}, v::Int) = SQLLimit(v)
 # SQLOrder
 #
 
+
+"""
+Wrapper around SQL `order` operator.
+"""
 immutable SQLOrder <: SQLType
   column::SQLColumn
   direction::String
@@ -360,6 +386,10 @@ convert(::Type{Vector{SQLOrder}}, t::Tuple{Symbol,Symbol}) = [SQLOrder(t[1], t[2
 # SQLJoin - SQLOn
 #
 
+
+"""
+Represents the `ON` operator used in SQL `JOIN`
+"""
 immutable SQLOn <: SQLType
   column_1::SQLColumn
   column_2::SQLColumn
@@ -380,6 +410,10 @@ end
 # SQLJoin - SQLJoinType
 #
 
+
+"""
+Wrapper around the various types of SQL `join` (`left`, `right`, `inner`, etc).
+"""
 immutable SQLJoinType <: SQLType
   join_type::String
   function SQLJoinType(t::String)
@@ -401,6 +435,10 @@ string(jt::SQLJoinType) = jt.join_type
 # SQLJoin
 #
 
+
+"""
+Builds and manipulates SQL `join` expressions.
+"""
 immutable SQLJoin{T<:AbstractModel} <: SQLType
   model_name::Type{T}
   on::SQLOn
@@ -435,6 +473,7 @@ convert(::Type{Vector{SQLJoin}}, j::SQLJoin) = [j]
 #
 # SQLQuery
 #
+
 
 """
     SQLQuery( columns = SQLColumn[],
@@ -501,6 +540,10 @@ string{T<:AbstractModel}(q::SQLQuery, m::Type{T}) = to_fetch_sql(m, q)
 # SQLRelation
 #
 
+
+"""
+Represents the data contained by a SQL relation.
+"""
 type SQLRelationData{T<:AbstractModel} <: SQLType
   collection::Vector{T}
 
@@ -509,6 +552,10 @@ end
 SQLRelationData{T<:AbstractModel}(collection::Vector{T}) = SQLRelationData{T}(collection)
 SQLRelationData{T<:AbstractModel}(m::T) = SQLRelationData{T}([m])
 
+
+"""
+Defines the relation between two models, as reflected by the relation of their underlying SQL tables.
+"""
 type SQLRelation{T<:AbstractModel} <: SQLType
   model_name::Type{T}
   required::Bool

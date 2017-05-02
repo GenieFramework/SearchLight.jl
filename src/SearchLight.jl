@@ -1,8 +1,13 @@
 module SearchLight
 
-using Genie
+# using Genie
+
+push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
+                  joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"))
 
 include("model_types.jl")
+
+const OUTPUT_LENGTH = 256
 
 using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Configuration, Logger
 
@@ -2589,7 +2594,12 @@ function to_find_sql{T<:AbstractModel}(m::Type{T})
 end
 const to_fetch_sql = to_find_sql
 
-function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) # upsert strateygy = :none | :error | :ignore | :update
+"""
+    to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String
+
+Generates the INSERT SQL query. 
+"""
+function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String # upsert strateygy = :none | :error | :ignore | :update
   Database.to_store_sql(m, conflict_strategy = conflict_strategy)
 end
 
@@ -2998,7 +3008,7 @@ function persistable_fields{T<:AbstractModel}(m::T; fully_qualified::Bool = fals
   object_fields = map(x -> string(x), fieldnames(m))
   db_columns = columns(typeof(m))[:column_name]
 
-  isempty(db_columns) && Genie.config.log_db &&
+  isempty(db_columns) &&
     Logger.log("No columns retrieved for $(typeof(m)) - check if the table exists and the model is properly configured.", :err)
 
   pst_fields = intersect(object_fields, db_columns)
@@ -3304,7 +3314,9 @@ end
 
 
 """
+    to_sql_column_name(v::String, t::String) :: String
 
+Generates a column name in the form `table_column` from `t` and `v` as `t_v`.
 """
 function to_sql_column_name(v::String, t::String) :: String
   str = Util.strip_quotes(t) * "_" * Util.strip_quotes(v)
@@ -3323,7 +3335,9 @@ end
 
 
 """
+    to_fully_qualified_sql_column_names{T<:AbstractModel}(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false) :: Vector{String}
 
+Takes a `vector` of field names and generates corresponding SQL column names.
 """
 function to_fully_qualified_sql_column_names{T<:AbstractModel}(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false) :: Vector{String}
   map(x -> to_fully_qualified_sql_column_name(m, x, escape_columns = escape_columns), persistable_fields)
@@ -3331,7 +3345,9 @@ end
 
 
 """
+    to_fully_qualified_sql_column_name{T<:AbstractModel}(m::T, f::String; escape_columns::Bool = false, alias::String = "") :: String
 
+Generates a fully qualified SQL column name, in the form of `table_name.column AS table_name_column` for the underlying table of `m` and the column `f`.
 """
 function to_fully_qualified_sql_column_name{T<:AbstractModel}(m::T, f::String; escape_columns::Bool = false, alias::String = "") :: String
   if escape_columns
@@ -3343,7 +3359,9 @@ end
 
 
 """
+    from_literal_column_name(c::String) :: Dict{Symbol,String}
 
+Takes a SQL column name `c` and returns a `Dict` of its parts (`:column_name`, `:alias`, `:original_string`)
 """
 function from_literal_column_name(c::String) :: Dict{Symbol,String}
   result = Dict{Symbol,String}()
@@ -3370,23 +3388,37 @@ end
 
 
 """
+    to_dict{T<:AbstractModel}(m::T; all_fields::Bool = false) :: Dict{String,Any}
 
+Converts a model `m` to a `Dict`. Orginal types of the fields values are kept.
+If `all_fields` is `true`, all fields are included; otherwise just the fields corresponding to database columns.
 """
 function to_dict{T<:AbstractModel}(m::T; all_fields::Bool = false) :: Dict{String,Any}
   fields = all_fields ? fieldnames(m) : persistable_fields(m)
   Dict( string(f) => Util.expand_nullable( getfield(m, Symbol(f)) ) for f in fields )
 end
-function to_dict{T<:GenieType}(m::T) :: Dict{String,Any}
-  Genie.to_dict(m)
+
+
+"""
+    to_dict(m::Any) :: Dict{String,Any}
+
+Creates a `Dict` using the fields and the values of `m`.
+"""
+function to_dict(m::Any) :: Dict{String,Any}
+  Dict(string(f) => getfield(m, Symbol(f)) for f in fieldnames(m))
 end
 
 
 """
+    to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_output::Bool = false) :: Dict{String,String}
 
+Converts a model `m` to a `Dict{String,String}`. Orginal types of the fields values are converted to strings.
+If `all_fields` is `true`, all fields are included; otherwise just the fields corresponding to database columns.
+If `all_output` is `false` the values are truncated if longer than `output_length`.
 """
 function to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_output::Bool = false) :: Dict{String,String}
   fields = all_fields ? fieldnames(m) : persistable_fields(m)
-  output_length = all_output ? 100_000_000 : Genie.config.output_length
+  output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
   response = Dict{String,String}()
   for f in fields
     key = string(f)
@@ -3399,13 +3431,12 @@ function to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_ou
 
   response
 end
-function to_string_dict{T<:GenieType}(m::T) :: Dict{String,String}
-  Genie.to_string_dict(m)
-end
 
 
 """
+    to_nullable{T<:AbstractModel}(result::Vector{T}) :: Nullable{T}
 
+Wraps a result vector into a `Nullable`.
 """
 function to_nullable{T<:AbstractModel}(result::Vector{T}) :: Nullable{T}
   isempty(result) ? Nullable{T}() : Nullable{T}(result |> first)
@@ -3413,15 +3444,19 @@ end
 
 
 """
+    has_relation{T<:AbstractModel}(m::T, relation_type::Symbol) :: Bool
 
+Returns wheter or not the model `m` has defined a relation of type `relation_type`.
 """
-function has_relation{T<:GenieType}(m::T, relation_type::Symbol) :: Bool
+function has_relation{T<:AbstractModel}(m::T, relation_type::Symbol) :: Bool
   has_field(m, relation_type)
 end
 
 
 """
+    dataframe_to_dict(df::DataFrames.DataFrame) :: Vector{Dict{Symbol,Any}}
 
+Converts a `DataFrame` to a `Vector{Dict{Symbol,Any}}`.
 """
 function dataframe_to_dict(df::DataFrames.DataFrame) :: Vector{Dict{Symbol,Any}}
   result = Dict{Symbol,Any}[]
@@ -3434,7 +3469,9 @@ end
 
 
 """
+    enclosure(v::Any, o::Any) :: String
 
+Wraps SQL query parts in parenthesys.
 """
 function enclosure(v::Any, o::Any) :: String
   in(string(o), ["IN", "in"]) ? "($(string(v)))" : string(v)
