@@ -1,7 +1,5 @@
 module SearchLight
 
-# using Genie
-
 push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
                   joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"))
 
@@ -9,13 +7,13 @@ include("model_types.jl")
 
 const OUTPUT_LENGTH = 256
 
-using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Configuration, Logger
+using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Configuration, Logger, Millboard
 
 @reexport using Validation
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export disposable_instance, to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
-export relations, has_relation, find_df, is_persisted, to_sqlinput, has_field
+export relations, has_relation, find_df, is_persisted, to_sqlinput, has_field, relation_eagerness
 
 const RELATION_HAS_ONE = :has_one
 const RELATION_BELONGS_TO = :belongs_to
@@ -28,10 +26,42 @@ const RELATION_EAGERNESS_AUTO    = :auto
 const RELATION_EAGERNESS_LAZY    = :lazy
 const RELATION_EAGERNESS_EAGER   = :eager
 
+const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_AUTO
+
 # internals
 
-direct_relations() = [RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY]
 
+"""
+      direct_relations() :: Vector{Symbol}
+
+Vector of available direct relations types.
+"""
+function direct_relations() :: Vector{Symbol}
+  [RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY]
+end
+
+
+"""
+  relation_eagerness(eagerness::Symbol) :: Bool
+
+Sets the default, global relation eagerness.
+"""
+function relation_eagerness(eagerness::Symbol) :: Bool
+  ! in(eagerness, direct_relations()) && return false
+  MODEL_RELATION_EAGERNESS = eagerness
+
+  true
+end
+
+
+"""
+    relation_eagerness() :: Symbol
+
+Returns the default global relation eagerness.
+"""
+function relation_eagerness() :: Symbol
+  MODEL_RELATION_EAGERNESS
+end
 
 #
 # ORM methods
@@ -1262,7 +1292,7 @@ function find_one_by_or_create{T<:AbstractModel}(m::Type{T}, property::Any, valu
   ! isnull( lookup ) && return Base.get(lookup)
 
   _m::T = m()
-  setfield!(_m, Symbol(property), value)
+  setfield!(_m, Symbol(is_fully_qualified(property) ? from_fully_qualified(property)[end] : property), value)
 
   _m
 end
@@ -1351,7 +1381,7 @@ function to_models{T<:AbstractModel}(m::Type{T}, df::DataFrame) :: Vector{T}
 
       r = set_relation(r, related_model, related_model_df)
 
-      model_rels::Vector{SQLRelation} = getfield(main_model, r_type)
+      model_rels = getfield(main_model, r_type)
       isnull(model_rels[1].data) ? model_rels[1] = r : push!(model_rels, r)
     end
 
@@ -2597,7 +2627,7 @@ const to_fetch_sql = to_find_sql
 """
     to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String
 
-Generates the INSERT SQL query. 
+Generates the INSERT SQL query.
 """
 function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String # upsert strateygy = :none | :error | :ignore | :update
   Database.to_store_sql(m, conflict_strategy = conflict_strategy)
@@ -2730,6 +2760,11 @@ julia> SearchLight.query("SELECT * FROM articles LIMIT 5")
 """
 function query(sql::String) :: DataFrame
   Database.query_df(sql)
+end
+
+
+function query_raw(sql::AbstractString; system_query::Bool = false) :: ResultHandle
+  Database.query(sql, system_query = system_query)
 end
 
 
@@ -3153,6 +3188,7 @@ end
 
 """
     is_fully_qualified{T<:AbstractModel}(m::T, f::Symbol) :: Bool
+    is_fully_qualified{T<:SQLType}(t::T) :: Bool
 
 Returns a `Bool` whether or not `f` represents a fully qualified column name alias of the table associated with the model `m`.
 
@@ -3167,6 +3203,9 @@ false
 """
 function is_fully_qualified{T<:AbstractModel}(m::T, f::Symbol) :: Bool
   startswith(string(f), m._table_name) && has_field(m, strip_table_name(m, f))
+end
+function is_fully_qualified{T<:SQLType}(t::T) :: Bool
+  replace(t |> string, "\"", "") |> string |> is_fully_qualified
 end
 
 
@@ -3233,7 +3272,10 @@ function from_fully_qualified(s::String) :: Tuple{String,String}
 
   (x,y) = split(s, ".")
 
-  (x,y)
+  (string(x),string(y))
+end
+function from_fully_qualified{T<:SQLType}(t::T) :: Tuple{String,String}
+  replace(t |> string, "\"", "") |> string |> from_fully_qualified
 end
 
 
@@ -3431,6 +3473,23 @@ function to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_ou
 
   response
 end
+function to_string_dict(m::Any; all_output::Bool = false) :: Dict{String,String}
+  to_string_dict(m, fieldnames(m), all_output = all_output)
+end
+function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false) :: Dict{String,String}
+  output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
+  response = Dict{String,String}()
+  for f in fields
+    key = string(f)
+    value = string(getfield(m, Symbol(f)))
+    if length(value) > output_length
+      value = value[1:output_length] * "..."
+    end
+    response[key] = string(value)
+  end
+
+  response
+end
 
 
 """
@@ -3495,10 +3554,15 @@ function update_query_part{T<:AbstractModel}(m::T) :: String
   Database.update_query_part(m)
 end
 
+
+"""
+    create_migrations_table() :: Bool
+
+Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
+database name defined in `Genie.config.db_migrations_table_name`
+"""
+function create_migrations_table(table_name::String) :: Bool
+  DatabaseAdapter.create_migrations_table(table_name)
 end
 
-const Model = SearchLight
-export Model
-
-const SL = SearchLight
-export SL
+end

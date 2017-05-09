@@ -1,6 +1,6 @@
 module Validation
 
-using Genie, SearchLight, App, Database
+using Genie, SearchLight, App
 
 export ValidationStatus
 

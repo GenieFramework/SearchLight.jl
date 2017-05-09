@@ -78,14 +78,11 @@ end
 
 
 """
-    create_migrations_table() :: Bool
+    create_migrations_table(table_name::String) :: Bool
 
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `Genie.config.db_migrations_table_name`
 """
-function create_migrations_table() :: Bool
-  create_migrations_table(Genie.config.db_migrations_table_name)
-end
 function create_migrations_table(table_name::String) :: Bool
   DatabaseAdapter.create_migrations_table(table_name)
 end

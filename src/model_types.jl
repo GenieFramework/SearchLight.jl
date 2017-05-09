@@ -15,8 +15,25 @@ export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
 
 export is_lazy
 
-abstract SQLType# <: Genie.GenieType
-abstract AbstractModel# <: Genie.GenieType
+abstract SearchLightAbstractType
+abstract SQLType <: SearchLightAbstractType
+abstract AbstractModel <: SearchLightAbstractType
+
+string{T<:SearchLightAbstractType}(io::IO, t::T) = "$(typeof(t)) <: $(super(typeof(t)))"
+print{T<:SearchLightAbstractType}(io::IO, t::T) = print(io, "$(typeof(t)) <: $(super(typeof(t)))")
+show{T<:SearchLightAbstractType}(io::IO, t::T) = print(io, searchlightabstracttype_to_print(t))
+
+"""
+    searchlightabstracttype_to_print{T<:GenieType}(m::T) :: String
+
+Pretty printing of SearchLight types.
+"""
+function searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: String
+  output = "\n" * "$(typeof(m))" * "\n"
+  output *= string(Millboard.table(to_string_dict(m))) * "\n"
+
+  output
+end
 
 typealias DbId Int32
 convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
@@ -573,7 +590,7 @@ SQLRelation{T<:AbstractModel}(model_name::Type{T};
 
 function lazy(r::SQLRelation)
   r.eagerness == RELATION_EAGERNESS_LAZY ||
-  r.eagerness == RELATION_EAGERNESS_AUTO && Genie.config.model_relations_eagerness == RELATION_EAGERNESS_LAZY
+    r.eagerness == RELATION_EAGERNESS_AUTO && MODEL_RELATION_EAGERNESS == RELATION_EAGERNESS_LAZY
 end
 function is_lazy(r::SQLRelation)
   lazy(r)
