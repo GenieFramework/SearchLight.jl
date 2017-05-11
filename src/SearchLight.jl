@@ -687,10 +687,12 @@ true
 function save{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: Bool
   try
     _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
+
     true
   catch ex
-    Logger.log(ex)
-    Logger.@location()
+    Logger.log(string(ex), :err)
+    Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+
     false
   end
 end
@@ -1503,9 +1505,9 @@ function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow) ::
                 (is(value, Void) || value == nothing) && (value = row[field])
                 value
               catch ex
-                Logger.log("Failed to hydrate! field $unq_field ($field)", :debug)
-                Logger.@location()
-                Logger.log(ex)
+                Logger.log("Failed to hydrate! field $unq_field ($field)", :err)
+                Logger.log(string(ex), :err)
+                Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
                 row[field]
               end
@@ -1515,10 +1517,9 @@ function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow) ::
                 (is(value, Void) || value == nothing) && (value = row[field])
                 value
               catch ex
-                Logger.log("Failed to hydrate field $unq_field ($field)", :debug)
-                Logger.@location()
-                Logger.log(string(ex))
-                # rethrow(ex)
+                Logger.log("Failed to hydrate field $unq_field ($field)", :err)
+                Logger.log(string(ex), :err)
+                Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
                 row[field]
               end
@@ -1529,8 +1530,9 @@ function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow) ::
       setfield!(obj, unq_field, convert(typeof(getfield(_m, unq_field)), value))
     catch ex
       Logger.log(ex, :err)
-      Logger.log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )")
-      Logger.@location()
+      Logger.log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )", :err)
+      Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+
       rethrow(ex)
     end
 
@@ -1542,8 +1544,9 @@ function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow) ::
       try
         setfield!(obj, field, getfield(_m, field))
       catch ex
-        Logger.log(ex)
-        Logger.log(field)
+        Logger.log(string(ex), :err)
+        Logger.log(field, :err)
+        Logger.log("$(@__FILE__):$(@__LINE__)", :err)
       end
     end
   end
@@ -2660,9 +2663,9 @@ function to_sqlinput{T<:AbstractModel}(m::T, field::Symbol, value) :: SQLInput
               r = m.on_dehydration(m, field, value)
               is(r, Void) || r == nothing ? value : r
             catch ex
-              Logger.log("Failed to dehydrate field $field", :debug)
-              Logger.@location()
-              Logger.log(ex)
+              Logger.log("Failed to dehydrate field $field", :err)
+              Logger.log(string(ex), :err)
+              Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
               value
             end

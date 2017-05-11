@@ -47,8 +47,8 @@ function connect(conn_data::Dict{String,Any}) :: DatabaseHandle
                       conn_data["port"])
   catch ex
     Logger.log("Invalid DB connection settings", :err)
-    Logger.@location()
     Logger.log(string(ex), :err)
+    Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
     rethrow(ex)
   end
