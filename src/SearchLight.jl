@@ -773,7 +773,12 @@ function save!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validati
   save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 end
 function save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: T
-  find_one!!(typeof(m), (_save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks))[1, Symbol(m._id)])
+  df::DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
+  m = find_one!!(typeof(m), df[1, Symbol(m._id)])
+
+  ! in(:after_save, skip_callbacks) && invoke_callback(m, :after_save)
+
+  m
 end
 
 function _save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: DataFrame
@@ -782,8 +787,6 @@ function _save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_valida
   ! in(:before_save, skip_callbacks) && invoke_callback(m, :before_save)
 
   result = query(to_store_sql(m, conflict_strategy = conflict_strategy))
-
-  ! in(:after_save, skip_callbacks) && invoke_callback(m, :after_save)
 
   result
 end
@@ -2766,7 +2769,12 @@ function query(sql::String) :: DataFrame
 end
 
 
-function query_raw(sql::AbstractString; system_query::Bool = false) :: ResultHandle
+"""
+    query_raw(sql::AbstractString; system_query::Bool = false) :: DatabaseAdapter.ResultHandle
+
+Sends a raw query string to be executed by the database adapter.
+"""
+function query_raw(sql::AbstractString; system_query::Bool = false) :: DatabaseAdapter.ResultHandle
   Database.query(sql, system_query = system_query)
 end
 
