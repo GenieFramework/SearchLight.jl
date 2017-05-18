@@ -61,16 +61,6 @@ end
 
 
 """
-    create_database(db_name::String) :: Bool
-
-Creates the database `db_name`. Returns `true` on success - `false` on failure
-"""
-function create_database(db_name::String) :: Bool
-  error("Not implemented - manually create the database", :debug)
-end
-
-
-"""
     table_columns_sql(table_name::AbstractString) :: String
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.

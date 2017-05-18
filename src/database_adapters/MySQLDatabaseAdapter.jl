@@ -1,4 +1,5 @@
 module MySQLDatabaseAdapter
+
 using MySQL, DataFrames, Genie, Database, Logger, SearchLight, Util
 
 export DatabaseHandle, ResultHandle
@@ -13,7 +14,7 @@ const DB_ADAPTER = MySQL
 const DEFAULT_PORT = 3306
 
 typealias DatabaseHandle  MySQL.MySQLHandle
-typealias ResultHandle    PostgreSQL.PostgresResultHandle
+typealias ResultHandle    Union{DataFrames.DataFrame}
 
 function db_adapter() :: Symbol
   :MySQL
@@ -53,22 +54,12 @@ end
 
 
 """
-    create_database(db_name::String) :: Bool
-
-Creates the database `db_name`. Returns `true` on success - `false` on failure
-"""
-function create_database(db_name::String) :: Bool
-  error("Not implemented - manually create the database", :debug)
-end
-
-
-"""
     table_columns_sql(table_name::AbstractString) :: String
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
 function table_columns_sql(table_name::AbstractString) :: String
-  "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$table_name'"
+  "SELECT * FROM '$table_name' LIMIT 1"
 end
 
 
@@ -122,7 +113,7 @@ julia>
 ```
 """
 function escape_value{T}(v::T, conn::DatabaseHandle) :: T
-  DB_ADAPTER.escapeliteral(conn, v)
+  MySQL.mysql_escape(conn, v)
 end
 
 
