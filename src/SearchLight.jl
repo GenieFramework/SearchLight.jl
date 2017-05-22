@@ -1109,10 +1109,12 @@ end
 
 
 """
-    update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol[, value::Any]) :: T
+    update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol[, value::Any]; ignore = Symbol[], skip_update = false) :: T
 
 Looks up `m` by `property` and `value`. If value is not provided, it uses the corresponding value of `m`.
 If `m` is already persisted, it gets updated. If not, it is persisted as a new row.
+If values are provided for `ignore`, the corresponding properties (fields) of `m` will not be updated.
+If `skip_update` is `true` and `m` is already persisted, no update will be performed, and the originally persisted `m` will be returned.
 
 # Examples
 ```julia
@@ -1208,13 +1210,15 @@ App.Article
 +--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
-function update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol, value::Any) :: T
+function update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol, value::Any; ignore = Symbol[], skip_update = false) :: T
   existing = find_one_by(typeof(m), property, value)
   if ! isnull(existing)
     existing = Base.get(existing)
 
+    skip_update && return existing
+
     for fieldname in fieldnames(typeof(m))
-      ( startswith(string(fieldname), "_") || string(fieldname) == m._id ) && continue
+      ( startswith(string(fieldname), "_") || string(fieldname) == m._id || in(fieldname, ignore) ) && continue
       setfield!(existing, fieldname, getfield(m, fieldname))
     end
 
@@ -1223,8 +1227,25 @@ function update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol, value::
     return SearchLight.save!!(m)
   end
 end
-function update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol) :: T
-  update_by_or_create!!(m, property, getfield(m, property))
+function update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol; ignore = Symbol[], skip_update = false) :: T
+  update_by_or_create!!(m, property, getfield(m, property), ignore = ignore, skip_update = skip_update)
+end
+function update_by_or_create!!{T<:AbstractModel}(m::T) :: T
+  create_or_update!!(m)
+end
+const create_or_update_by!! = update_by_or_create!!
+
+
+"""
+    create_or_update!!{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false) :: T
+
+Looks up `m` by `id` as configured in `_id`.
+If `m` is already persisted, it gets updated. If not, it is persisted as a new row.
+If values are provided for `ignore`, the corresponding properties (fields) of `m` will not be updated.
+If `skip_update` is `true` and `m` is already persisted, no update will be performed, and the originally persisted `m` will be returned.
+"""
+function create_or_update!!{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false) :: T
+  update_by_or_create!!(m, Symbol(m._id), getfield(m, Symbol(m._id)), ignore = ignore, skip_update = skip_update)
 end
 
 

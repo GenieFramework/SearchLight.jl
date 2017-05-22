@@ -35,8 +35,9 @@ function searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: S
   output
 end
 
-typealias DbId Int32
+typealias DbId Union{Int32,String}
 convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
+convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
 
 
 #
@@ -552,6 +553,8 @@ immutable SQLQuery <: SQLType
 end
 
 string{T<:AbstractModel}(q::SQLQuery, m::Type{T}) = to_fetch_sql(m, q)
+
+convert(::Type{Vector{SQLWhereEntity}}, s::String) = SQLWhereEntity[SQLWhereExpression(s)]
 
 #
 # SQLRelation
