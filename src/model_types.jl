@@ -9,7 +9,7 @@ import Base.==
 
 export DbId, SQLType, AbstractModel, ModelValidator
 export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
-export SQLWhere, SQLWhereExpression, SQLWhereEntity, SQLLimit, SQLOrder, SQLQuery
+export SQLWhere, SQLWhereExpression, SQLWhereEntity, SQLLimit, SQLOrder, SQLQuery, SQLRaw
 export SQLRelation, SQLRelationData
 export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
 
@@ -55,6 +55,18 @@ immutable ModelValidator <: SQLType
   ModelValidator(rules) = new(rules, Vector{Tuple{Symbol,Symbol,String}}())
 end
 
+
+#
+# SQLRaw
+#
+
+"""
+Wrapper around a raw SQL query part.
+"""
+immutable SQLRaw <: SQLType
+  value::String
+end
+
 #
 # SQLInput
 #
@@ -73,6 +85,7 @@ SQLInput{T}(a::Vector{T}) = map(x -> SQLInput(x), a)
 SQLInput{T}(s::SubString{T}) = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
+SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
 
@@ -143,6 +156,7 @@ function SQLColumn(v::Any; escaped = false, raw = false, table_name = "")
 end
 SQLColumn(a::Array) = map(x -> SQLColumn(string(x)), a)
 SQLColumn(c::SQLColumn) = c
+SQLColumn(r::SQLRaw) = SQLColumn(r.value, raw = raw)
 
 ==(a::SQLColumn, b::SQLColumn) = a.value == b.value
 
@@ -381,13 +395,15 @@ SQLOrder(column::Union{String,Symbol}, direction::Any; raw::Bool = false) = SQLO
 function SQLOrder(s::Union{String,Symbol}; raw::Bool = false)
   s = String(s)
 
-  if endswith(uppercase(s), " ASC") || endswith(uppercase(s), " DESC")
+  if endswith(rstrip(uppercase(s)), " ASC") || endswith(rstrip(uppercase(s)), " DESC")
     parts = split(s, " ")
     SQLOrder(String(parts[1]), String(parts[2]), raw = raw)
   else
     SQLOrder(s, "ASC", raw = raw)
   end
 end
+SQLOrder(r::SQLRaw, direction::Any = "ASC") = SQLOrder(r.value, direction, raw = true)
+SQLOrder(r::SQLRaw) = SQLOrder(r.value, raw = true)
 
 string(o::SQLOrder) = "($(o.column) $(o.direction))"
 
