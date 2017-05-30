@@ -173,7 +173,7 @@ function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)
   result = if suppress_output || ( ! Genie.config.log_db && ! Genie.config.log_queries )
     DB_ADAPTER.execute(stmt)
   else
-    Logger.log("SQL QUERY: $(escape_string(sql))")
+    Logger.log("SQL QUERY: $sql")
     @time DB_ADAPTER.execute(stmt)
   end
   DB_ADAPTER.finish(stmt)

@@ -345,6 +345,9 @@ end
 typealias SQLWhereEntity Union{SQLWhere,SQLWhereExpression}
 typealias SQLHaving Union{SQLWhere,SQLWhereExpression}
 
+convert(::Type{Vector{SQLWhereEntity}}, s::String) = SQLWhereEntity[SQLWhereExpression(s)]
+convert(::Type{SQLWhereEntity}, s::String) = SQLWhereExpression(s);
+
 
 #
 # SQLLimit
@@ -569,8 +572,6 @@ immutable SQLQuery <: SQLType
 end
 
 string{T<:AbstractModel}(q::SQLQuery, m::Type{T}) = to_fetch_sql(m, q)
-
-convert(::Type{Vector{SQLWhereEntity}}, s::String) = SQLWhereEntity[SQLWhereExpression(s)]
 
 #
 # SQLRelation

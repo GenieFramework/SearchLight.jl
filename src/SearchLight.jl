@@ -774,7 +774,14 @@ function save!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validati
 end
 function save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: T
   df::DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
-  m = find_one!!(typeof(m), df[1, Symbol(m._id)])
+  n = find_one!!(typeof(m), df[1, Symbol(m._id)])
+
+  db_fields = persistable_fields(m)
+  @sync @parallel for f in fieldnames(m)
+    if in(string(f), db_fields)
+      setfield!(m, f, getfield(n, f))
+    end
+  end
 
   ! in(:after_save, skip_callbacks) && invoke_callback(m, :after_save)
 
@@ -786,9 +793,7 @@ function _save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_valida
 
   ! in(:before_save, skip_callbacks) && invoke_callback(m, :before_save)
 
-  result = query(to_store_sql(m, conflict_strategy = conflict_strategy))
-
-  result
+  query(to_store_sql(m, conflict_strategy = conflict_strategy))
 end
 
 
