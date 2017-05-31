@@ -406,7 +406,6 @@ function SQLOrder(s::Union{String,Symbol}; raw::Bool = false)
   end
 end
 SQLOrder(r::SQLRaw, direction::Any = "ASC") = SQLOrder(r.value, direction, raw = true)
-SQLOrder(r::SQLRaw) = SQLOrder(r.value, raw = true)
 
 string(o::SQLOrder) = "($(o.column) $(o.direction))"
 

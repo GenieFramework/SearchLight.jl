@@ -89,6 +89,16 @@ end
 
 
 """
+    db_init() :: Bool
+
+Sets up the DB tables used by Genie.
+"""
+function db_init() :: Bool
+  DatabaseAdapter.create_migrations_table(Genie.config.db_migrations_table_name)
+end
+
+
+"""
     query(sql::AbstractString; system_query::Bool = false) :: ResultHandle
 
 Executes the `sql` query against the database adapter. If it is a `system_query` it won't be logged.
