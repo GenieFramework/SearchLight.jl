@@ -1,6 +1,7 @@
 DataFrames
 DataStructures
 DateParser
+Documenter
 Faker
 Gallium
 JSON
@@ -13,4 +14,3 @@ MySQL
 Reexport
 SHA
 YAML
-Documenter
