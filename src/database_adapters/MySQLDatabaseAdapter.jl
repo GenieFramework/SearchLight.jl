@@ -1,6 +1,6 @@
 module MySQLDatabaseAdapter
 
-using MySQL, DataFrames, Genie, Database, Logger, SearchLight, Util
+using MySQL, DataFrames, Genie, Database, Logger, SearchLight
 
 export DatabaseHandle, ResultHandle
 
@@ -58,7 +58,7 @@ end
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
-function table_columns_sql(table_name::AbstractString) :: String
+function table_columns_sql(table_name::String) :: String
   "SELECT * FROM '$table_name' LIMIT 1"
 end
 
@@ -150,7 +150,7 @@ end
 function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: PostgreSQL.PostgresResultHandle
   stmt = DB_ADAPTER.prepare(conn, sql)
 
-  result = if suppress_output || ( ! Genie.config.log_db && ! Genie.config.log_queries )
+  result = if suppress_output || ( ! config.log_db && ! config.log_queries )
     DB_ADAPTER.execute(stmt)
   else
     Logger.log("SQL QUERY: $(escape_string(sql))")

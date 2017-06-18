@@ -1,6 +1,6 @@
 module PostgreSQLDatabaseAdapter
 
-using PostgreSQL, DataFrames, Genie, Database, Logger, SearchLight, Util
+using PostgreSQL, DataFrames, Genie, Database, Logger, SearchLight
 
 export DatabaseHandle, ResultHandle
 
@@ -61,11 +61,11 @@ end
 
 
 """
-    table_columns_sql(table_name::AbstractString) :: String
+    table_columns_sql(table_name::String) :: String
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
-function table_columns_sql(table_name::AbstractString) :: String
+function table_columns_sql(table_name::String) :: String
   # "SELECT
   #   column_name, ordinal_position, column_default, is_nullable, data_type, character_maximum_length,
   #   udt_name, is_identity, is_updatable
@@ -143,7 +143,7 @@ end
 
 
 """
-    query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
+    query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
 
 Executes the `sql` query against the database backend and returns a DataFrame result.
 
@@ -159,7 +159,7 @@ julia> PostgreSQLDatabaseAdapter.query_df(SearchLight.to_fetch_sql(Article, SQLQ
 ...
 ```
 """
-function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
+function query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
   query(sql, suppress_output, conn) |> DB_ADAPTER.fetchdf
 end
 
@@ -167,10 +167,10 @@ end
 """
 
 """
-function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: PostgreSQL.PostgresResultHandle
+function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: PostgreSQL.PostgresResultHandle
   stmt = DB_ADAPTER.prepare(conn, sql)
 
-  result = if suppress_output || ( ! Genie.config.log_db && ! Genie.config.log_queries )
+  result = if suppress_output || ( ! config.log_db && ! config.log_queries )
     DB_ADAPTER.execute(stmt)
   else
     Logger.log("SQL QUERY: $sql")

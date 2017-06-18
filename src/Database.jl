@@ -1,11 +1,21 @@
 module Database
 
-using YAML, Genie, Memoize, SearchLight, DataFrames, Logger
+using Genie, YAML, Memoize, SearchLight, DataFrames, Logger
 
 if IS_IN_APP
-  eval(:(using $(Genie.config.db_adapter)))
-  eval(:(const DatabaseAdapter = $(Genie.config.db_adapter)))
+  using App
+  const config = App.config
+
+  export config
+
+  eval(:(using $(App.config.db_adapter)))
+  eval(:(const DatabaseAdapter = $(App.config.db_adapter)))
   eval(:(export DatabaseAdapter))
+else
+    using Configuration
+    const config = Configuration.Settings()
+
+    export config
 end
 
 
@@ -14,14 +24,14 @@ end
     connect(conn_settings::Dict{String,Any}) :: DatabaseHandle
     connection() :: DatabaseHandle
 
-Connects to the DB and returns a database handler. If used without arguments, it defaults to using `Genie.config.db_config_settings`
+Connects to the DB and returns a database handler. If used without arguments, it defaults to using `config.db_config_settings`
 
 # Examples
 ```julia
 julia> Database.connect()
 PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false)
 
-julia> dict = Genie.config.db_config_settings
+julia> dict = config.db_config_settings
 Dict{String,Any} with 6 entries:
   "host"     => "localhost"
   "password" => "adrian"
@@ -35,7 +45,7 @@ PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false
 ```
 """
 function connect() :: DatabaseHandle
-  connect(Genie.config.db_config_settings)
+  connect(config.db_config_settings)
 end
 @memoize function connect(conn_settings::Dict{String,Any})
   DatabaseAdapter.connect(conn_settings) :: DatabaseHandle
@@ -67,10 +77,10 @@ end
     create_database(db_name::String) :: Bool
 
 Invokes the database adapter's create database method. If invoked without param, it defaults to the
-database name defined in `Genie.config.db_config_settings`
+database name defined in `config.db_config_settings`
 """
 function create_database() :: Bool
-  create_database(Genie.config.db_config_settings["database"])
+  create_database(config.db_config_settings["database"])
 end
 function create_database(db_name::String) :: Bool
   DatabaseAdapter.create_database(db_name)
@@ -81,7 +91,7 @@ end
     create_migrations_table(table_name::String) :: Bool
 
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
-database name defined in `Genie.config.db_migrations_table_name`
+database name defined in `config.db_migrations_table_name`
 """
 function create_migrations_table(table_name::String) :: Bool
   DatabaseAdapter.create_migrations_table(table_name)
@@ -91,10 +101,10 @@ end
 """
     db_init() :: Bool
 
-Sets up the DB tables used by Genie.
+Sets up the DB tables used by SearchLight.
 """
 function db_init() :: Bool
-  DatabaseAdapter.create_migrations_table(Genie.config.db_migrations_table_name)
+  DatabaseAdapter.create_migrations_table(config.db_migrations_table_name)
 end
 
 
@@ -115,7 +125,7 @@ PostgreSQL.PostgresResultHandle(Ptr{Void} @0x00007fcdaf33a450,DataType[PostgreSQ
 ```
 """
 function query(sql::AbstractString; system_query::Bool = false) :: ResultHandle
-  DatabaseAdapter.query(sql, system_query || Genie.config.suppress_output, connection())
+  DatabaseAdapter.query(sql, system_query || config.suppress_output, connection())
 end
 
 
@@ -153,8 +163,8 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query_
 ```
 """
 function query_df(sql::AbstractString; suppress_output::Bool = false) :: DataFrames.DataFrame
-  df::DataFrames.DataFrame = DatabaseAdapter.query_df(sql, (suppress_output || Genie.config.suppress_output), connection())
-  (! suppress_output && Genie.config.log_db) && Logger.log(df)
+  df::DataFrames.DataFrame = DatabaseAdapter.query_df(sql, (suppress_output || config.suppress_output), connection())
+  (! suppress_output && config.log_db) && Logger.log(df)
 
   df
 end
