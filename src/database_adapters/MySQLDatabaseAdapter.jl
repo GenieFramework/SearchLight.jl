@@ -13,8 +13,8 @@ export DatabaseHandle, ResultHandle
 const DB_ADAPTER = MySQL
 const DEFAULT_PORT = 3306
 
-typealias DatabaseHandle  MySQL.MySQLHandle
-typealias ResultHandle    Union{DataFrames.DataFrame}
+const DatabaseHandle = MySQL.MySQLHandle
+const ResultHandle =   Union{DataFrames.DataFrame}
 
 function db_adapter() :: Symbol
   :MySQL

@@ -13,8 +13,8 @@ export DatabaseHandle, ResultHandle
 const DB_ADAPTER = PostgreSQL
 const DEFAULT_PORT = 5432
 
-typealias DatabaseHandle  PostgreSQL.PostgresDatabaseHandle
-typealias ResultHandle    PostgreSQL.PostgresResultHandle
+const DatabaseHandle = PostgreSQL.PostgresDatabaseHandle
+const ResultHandle = PostgreSQL.PostgresResultHandle
 
 
 """

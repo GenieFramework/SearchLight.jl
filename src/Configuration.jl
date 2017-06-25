@@ -1,6 +1,6 @@
 module Configuration
 
-type Settings
+mutable struct Settings
   log_db::Bool
   log_queries::Bool
   db_config_settings::Dict{String,Any}

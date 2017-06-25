@@ -4,7 +4,7 @@ using Genie, SearchLight, App
 
 export ValidationStatus
 
-typealias ValidationStatus Tuple{Bool,Symbol,String}
+const ValidationStatus = Tuple{Bool,Symbol,String}
 
 #
 # errors manipulation

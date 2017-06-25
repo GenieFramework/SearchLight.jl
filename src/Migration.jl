@@ -5,7 +5,7 @@ module Migration
 
 using Genie, SearchLight, FileTemplates, Millboard, Configuration, Logger, Macros, Database
 
-type DatabaseMigration # todo: rename the "migration_" prefix for the fields
+mutable struct DatabaseMigration # todo: rename the "migration_" prefix for the fields
   migration_hash::String
   migration_file_name::String
   migration_module_name::String

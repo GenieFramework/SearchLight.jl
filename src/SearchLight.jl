@@ -1531,7 +1531,7 @@ function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow) ::
     value = if in(:on_hydration!, fieldnames(_m))
               try
                 _m, value = _m.on_hydration!(_m, unq_field, row[field])
-                (is(value, Void) || value == nothing) && (value = row[field])
+                (value === Void || value == nothing) && (value = row[field])
                 value
               catch ex
                 Logger.log("Failed to hydrate! field $unq_field ($field)", :err)
@@ -1543,7 +1543,7 @@ function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow) ::
             elseif in(:on_hydration, fieldnames(_m))
               try
                 value = _m.on_hydration(_m, unq_field, row[field])
-                (is(value, Void) || value == nothing) && (value = row[field])
+                (value === Void || value == nothing) && (value = row[field])
                 value
               catch ex
                 Logger.log("Failed to hydrate field $unq_field ($field)", :err)
@@ -2690,7 +2690,7 @@ function to_sqlinput{T<:AbstractModel}(m::T, field::Symbol, value) :: SQLInput
   value = if in(:on_dehydration, fieldnames(m))
             try
               r = m.on_dehydration(m, field, value)
-              is(r, Void) || r == nothing ? value : r
+              r === Void || r == nothing ? value : r
             catch ex
               Logger.log("Failed to dehydrate field $field", :err)
               Logger.log(string(ex), :err)

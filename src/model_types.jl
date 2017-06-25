@@ -15,9 +15,9 @@ export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
 
 export is_lazy
 
-abstract SearchLightAbstractType
-abstract SQLType <: SearchLightAbstractType
-abstract AbstractModel <: SearchLightAbstractType
+abstract type SearchLightAbstractType end
+abstract type SQLType <: SearchLightAbstractType end
+abstract type AbstractModel <: SearchLightAbstractType end
 
 string{T<:SearchLightAbstractType}(io::IO, t::T) = "$(typeof(t)) <: $(super(typeof(t)))"
 print{T<:SearchLightAbstractType}(io::IO, t::T) = print(io, "$(typeof(t)) <: $(super(typeof(t)))")
@@ -35,7 +35,7 @@ function searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: S
   output
 end
 
-typealias DbId Union{Int32,String}
+const DbId = Union{Int32,String}
 convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
 convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
 
@@ -48,7 +48,7 @@ convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
 """
 The object that defines the rules and stores the validation errors associated with the fields of a `model`.
 """
-immutable ModelValidator <: SQLType
+struct ModelValidator <: SQLType
   rules::Vector{Tuple{Symbol,Function,Vararg{Any}}} # [(:title, :not_empty), (:title, :min_length, (20)), (:content, :not_empty_if_published), (:email, :matches, (r"(.*)@(.*)"))]
   errors::Vector{Tuple{Symbol,Symbol,String}} # [(:title, :not_empty, "title not empty"), (:title, :min_length, "min length 20"), (:content, :min_length, "min length 200")]
 
@@ -63,7 +63,7 @@ end
 """
 Wrapper around a raw SQL query part.
 """
-immutable SQLRaw <: SQLType
+struct SQLRaw <: SQLType
   value::String
 end
 
@@ -75,7 +75,7 @@ end
 """
 Provides safe input into SQL queries and operations related to that.
 """
-type SQLInput <: SQLType
+mutable struct SQLInput <: SQLType
   value::Union{String,Real}
   escaped::Bool
   raw::Bool
@@ -136,7 +136,7 @@ end
 """
 Represents a SQL column when building SQL queries.
 """
-type SQLColumn <: SQLType
+mutable struct SQLColumn <: SQLType
   value::String
   escaped::Bool
   raw::Bool
@@ -211,7 +211,7 @@ end
 """
 Represents the logic operators (OR, AND) as part of SQL queries.
 """
-immutable SQLLogicOperator <: SQLType
+struct SQLLogicOperator <: SQLType
   value::String
   SQLLogicOperator(v::String) = new( v == "OR" ? "OR" : "AND" )
 end
@@ -228,7 +228,7 @@ string(s::SQLLogicOperator) = s.value
 """
 Provides functionality for building and manipulating SQL `WHERE` conditions.
 """
-immutable SQLWhere <: SQLType
+struct SQLWhere <: SQLType
   column::SQLColumn
   value::SQLInput
   condition::SQLLogicOperator
@@ -307,7 +307,7 @@ SearchLight.SQLWhereExpression
 +----------------+----------------------------------------+
 ```
 """
-immutable SQLWhereExpression <: SQLType
+struct SQLWhereExpression <: SQLType
   sql_expression::String
   values::Vector{SQLInput}
   condition::String
@@ -342,8 +342,8 @@ function string(we::SQLWhereExpression)
   we.condition * " " * string_value
 end
 
-typealias SQLWhereEntity Union{SQLWhere,SQLWhereExpression}
-typealias SQLHaving Union{SQLWhere,SQLWhereExpression}
+const SQLWhereEntity = Union{SQLWhere,SQLWhereExpression}
+const SQLHaving = Union{SQLWhere,SQLWhereExpression}
 
 convert(::Type{Vector{SQLWhereEntity}}, s::String) = SQLWhereEntity[SQLWhereExpression(s)]
 convert(::Type{SQLWhereEntity}, s::String) = SQLWhereExpression(s);
@@ -357,7 +357,7 @@ convert(::Type{SQLWhereEntity}, s::String) = SQLWhereExpression(s);
 """
 Wrapper around SQL `limit` operator.
 """
-immutable SQLLimit <: SQLType
+struct SQLLimit <: SQLType
   value::Union{Int, String}
   SQLLimit(v::Int) = new(v)
   function SQLLimit(v::String)
@@ -388,7 +388,7 @@ convert(::Type{SQLLimit}, v::Int) = SQLLimit(v)
 """
 Wrapper around SQL `order` operator.
 """
-immutable SQLOrder <: SQLType
+struct SQLOrder <: SQLType
   column::SQLColumn
   direction::String
   SQLOrder(column::SQLColumn, direction::String) =
@@ -426,7 +426,7 @@ convert(::Type{Vector{SQLOrder}}, t::Tuple{Symbol,Symbol}) = [SQLOrder(t[1], t[2
 """
 Represents the `ON` operator used in SQL `JOIN`
 """
-immutable SQLOn <: SQLType
+struct SQLOn <: SQLType
   column_1::SQLColumn
   column_2::SQLColumn
   conditions::Vector{SQLWhereEntity}
@@ -450,7 +450,7 @@ end
 """
 Wrapper around the various types of SQL `join` (`left`, `right`, `inner`, etc).
 """
-immutable SQLJoinType <: SQLType
+struct SQLJoinType <: SQLType
   join_type::String
   function SQLJoinType(t::String)
     accepted_values = ["inner", "INNER", "left", "LEFT", "right", "RIGHT", "full", "FULL"]
@@ -475,7 +475,7 @@ string(jt::SQLJoinType) = jt.join_type
 """
 Builds and manipulates SQL `join` expressions.
 """
-immutable SQLJoin{T<:AbstractModel} <: SQLType
+struct SQLJoin{T<:AbstractModel} <: SQLType
   model_name::Type{T}
   on::SQLOn
   join_type::SQLJoinType
@@ -555,7 +555,7 @@ SearchLight.SQLQuery
 +---------+--------------------------------------------------------------+
 ```
 """
-immutable SQLQuery <: SQLType
+struct SQLQuery <: SQLType
   columns::Vector{SQLColumn}
   where::Vector{SQLWhereEntity}
   limit::SQLLimit
@@ -580,7 +580,7 @@ string{T<:AbstractModel}(q::SQLQuery, m::Type{T}) = to_fetch_sql(m, q)
 """
 Represents the data contained by a SQL relation.
 """
-type SQLRelationData{T<:AbstractModel} <: SQLType
+mutable struct SQLRelationData{T<:AbstractModel} <: SQLType
   collection::Vector{T}
 
   SQLRelationData(collection::Vector{T}) = new(collection)
@@ -592,7 +592,7 @@ SQLRelationData{T<:AbstractModel}(m::T) = SQLRelationData{T}([m])
 """
 Defines the relation between two models, as reflected by the relation of their underlying SQL tables.
 """
-type SQLRelation{T<:AbstractModel} <: SQLType
+mutable struct SQLRelation{T<:AbstractModel} <: SQLType
   model_name::Type{T}
   required::Bool
   eagerness::Symbol
