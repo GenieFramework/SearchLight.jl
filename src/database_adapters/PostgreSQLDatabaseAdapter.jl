@@ -60,7 +60,7 @@ end
 """
 
 """
-function disconnect(conn::DatabaseHandle)
+function disconnect(conn::DatabaseHandle) :: Void
   PostgreSQL.disconnect(conn)
 end
 

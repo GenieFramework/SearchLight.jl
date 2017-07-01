@@ -53,7 +53,7 @@ end
 """
 
 """
-function disconnect(conn::DatabaseHandle)
+function disconnect(conn::DatabaseHandle) :: Void
   MySQL.mysql_disconnect(conn)
 end
 
@@ -185,7 +185,7 @@ function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle,
             catch ex
               Logger.log(string(ex), :err)
               Logger.log("MySQL error when running $(escape_string(sql))", :err)
-              
+
               rethrow(ex)
             end
 
