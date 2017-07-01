@@ -13,8 +13,10 @@ export DatabaseHandle, ResultHandle
 const DB_ADAPTER = MySQL
 const DEFAULT_PORT = 3306
 
+const COLUMN_NAME_FIELD_NAME = :Field
+
 typealias DatabaseHandle  MySQL.MySQLHandle
-typealias ResultHandle    Union{DataFrames.DataFrame}
+typealias ResultHandle    Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
 
 function db_adapter() :: Symbol
   :MySQL
@@ -33,11 +35,11 @@ Connects to the database and returns a handle.
 """
 function connect(conn_data::Dict{String,Any}) :: DatabaseHandle
   try
-    MySQL.connect(conn_data["host"],
-                  conn_data["username"],
-                  conn_data["password"],
-                  conn_data["database"],
-                  conn_data["port"])
+    MySQL.mysql_connect(conn_data["host"],
+                        conn_data["username"],
+                        conn_data["password"],
+                        conn_data["database"],
+                        port = conn_data["port"])
   catch ex
     Logger.log("Invalid DB connection settings", :err)
     Logger.log(string(ex), :err)
@@ -45,6 +47,14 @@ function connect(conn_data::Dict{String,Any}) :: DatabaseHandle
 
     rethrow(ex)
   end
+end
+
+
+"""
+
+"""
+function disconnect(conn::DatabaseHandle)
+  MySQL.mysql_disconnect(conn)
 end
 
 
@@ -59,7 +69,7 @@ end
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
 function table_columns_sql(table_name::String) :: String
-  "SELECT * FROM '$table_name' LIMIT 1"
+  "SHOW COLUMNS FROM `$table_name`"
 end
 
 
@@ -113,7 +123,16 @@ julia>
 ```
 """
 function escape_value{T}(v::T, conn::DatabaseHandle) :: T
-  MySQL.mysql_escape(conn, v)
+  isa(v, Number) ? v : "'$(mysql_escape(conn, string(v)))'"
+end
+
+function mysql_escape(hndl::MySQL.MySQLHandle, str::String)
+   output = Vector{UInt8}(length(str)*2 + 1)
+   output_len = MySQL.mysql_real_escape_string(hndl.mysqlptr, output, str, UInt64(length(str)))
+   if output_len == typemax(Cuint)
+       throw(MySQLInternalError(hndl))
+   end
+   return String(output[1:output_len])
 end
 
 
@@ -129,7 +148,7 @@ Executes the `sql` query against the database backend and returns a DataFrame re
 
 # Examples:
 ```julia
-julia> PostgreSQLDatabaseAdapter.query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Database.connection())
+julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Database.connection())
 
 2017-01-16T21:36:21.566 - info: SQL QUERY: SELECT \"articles\".\"id\" AS \"articles_id\", \"articles\".\"title\" AS \"articles_title\", \"articles\".\"summary\" AS \"articles_summary\", \"articles\".\"content\" AS \"articles_content\", \"articles\".\"updated_at\" AS \"articles_updated_at\", \"articles\".\"published_at\" AS \"articles_published_at\", \"articles\".\"slug\" AS \"articles_slug\" FROM \"articles\" LIMIT 5
 
@@ -140,29 +159,43 @@ julia> PostgreSQLDatabaseAdapter.query_df(SearchLight.to_fetch_sql(Article, SQLQ
 ```
 """
 function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
-  query(sql, suppress_output, conn) |> DB_ADAPTER.fetchdf
+  result = query(sql, suppress_output, conn, MYSQL_DATA_FRAME)
+
+  if isa(result, Number)
+    DataFrames.DataFrame([Dict(:affected_rows => result)])
+  elseif isa(result, Array)
+    result[end]
+  else
+    result
+  end
 end
 
 
 """
 
 """
-function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: PostgreSQL.PostgresResultHandle
-  stmt = DB_ADAPTER.prepare(conn, sql)
+function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle, result_format = MYSQL_TUPLES) :: Union{ResultHandle,Number}
+  result =  try
+              if suppress_output || ( ! config.log_db && ! config.log_queries )
+                DB_ADAPTER.mysql_execute(conn, sql, opformat = result_format)
+              else
+                Logger.log("SQL QUERY: $(escape_string(sql))")
+                @time DB_ADAPTER.mysql_execute(conn, sql, opformat = result_format)
+              end
+            catch ex
+              Logger.log(string(ex), :err)
+              Logger.log("MySQL error when running $(escape_string(sql))", :err)
+              
+              rethrow(ex)
+            end
 
-  result = if suppress_output || ( ! config.log_db && ! config.log_queries )
-    DB_ADAPTER.execute(stmt)
+  result_format == MYSQL_DATA_FRAME && return result
+
+  if isa(result, Number)
+    [(result,)]
   else
-    Logger.log("SQL QUERY: $(escape_string(sql))")
-    @time DB_ADAPTER.execute(stmt)
+    result
   end
-  DB_ADAPTER.finish(stmt)
-
-  if ( DB_ADAPTER.errstring(result) != "" )
-    error("$(string(DB_ADAPTER)) error: $(DB_ADAPTER.errstring(result)) [$(DB_ADAPTER.errcode(result))]")
-  end
-
-  result
 end
 
 
@@ -220,16 +253,16 @@ function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: Str
 
     "INSERT INTO $(m._table_name) ( $fields ) VALUES ( $vals )" *
         if ( conflict_strategy == :error ) ""
-        elseif ( conflict_strategy == :ignore ) " ON CONFLICT DO NOTHING"
+        elseif ( conflict_strategy == :ignore ) " ON DUPLICATE KEY UPDATE `$(m._id)` = `$(m._id)`"
         elseif ( conflict_strategy == :update && ! isnull( getfield(m, Symbol(m._id)) ) )
-           " ON CONFLICT ($(m._id)) DO UPDATE SET $(update_query_part(m))"
+           " ON DUPLICATE KEY UPDATE $(update_query_part(m))"
         else ""
         end
   else
     "UPDATE $(m._table_name) SET $(update_query_part(m))"
   end
 
-  return sql * " RETURNING $(m._id)"
+  return sql * "; SELECT IF( LAST_INSERT_ID() = 0, $( isnull(getfield(m, Symbol(m._id))) ? -1 : getfield(m, Symbol(m._id)) |> Base.get ), LAST_INSERT_ID() ) AS id"
 end
 
 
@@ -299,7 +332,7 @@ end
 
 """
 function to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[]) :: String
-  "SELECT " * Database.to_select_part(m, cols, joins)
+  "SELECT " * Database._to_select_part(m, cols, joins)
 end
 
 

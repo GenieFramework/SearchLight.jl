@@ -24,7 +24,7 @@ print{T<:SearchLightAbstractType}(io::IO, t::T) = print(io, "$(typeof(t)) <: $(s
 show{T<:SearchLightAbstractType}(io::IO, t::T) = print(io, searchlightabstracttype_to_print(t))
 
 """
-    searchlightabstracttype_to_print{T<:GenieType}(m::T) :: String
+    searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: String
 
 Pretty printing of SearchLight types.
 """
@@ -249,8 +249,8 @@ function string{T <: AbstractModel}(w::SQLWhere, m::T)
   w.column = SQLColumn(w.column.value, escaped = w.column.escaped, raw = w.column.raw, table_name = m._table_name)
   "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
 end
-print{T<:SQLWhere}(io::IO, w::T) = print(io, Genie.genietype_to_print(w))
-show{T<:SQLWhere}(io::IO, w::T) = print(io, Genie.genietype_to_print(w))
+print{T<:SQLWhere}(io::IO, w::T) = print(io, searchlightabstracttype_to_print(w))
+show{T<:SQLWhere}(io::IO, w::T) = print(io, searchlightabstracttype_to_print(w))
 
 convert(::Type{Vector{SQLWhere}}, w::SQLWhere) = [w]
 

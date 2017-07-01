@@ -13,6 +13,8 @@ export DatabaseHandle, ResultHandle
 const DB_ADAPTER = PostgreSQL
 const DEFAULT_PORT = 5432
 
+const COLUMN_NAME_FIELD_NAME = :column_name
+
 typealias DatabaseHandle  PostgreSQL.PostgresDatabaseHandle
 typealias ResultHandle    PostgreSQL.PostgresResultHandle
 
@@ -52,6 +54,14 @@ function connect(conn_data::Dict{String,Any}) :: DatabaseHandle
 
     rethrow(ex)
   end
+end
+
+
+"""
+
+"""
+function disconnect(conn::DatabaseHandle)
+  PostgreSQL.disconnect(conn)
 end
 
 

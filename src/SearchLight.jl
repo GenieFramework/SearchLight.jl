@@ -3078,7 +3078,7 @@ julia> SearchLight.persistable_fields(SearchLight.find_one!!(User, 1))
 """
 function persistable_fields{T<:AbstractModel}(m::T; fully_qualified::Bool = false) :: Vector{String}
   object_fields = map(x -> string(x), fieldnames(m))
-  db_columns = columns(typeof(m))[:column_name]
+  db_columns = columns(typeof(m))[DatabaseAdapter.COLUMN_NAME_FIELD_NAME]
 
   isempty(db_columns) &&
     Logger.log("No columns retrieved for $(typeof(m)) - check if the table exists and the model is properly configured.", :err)

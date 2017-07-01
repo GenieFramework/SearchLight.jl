@@ -8,14 +8,16 @@ if IS_IN_APP
 
   export config
 
-  eval(:(using $(App.config.db_adapter)))
-  eval(:(const DatabaseAdapter = $(App.config.db_adapter)))
+  db_adapter = Symbol(App.config.db_config_settings["adapter"] * "DatabaseAdapter")
+
+  eval(:(using $db_adapter))
+  eval(:(const DatabaseAdapter = $db_adapter))
   eval(:(export DatabaseAdapter))
 else
-    using Configuration
-    const config = Configuration.Settings()
+  using Configuration
+  const config = Configuration.Settings()
 
-    export config
+  export config
 end
 
 
@@ -47,11 +49,19 @@ PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false
 function connect() :: DatabaseHandle
   connect(config.db_config_settings)
 end
-@memoize function connect(conn_settings::Dict{String,Any})
+function connect(conn_settings::Dict{String,Any})
   DatabaseAdapter.connect(conn_settings) :: DatabaseHandle
 end
 function connection() :: DatabaseHandle
   connect()
+end
+
+
+"""
+
+"""
+function disconnect(conn::DatabaseHandle)
+  DatabaseAdapter.disconnect(conn)
 end
 
 
@@ -125,17 +135,38 @@ PostgreSQL.PostgresResultHandle(Ptr{Void} @0x00007fcdaf33a450,DataType[PostgreSQ
 ```
 """
 function query(sql::AbstractString; system_query::Bool = false) :: ResultHandle
-  DatabaseAdapter.query(sql, system_query || config.suppress_output, connection())
+  conn = connection()
+  result =  try
+              DatabaseAdapter.query(sql, system_query || config.suppress_output, conn)
+            finally
+              disconnect(conn)
+            end
+
+  result
 end
 
 
 @memoize function escape_column_name(c::AbstractString)
-  DatabaseAdapter.escape_column_name(c, connection()) :: String
+  conn = connection()
+  result =  try
+              DatabaseAdapter.escape_column_name(c, conn) :: String
+            finally
+              disconnect(conn)
+            end
+
+  result
 end
 
 
 function escape_value{T}(v::T) :: T
-  DatabaseAdapter.escape_value(v, connection())
+  conn = connection()
+  result =  try
+              DatabaseAdapter.escape_value(v, conn)
+            finally
+              disconnect(conn)
+            end
+
+  result
 end
 
 
@@ -163,7 +194,12 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query_
 ```
 """
 function query_df(sql::AbstractString; suppress_output::Bool = false) :: DataFrames.DataFrame
-  df::DataFrames.DataFrame = DatabaseAdapter.query_df(sql, (suppress_output || config.suppress_output), connection())
+  conn = connection()
+  df::DataFrames.DataFrame =  try
+                                 DatabaseAdapter.query_df(sql, (suppress_output || config.suppress_output), conn)
+                              finally
+                                disconnect(conn)
+                              end
   (! suppress_output && config.log_db) && Logger.log(df)
 
   df
