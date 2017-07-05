@@ -6,6 +6,7 @@ DateParser
 Documenter
 Faker
 Gallium
+IterableTables
 JSON
 Lint
 Lumberjack

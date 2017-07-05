@@ -51,7 +51,9 @@ end
 
 
 """
+    disconnect(conn::DatabaseHandle) :: Void
 
+Disconnects from database.
 """
 function disconnect(conn::DatabaseHandle) :: Void
   MySQL.mysql_disconnect(conn)
@@ -271,15 +273,7 @@ end
 """
 function delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false) :: Void
   _m::T = m()
-  if truncate
-    sql = "TRUNCATE $(_m._table_name)"
-    reset_sequence ? sql * " RESTART IDENTITY" : ""
-    cascade ? sql * " CASCADE" : ""
-  else
-    sql = "DELETE FROM $(_m._table_name)"
-  end
-
-  SearchLight.query(sql)
+  truncate ? "TRUNCATE $(_m._table_name)" : "DELETE FROM $(_m._table_name)" |> SearchLight.query
 
   nothing
 end
@@ -289,8 +283,7 @@ end
 
 """
 function delete{T<:AbstractModel}(m::T) :: T
-  sql = "DELETE FROM $(m._table_name) WHERE $(m._id) = '$(m.id |> Base.get)'"
-  SearchLight.query(sql)
+  "DELETE FROM $(m._table_name) WHERE $(m._id) = '$(m.id |> Base.get)'" |> SearchLight.query
 
   tmp::T = T()
   m.id = tmp.id
@@ -449,6 +442,16 @@ function to_join_part{T<:AbstractModel}(m::Type{T}, joins = SQLJoin[]) :: String
   end
 
   join_part * join( map(x -> string(x), joins), " " )
+end
+
+
+"""
+    cast_type(v::Bool) :: Union{Bool,Int,Char,String}
+
+Converts the Julia type to the corresponding type in the database.
+"""
+function cast_type(v::Bool) :: Int
+  v ? 1 : 0
 end
 
 end

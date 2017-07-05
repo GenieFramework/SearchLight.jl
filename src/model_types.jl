@@ -35,7 +35,7 @@ function searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: S
   output
 end
 
-typealias DbId Union{Int32,String}
+typealias DbId Union{Int32,Int64,String}
 convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
 convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
 

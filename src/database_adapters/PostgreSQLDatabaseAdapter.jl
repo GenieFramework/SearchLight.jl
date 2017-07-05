@@ -58,7 +58,9 @@ end
 
 
 """
+    disconnect(conn::DatabaseHandle) :: Void
 
+Disconnects from database.
 """
 function disconnect(conn::DatabaseHandle) :: Void
   PostgreSQL.disconnect(conn)
@@ -446,6 +448,16 @@ function to_join_part{T<:AbstractModel}(m::Type{T}, joins = SQLJoin[]) :: String
   end
 
   join_part * join( map(x -> string(x), joins), " " )
+end
+
+
+"""
+    cast_type(v::Bool) :: Union{Bool,Int,Char,String}
+
+Converts the Julia type to the corresponding type in the database.
+"""
+function cast_type(v::Bool) :: Union{Bool,Int,Char,String}
+  v ? "true" : "false"
 end
 
 end

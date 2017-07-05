@@ -193,14 +193,14 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query_
 ...
 ```
 """
-function query_df(sql::AbstractString; suppress_output::Bool = false) :: DataFrames.DataFrame
+function query_df(sql::AbstractString; suppress_output::Bool = false, system_query::Bool = false) :: DataFrames.DataFrame
   conn = connection()
   df::DataFrames.DataFrame =  try
-                                 DatabaseAdapter.query_df(sql, (suppress_output || config.suppress_output), conn)
+                                 DatabaseAdapter.query_df(sql, (suppress_output || system_query || config.suppress_output), conn)
                               finally
                                 disconnect(conn)
                               end
-  (! suppress_output && config.log_db) && Logger.log(df)
+  (! suppress_output && ! system_query && config.log_db) && Logger.log(df)
 
   df
 end

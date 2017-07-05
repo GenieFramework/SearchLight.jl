@@ -2790,7 +2790,7 @@ julia> SearchLight.query("SELECT * FROM articles LIMIT 5")
 5×7 DataFrames.DataFrame
 ```
 """
-function query(sql::String) :: DataFrame
+function query(sql::String; system_query::Bool = false) :: DataFrame
   Database.query_df(sql)
 end
 
@@ -3600,6 +3600,16 @@ database name defined in `config.db_migrations_table_name`
 """
 function create_migrations_table(table_name::String) :: Bool
   DatabaseAdapter.create_migrations_table(table_name)
+end
+
+
+"""
+    adapter_type(v::Bool) :: Union{Bool,Int,Char,String}
+
+Converts the Julia type to the corresponding type in the database. For example, the bool type for SQLite is 1 or 0.
+"""
+function adapter_type(v::Bool) :: Union{Bool,Int,Char,String}
+  DatabaseAdapter.cast_type(v)
 end
 
 end
