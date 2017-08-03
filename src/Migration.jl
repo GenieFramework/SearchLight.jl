@@ -5,11 +5,36 @@ module Migration
 
 using Genie, SearchLight, FileTemplates, Millboard, Configuration, Logger, Macros, Database
 
+import Base.showerror
+
+
+"""
+
+"""
 type DatabaseMigration # todo: rename the "migration_" prefix for the fields
   migration_hash::String
   migration_file_name::String
   migration_module_name::String
 end
+
+
+"""
+
+"""
+type UnsupportedException <: Exception
+  method_name::Symbol
+  adapter_name::Symbol
+end
+Base.showerror(io::IO, e::UnsupportedException) = print(io, "Method $(e.method_name) is not supported by $(e.adapter_name)")
+
+
+"""
+
+"""
+type IrreversibleMigration <: Exception
+  migration_name::Symbol
+end
+Base.showerror(io::IO, e::IrreversibleMigration) = print(io, "Migration $(e.migration_name) is not reversible")
 
 
 """
@@ -219,6 +244,8 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
     Logger.log("Failed executing migration $(migration.migration_module_name) $(direction)", :err)
     Logger.log(string(ex), :err)
     Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+
+    rethrow(ex)
   end
 
   nothing
@@ -358,5 +385,157 @@ function all_up() :: Void
 
   nothing
 end
+
+
+"""
+    function create_table() :: String
+
+Creates a new DB table.
+"""
+function create_table(f::Function, name::Union{String,Symbol}, options::String = "") :: Void
+  SearchLight.create_table(f, string(name), options)
+end
+
+
+"""
+
+"""
+function column(name::Union{String,Symbol}, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  SearchLight.column_definition(string(name), column_type, default = default, limit = limit, not_null = not_null)
+end
+
+
+"""
+
+"""
+function column_id(name::Union{String,Symbol} = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
+  SearchLight.column_id(string(name), options, constraint = constraint, nextval = nextval)
+end
+
+
+"""
+
+"""
+function add_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}; name::Union{String,Symbol} = "", unique::Bool = false, order::Symbol = :none) :: Void
+  SearchLight.add_index(string(table_name), string(column_name), name = string(name), unique = unique, order = order)
+end
+const create_index = add_index
+
+
+"""
+
+"""
+function add_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: Void
+  SearchLight.add_column(string(table_name), string(name), column_type, default = default, limit = limit, not_null = not_null)
+end
+
+
+"""
+
+"""
+function drop_table(name::Union{String,Symbol}) :: Void
+  SearchLight.drop_table(string(name))
+end
+
+
+"""
+
+"""
+function remove_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Void
+  SearchLight.remove_column(string(table_name), string(name))
+end
+
+
+"""
+
+"""
+function remove_index_by_name(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Void
+  SearchLight.remove_index(string(table_name), string(name))
+end
+
+
+"""
+
+"""
+function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Void
+  Migration.remove_index_by_name(string(table_name), index_name(string(table_name), string(column_name)))
+end
+
+
+"""
+
+"""
+function index_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
+  string(table_name) * "__" * "idx_" * string(column_name)
+end
+
+
+"""
+
+"""
+function create_sequence(name::Union{String,Symbol}) :: Void
+  SearchLight.create_sequence(string(name))
+end
+
+
+"""
+
+"""
+function create_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Void
+  SearchLight.create_sequence(sequence_name(table_name, column_name))
+end
+
+
+"""
+
+PostgreSQL specific.
+"""
+function sequence_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
+  string(table_name) * "__" * "seq_" * string(column_name)
+end
+
+
+"""
+
+PostgreSQL specific.
+"""
+function constraint(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
+  "CONSTRAINT $( index_name(table_name, column_name) )"
+end
+
+
+"""
+
+PostgreSQL specific.
+"""
+function nextval(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
+  "NEXTVAL('$( sequence_name(table_name, column_name) )')"
+end
+
+
+"""
+
+PostgreSQL specific.
+"""
+function column_id_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol})
+  SearchLight.query("ALTER SEQUENCE $(sequence_name(table_name, column_name)) OWNED BY $table_name.$column_name")
+end
+
+
+"""
+
+"""
+function remove_sequence_by_name(name::Union{String,Symbol}, options::String = "") :: Void
+  SearchLight.remove_sequence(string(name), options)
+end
+
+
+"""
+
+"""
+function remove_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}, options::String = "") :: Void
+  Migration.remove_sequence_by_name(sequence_name(string(table_name), string(column_name)), options)
+end
+const drop_sequence = remove_sequence
 
 end

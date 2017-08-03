@@ -1,6 +1,6 @@
 module SQLiteDatabaseAdapter
 
-using SQLite, DataFrames, Genie, Database, Logger, SearchLight, DataStreams, IterableTables
+using SQLite, DataFrames, Genie, Database, Logger, SearchLight, DataStreams, IterableTables, Migration
 
 export DatabaseHandle, ResultHandle
 
@@ -15,6 +15,21 @@ const COLUMN_NAME_FIELD_NAME = :name
 
 typealias DatabaseHandle  SQLite.DB
 typealias ResultHandle    Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
+
+const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
+  :char       => :CHARACTER,
+  :string     => :VARCHAR,
+  :text       => :TEXT,
+  :integer    => :INTEGER,
+  :float      => :FLOAT,
+  :decimal    => :DECIMAL,
+  :datetime   => :DATETIME,
+  :timestamp  => :INTEGER,
+  :time       => :TIME,
+  :date       => :DATE,
+  :binary     => :BLOB,
+  :boolean    => :BOOLEAN
+)
 
 const SELECT_LAST_ID_QUERY_START = "; SELECT CASE WHEN last_insert_rowid() = 0 THEN"
 const SELECT_LAST_ID_QUERY_END = "ELSE last_insert_rowid() END AS id"
@@ -442,5 +457,72 @@ function cast_type(v::Bool) :: Int
   v ? 1 : 0
 end
 
+
+"""
+
+"""
+function create_table_sql(f::Function, name::String, options::String = "") :: String
+  "CREATE TABLE $name (" * join(f()::Vector{String}, ", ") * ") $options" |> strip
 end
-#
+
+
+"""
+
+"""
+function column_sql(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  "$name $(TYPE_MAPPINGS[column_type] |> string)" *
+    (isa(limit, Int) ? "($limit)" : "") *
+    (default == nothing ? "" : " DEFAULT $default ") *
+    (not_null ? " NOT NULL " : "")
+end
+
+
+"""
+
+"""
+function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
+  "$name INTEGER PRIMARY KEY $options"
+end
+
+
+"""
+
+"""
+function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
+  name = isempty(name) ? Migration.index_name(table_name, column_name) : name
+  "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
+end
+
+
+"""
+
+"""
+function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  "ALTER TABLE $table_name ADD $(column_sql(name, column_type, default = default, limit = limit, not_null = not_null))"
+end
+
+
+"""
+
+"""
+function drop_table_sql(name::String) :: String
+  "DROP TABLE $name"
+end
+
+
+"""
+
+"""
+function remove_column_sql(table_name::String, name::String) :: Void
+  throw(Migration.UnsupportedException(:remove_column, Symbol(DB_ADAPTER)))
+end
+
+
+"""
+
+"""
+function remove_index_sql(table_name::String, name::String) :: String
+  "DROP INDEX $name"
+end
+
+end

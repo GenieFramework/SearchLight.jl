@@ -2791,7 +2791,7 @@ julia> SearchLight.query("SELECT * FROM articles LIMIT 5")
 ```
 """
 function query(sql::String; system_query::Bool = false) :: DataFrame
-  Database.query_df(sql)
+  Database.query_df(sql, system_query = system_query)
 end
 
 
@@ -3606,10 +3606,110 @@ end
 """
     adapter_type(v::Bool) :: Union{Bool,Int,Char,String}
 
-Converts the Julia type to the corresponding type in the database. For example, the bool type for SQLite is 1 or 0.
+Converts the Julia type to the corresponding type in the database. For example, the bool type for SQLite is 1 or 0
 """
 function adapter_type(v::Bool) :: Union{Bool,Int,Char,String}
   DatabaseAdapter.cast_type(v)
+end
+
+
+"""
+    function create_table() :: String
+
+Creates a new DB table
+"""
+function create_table(f::Function, name::String, options::String = "") :: Void
+  DatabaseAdapter.create_table_sql(f, name, options) |> SearchLight.query
+
+  nothing
+end
+
+
+"""
+    function column_definition(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+
+Returns the adapter-dependent SQL for defining a table column
+"""
+function column_definition(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  DatabaseAdapter.column_sql(name, column_type, default = default, limit = limit, not_null = not_null)
+end
+
+
+"""
+
+"""
+function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
+  DatabaseAdapter.column_id_sql(name, options, constraint = constraint, nextval = nextval)
+end
+
+
+"""
+
+"""
+function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: Void
+  DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
+
+  nothing
+end
+
+
+"""
+
+"""
+function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: Void
+  DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
+
+  nothing
+end
+
+
+"""
+
+"""
+function drop_table(name::String) :: Void
+  DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
+
+  nothing
+end
+
+
+"""
+
+"""
+function remove_column(table_name::String, name::String) :: Void
+  DatabaseAdapter.remove_column_sql(table_name, name) |> SearchLight.query
+
+  nothing
+end
+
+
+"""
+
+"""
+function remove_index(table_name::String, name::String) :: Void
+  DatabaseAdapter.remove_index_sql(table_name, name) |> SearchLight.query
+
+  nothing
+end
+
+
+"""
+
+"""
+function create_sequence(name::String) :: Void
+  DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
+
+  nothing
+end
+
+
+"""
+
+"""
+function remove_sequence(name::String, options::String = "") :: Void
+  DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
+
+  nothing
 end
 
 end
