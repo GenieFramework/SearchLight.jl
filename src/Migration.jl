@@ -400,8 +400,8 @@ end
 """
 
 """
-function column(name::Union{String,Symbol}, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
-  SearchLight.column_definition(string(name), column_type, default = default, limit = limit, not_null = not_null)
+function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  SearchLight.column_definition(string(name), column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
 

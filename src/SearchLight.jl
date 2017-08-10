@@ -3630,8 +3630,8 @@ end
 
 Returns the adapter-dependent SQL for defining a table column
 """
-function column_definition(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
-  DatabaseAdapter.column_sql(name, column_type, default = default, limit = limit, not_null = not_null)
+function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  DatabaseAdapter.column_sql(name, column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
 

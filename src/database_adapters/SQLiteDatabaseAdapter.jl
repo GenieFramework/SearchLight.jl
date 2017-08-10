@@ -469,11 +469,12 @@ end
 """
 
 """
-function column_sql(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
-  "$name $(TYPE_MAPPINGS[column_type] |> string)" *
+function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  "$name $(TYPE_MAPPINGS[column_type] |> string) " *
     (isa(limit, Int) ? "($limit)" : "") *
     (default == nothing ? "" : " DEFAULT $default ") *
     (not_null ? " NOT NULL " : "")
+    options
 end
 
 

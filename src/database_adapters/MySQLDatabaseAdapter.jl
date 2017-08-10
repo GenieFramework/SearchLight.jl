@@ -1,6 +1,6 @@
 module MySQLDatabaseAdapter
 
-using MySQL, DataFrames, Genie, Database, Logger, SearchLight
+using MySQL, DataFrames, Genie, Database, Logger, SearchLight, Migration
 
 export DatabaseHandle, ResultHandle
 
@@ -17,6 +17,22 @@ const COLUMN_NAME_FIELD_NAME = :Field
 
 typealias DatabaseHandle  MySQL.MySQLHandle
 typealias ResultHandle    Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
+
+const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
+  :char       => :CHARACTER,
+  :string     => :VARCHAR,
+  :text       => :TEXT,
+  :integer    => :INTEGER,
+  :float      => :FLOAT,
+  :decimal    => :DECIMAL,
+  :datetime   => :DATETIME,
+  :timestamp  => :INTEGER,
+  :time       => :TIME,
+  :date       => :DATE,
+  :binary     => :BLOB,
+  :boolean    => :BOOLEAN
+)
+
 
 function db_adapter() :: Symbol
   :MySQL
@@ -452,6 +468,75 @@ Converts the Julia type to the corresponding type in the database.
 """
 function cast_type(v::Bool) :: Int
   v ? 1 : 0
+end
+
+
+"""
+
+"""
+function create_table_sql(f::Function, name::String, options::String = "") :: String
+  "CREATE TABLE $name (" * join(f()::Vector{String}, ", ") * ") $options" |> strip
+end
+
+
+"""
+
+"""
+function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  "$name $(TYPE_MAPPINGS[column_type] |> string) " *
+    (isa(limit, Int) ? "($limit)" : "") *
+    (default == nothing ? "" : " DEFAULT $default ") *
+    (not_null ? " NOT NULL " : "") *
+    " " * options
+end
+
+
+"""
+
+"""
+function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
+  "$name INT NOT NULL AUTO_INCREMENT PRIMARY KEY $options"
+end
+
+
+"""
+
+"""
+function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
+  name = isempty(name) ? Migration.index_name(table_name, column_name) : name
+  "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
+end
+
+
+"""
+
+"""
+function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+  "ALTER TABLE $table_name ADD $(column_sql(name, column_type, default = default, limit = limit, not_null = not_null))"
+end
+
+
+"""
+
+"""
+function drop_table_sql(name::String) :: String
+  "DROP TABLE $name"
+end
+
+
+"""
+
+"""
+function remove_column_sql(table_name::String, name::String, options::String = "") :: Void
+  "ALTER TABLE $table_name DROP COLUMN $name $options"
+end
+
+
+"""
+
+"""
+function remove_index_sql(table_name::String, name::String, options::String = "") :: String
+  "DROP INDEX $name $options"
 end
 
 end
