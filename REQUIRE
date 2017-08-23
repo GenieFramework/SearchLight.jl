@@ -6,7 +6,6 @@ DateParser
 Faker
 IterableTables
 JSON
-Lint
 Lumberjack
 MbedTLS
 Memoize
