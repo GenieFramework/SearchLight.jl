@@ -235,7 +235,8 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
 
   try
     m = include(abspath(joinpath(config.db_migrations_folder, migration.migration_file_name)))
-    getfield(m, direction)()
+    Base.invokelatest(getfield(m, direction))
+    # getfield(m, direction)()
 
     store_migration_status(migration, direction, force = force)
 
@@ -350,9 +351,9 @@ Runs all migrations `down`.
 """
 function all_down(; confirm = true) :: Void
   if confirm
-    print_with_color(:yellow, "!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 5 seconds to cancel this.")
+    print_with_color(:yellow, "!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 5 seconds to cancel this. ")
     sleep(3)
-    print_with_color(:yellow, "Running down all the migrations in 2 seconds.")
+    print_with_color(:yellow, "Running down all the migrations in 2 seconds. ")
     sleep(2)
   end
 

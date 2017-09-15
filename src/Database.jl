@@ -1,23 +1,30 @@
 module Database
 
-using Genie, YAML, Memoize, SearchLight, DataFrames, Logger
+using YAML, Memoize, SearchLight, DataFrames
 
-if IS_IN_APP
-  using App
-  const config = App.config
+if isdir(Pkg.dir("Genie"))
+  using Genie, Logger
 
-  export config
+  if IS_IN_APP
+    using App
+    const config = App.config
 
-  db_adapter = Symbol(App.config.db_config_settings["adapter"] * "DatabaseAdapter")
+    export config
 
-  eval(:(using $db_adapter))
-  eval(:(const DatabaseAdapter = $db_adapter))
-  eval(:(export DatabaseAdapter))
+    db_adapter = Symbol(App.config.db_config_settings["adapter"] * "DatabaseAdapter")
+
+    eval(:(using $db_adapter))
+    eval(:(const DatabaseAdapter = $db_adapter))
+    eval(:(export DatabaseAdapter))
+  end
 else
-  using Configuration
+  using Configuration, Lumberjack
+
   const config = Configuration.Settings()
+  const Logger = Lumberjack
 
   export config
+  export Logger
 end
 
 
