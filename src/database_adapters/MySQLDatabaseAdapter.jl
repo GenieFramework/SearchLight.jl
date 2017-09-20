@@ -539,4 +539,12 @@ function remove_index_sql(table_name::String, name::String, options::String = ""
   "DROP INDEX $name $options"
 end
 
+
+"""
+
+"""
+function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
+  SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("rand()", raw = true)]))
+end
+
 end

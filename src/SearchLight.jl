@@ -564,7 +564,7 @@ julia> SearchLight.rand(Article, limit = 3)
 ```
 """
 function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
-  find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("random()", raw = true)]))
+  Database.rand(m, limit = limit)
 end
 
 
@@ -593,7 +593,7 @@ App.Article
 ```
 """
 function rand_one{T<:AbstractModel}(m::Type{T}) :: Nullable{T}
-  to_nullable(rand(m, limit = 1))
+  to_nullable(SearchLight.rand(m, limit = 1))
 end
 
 
@@ -617,7 +617,7 @@ App.Article
 ```
 """
 function rand_one!!{T<:AbstractModel}(m::Type{T}) :: T
-  rand_one(m) |> Base.get
+  SearchLight.rand_one(m) |> Base.get
 end
 
 

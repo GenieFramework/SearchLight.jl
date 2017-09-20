@@ -434,4 +434,12 @@ function prepare_column_name(column::SQLColumn) :: String
   end
 end
 
+
+"""
+
+"""
+function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
+  DatabaseAdapter.rand(m, limit = limit)
+end
+
 end

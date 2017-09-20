@@ -559,4 +559,12 @@ function remove_sequence_sql(name::String, options::String = "") :: String
   "DROP SEQUENCE $name $options"
 end
 
+
+"""
+
+"""
+function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
+  SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("random()", raw = true)]))
+end
+
 end
