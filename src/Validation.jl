@@ -1,10 +1,10 @@
 module Validation
 
-using Genie, SearchLight, App
+using SearchLight
 
 export ValidationStatus
 
-typealias ValidationStatus Tuple{Bool,Symbol,String}
+const ValidationStatus = Tuple{Bool,Symbol,String}
 
 #
 # errors manipulation

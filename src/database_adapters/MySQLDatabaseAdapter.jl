@@ -1,6 +1,6 @@
 module MySQLDatabaseAdapter
 
-using MySQL, DataFrames, Genie, Database, Logger, SearchLight, Migration
+using MySQL, DataFrames, Database, Logger, SearchLight, Migration
 
 export DatabaseHandle, ResultHandle
 
@@ -15,8 +15,8 @@ const DEFAULT_PORT = 3306
 
 const COLUMN_NAME_FIELD_NAME = :Field
 
-typealias DatabaseHandle  MySQL.MySQLHandle
-typealias ResultHandle    Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
+const DatabaseHandle = MySQL.MySQLHandle
+const ResultHandle   = Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
 
 const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
   :char       => :CHARACTER,

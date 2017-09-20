@@ -1,11 +1,24 @@
 module SearchLight
 
 push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
-                  joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"))
+                  joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"),
+                  abspath(pwd()))
 
+include(joinpath(Pkg.dir("SearchLight"), "src", "constants.jl"))
 include("model_types.jl")
 
 const OUTPUT_LENGTH = 256
+
+
+include(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
+
+isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
+haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
+
+const config =  Configuration.Settings()
+
+SearchLight.Configuration.load_db_connection()
+
 
 using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Logger, Millboard
 
@@ -27,6 +40,7 @@ const RELATION_EAGERNESS_LAZY    = :lazy
 const RELATION_EAGERNESS_EAGER   = :eager
 
 const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_AUTO
+
 
 # internals
 
@@ -3578,8 +3592,10 @@ end
 # Conversion utilities
 #
 
-function convert(::Type{DateTime}, value::String) :: DateTime
-  DateParser.parse(DateTime, value)
+if ! method_exists(convert, (Type{DateTime}, String))
+  function convert(::Type{DateTime}, value::String) :: DateTime
+    DateParser.parse(DateTime, value)
+  end
 end
 
 function convert(::Type{Nullable{DateTime}}, value::String) :: Nullable{DateTime}

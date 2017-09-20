@@ -3,7 +3,7 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using Genie, SearchLight, FileTemplates, Millboard, Configuration, Logger, Macros, Database
+using SearchLight, FileTemplates, Millboard, Genie.Configuration, Logger, Macros, Database
 
 import Base.showerror
 
@@ -41,7 +41,7 @@ Base.showerror(io::IO, e::IrreversibleMigration) = print(io, "Migration $(e.migr
     new(migration_name::String, content::String = "") :: Void
     new(cmd_args::Dict{String,Any}, config::Configuration.Settings) :: Void
 
-Creates a new default migration file and persists it to disk in the configured Genie migrations folder.
+Creates a new default migration file and persists it to disk in the configured migrations folder.
 """
 function new(migration_name::String, content::String = "") :: Void
   mfn = migration_file_name(migration_name)
