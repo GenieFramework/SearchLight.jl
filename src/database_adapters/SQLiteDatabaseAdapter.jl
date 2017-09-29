@@ -1,5 +1,7 @@
 module SQLiteDatabaseAdapter
 
+isdir(Pkg.dir("SQLite")) || Pkg.add("SQLite")
+
 using SQLite, DataFrames, Genie, Database, Logger, SearchLight, DataStreams, IterableTables, Migration
 
 export DatabaseHandle, ResultHandle
@@ -13,8 +15,8 @@ export DatabaseHandle, ResultHandle
 const DB_ADAPTER = SQLite
 const COLUMN_NAME_FIELD_NAME = :name
 
-typealias DatabaseHandle  SQLite.DB
-typealias ResultHandle    Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
+const DatabaseHandle = SQLite.DB
+const ResultHandle   =  Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
 
 const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
   :char       => :CHARACTER,
@@ -473,7 +475,7 @@ function column_sql(name::String, column_type::Symbol, options::String = ""; def
   "$name $(TYPE_MAPPINGS[column_type] |> string) " *
     (isa(limit, Int) ? "($limit)" : "") *
     (default == nothing ? "" : " DEFAULT $default ") *
-    (not_null ? " NOT NULL " : "")
+    (not_null ? " NOT NULL " : "") *
     options
 end
 

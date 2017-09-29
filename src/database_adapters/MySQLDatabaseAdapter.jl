@@ -1,5 +1,7 @@
 module MySQLDatabaseAdapter
 
+isdir(Pkg.dir("MySQL")) || Pkg.add("MySQL")
+
 using MySQL, DataFrames, Database, Logger, SearchLight, Migration
 
 export DatabaseHandle, ResultHandle

@@ -20,7 +20,7 @@ const config =  Configuration.Settings()
 SearchLight.Configuration.load_db_connection()
 
 
-using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Logger, Millboard
+using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Logger, Millboard, Generator
 
 @reexport using Validation
 
@@ -3614,7 +3614,7 @@ end
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `config.db_migrations_table_name`
 """
-function create_migrations_table(table_name::String) :: Bool
+function create_migrations_table(table_name::String = config.db_migrations_table_name) :: Bool
   DatabaseAdapter.create_migrations_table(table_name)
 end
 
@@ -3724,6 +3724,19 @@ end
 """
 function remove_sequence(name::String, options::String = "") :: Void
   DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
+
+  nothing
+end
+
+
+"""
+    load_resources(dir = SearchLight.RESOURCES_PATH) :: Void
+
+Recursively adds subfolders of resources to LOAD_PATH.
+"""
+function load_resources(dir = SearchLight.RESOURCES_PATH) :: Void
+  res_dirs = Util.walk_dir(dir, only_dirs = true)
+  ! isempty(res_dirs) && push!(LOAD_PATH, res_dirs...)
 
   nothing
 end

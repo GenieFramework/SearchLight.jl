@@ -130,6 +130,8 @@ Automatically invoked.
 function setup_loggers() :: Bool
   configure(; modes=["debug", "info", "notice", "warn", "err", "critical", "alert", "emerg"])
   add_truck(LumberjackTruck(STDOUT, nothing, Dict{Any,Any}(:is_colorized => true)), "console")
+
+  ispath(SearchLight.LOG_PATH) || mkpath(SearchLight.LOG_PATH)
   add_truck(LumberjackTruck("$(joinpath(SearchLight.LOG_PATH, SearchLight.config.app_env)).log", nothing, Dict{Any,Any}(:is_colorized => true)), "file-logger")
 
   true

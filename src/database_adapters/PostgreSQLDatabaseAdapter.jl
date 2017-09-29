@@ -490,7 +490,7 @@ function column_sql(name::String, column_type::Symbol, options::String = ""; def
   "$name $(TYPE_MAPPINGS[column_type] |> string) " *
     (isa(limit, Int) ? "($limit)" : "") *
     (default == nothing ? "" : " DEFAULT $default ") *
-    (not_null ? " NOT NULL " : "")
+    (not_null ? " NOT NULL " : "") * 
     options
 end
 

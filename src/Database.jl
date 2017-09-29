@@ -6,7 +6,7 @@ const config = SearchLight.config
 
 export config
 
-if SearchLight.config.db_config_settings["adapter"] != nothing
+if haskey(SearchLight.config.db_config_settings, "adapter") && SearchLight.config.db_config_settings["adapter"] != nothing
   db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
 
   eval(:(using $db_adapter))

@@ -3,7 +3,7 @@ Various macro helpers.
 """
 module Macros
 
-using Configuration
+using SearchLight.Configuration
 
 export @devtools, @ifdevtools
 export @run_with_time, @unless, @psst, @in_repl, @location_in_file

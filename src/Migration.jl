@@ -3,7 +3,7 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using SearchLight, FileTemplates, Millboard, Genie.Configuration, Logger, Macros, Database
+using SearchLight, FileTemplates, Millboard, SearchLight.Configuration, Logger, Macros, Database
 
 import Base.showerror
 
@@ -46,28 +46,12 @@ Creates a new default migration file and persists it to disk in the configured m
 function new(migration_name::String, content::String = "") :: Void
   mfn = migration_file_name(migration_name)
 
-  if ispath(mfn)
-    error("Migration file already exists")
+  ispath(mfn) && error("Migration file already exists")
+  ispath(config.db_migrations_folder) || mkpath(config.db_migrations_folder)
+
+  open(mfn, "w") do f
+    write(f, isempty(content) ? FileTemplates.new_database_migration(migration_module_name(migration_name)) : content)
   end
-
-  f = open(mfn, "w")
-  write(f, isempty(content) ? FileTemplates.new_database_migration(migration_module_name(migration_name)) : content)
-  close(f)
-
-  Logger.log("New migration created at $mfn")
-
-  nothing
-end
-function new(cmd_args::Dict{String,Any}, config::Configuration.Settings) :: Void
-  mfn = migration_file_name(cmd_args, config)
-
-  if ispath(mfn)
-    error("Migration file already exists")
-  end
-
-  f = open(mfn, "w")
-  write(f, FileTemplates.new_database_migration(migration_module_name(cmd_args["migration:new"])))
-  close(f)
 
   Logger.log("New migration created at $mfn")
 

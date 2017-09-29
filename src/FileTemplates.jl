@@ -18,13 +18,18 @@ function new_database_migration(module_name::String) :: String
   using SearchLight
 
   function up()
-    # SearchLight.query("")
-    error("Not implemented")
+    create_table(:table_name) do
+      [
+        column_id()
+        column(:column_name, :column_type, options)
+      ]
+    end
+
+    add_index(:table_name, :column_name, options)
   end
 
   function down()
-    # SearchLight.query("")
-    error("Not implemented")
+    drop_table(:table_name)
   end
 
   end
@@ -91,8 +96,8 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
       # scopes = Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}()
 
     ) = new("$table_name", "id",
-            id,
-            validator
+            id
+            # validator,
             # belongs_to, has_one, has_many,
             # before_save, after_save, on_dehydration, on_hydration, after_hydration
             # scopes
@@ -122,6 +127,65 @@ function new_validator(validator_name::String) :: String
   end
 
   end
+  """
+end
+
+
+function new_db_config(adapter::Symbol = :sqlite) :: String
+  adapters = Dict{Symbol,String}()
+
+  adapters[:mysql] = """
+  dev:
+    adapter:  MySQL
+    database: yourdb
+    host:     127.0.0.1
+    username: root
+    port:     3306
+    password: ""
+  """
+
+  adapters[:postgres] = """
+  dev:
+    adapter:  PostgreSQL
+    database: yourdb
+    host:     127.0.0.1
+    username: root
+    port:     5432
+    password: ""
+  """
+
+  adapters[:sqlite] = """
+  dev:
+    adapter:  SQLite
+    filename:
+  """
+
+
+  """
+  env: dev
+
+  $(adapters[adapter])
+    config:
+      suppress_output: false
+      output_length: 10000
+      log_db: true
+      log_queries: true
+      log_level: :debug
+  """
+end
+
+
+"""
+    new_test(plural_name::String, singular_name::String) :: String
+
+Default content for a new test file.
+"""
+function new_test(plural_name::String, singular_name::String) :: String
+  """
+  using SearchLight, $(plural_name)
+
+  ### Your tests here
+  @test 1 == 1
   """
 end
 
