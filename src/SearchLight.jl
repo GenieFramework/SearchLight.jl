@@ -3735,10 +3735,43 @@ end
 Recursively adds subfolders of resources to LOAD_PATH.
 """
 function load_resources(dir = SearchLight.RESOURCES_PATH) :: Void
+  ! isdir(abspath(dir)) && return nothing
+
   res_dirs = Util.walk_dir(dir, only_dirs = true)
   ! isempty(res_dirs) && push!(LOAD_PATH, res_dirs...)
 
   nothing
 end
+
+
+"""
+    load_models(dir = SearchLight.RESOURCES_PATH) :: Void
+
+Loads (includes) all available `model` and `validator` files.
+The modules are included in the `App` module.
+"""
+function load_models(dir = SearchLight.RESOURCES_PATH) :: Void
+  ! isdir(abspath(dir)) && return nothing
+
+  dir_contents = readdir(abspath(dir))
+
+  for i in dir_contents
+    full_path = joinpath(dir, i)
+    if isdir(full_path)
+      load_models(full_path)
+    else
+      if i == SearchLight.SEARCHLIGHT_MODEL_FILE_NAME
+        include(full_path)
+        isfile(joinpath(dir, SearchLight.SEARCHLIGHT_VALIDATOR_FILE_NAME)) && eval(Validation, :(include(joinpath($dir, $(SearchLight.SEARCHLIGHT_VALIDATOR_FILE_NAME)))))
+      end
+    end
+  end
+
+  nothing
+end
+
+
+SearchLight.load_resources()
+SearchLight.load_models()
 
 end

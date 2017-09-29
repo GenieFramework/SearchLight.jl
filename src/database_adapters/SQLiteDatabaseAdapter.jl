@@ -2,7 +2,7 @@ module SQLiteDatabaseAdapter
 
 isdir(Pkg.dir("SQLite")) || Pkg.add("SQLite")
 
-using SQLite, DataFrames, Genie, Database, Logger, SearchLight, DataStreams, IterableTables, Migration
+using SQLite, DataFrames, Database, Logger, SearchLight, DataStreams, IterableTables, Migration
 
 export DatabaseHandle, ResultHandle
 
