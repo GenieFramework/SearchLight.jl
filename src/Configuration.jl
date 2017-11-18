@@ -107,6 +107,21 @@ function load_db_connection() :: Dict{String,Any}
   _load_db_connection()
 end
 @memoize function _load_db_connection()
+  load_db_connection_from_config()
+end
+
+
+function reload_db_connection() :: Dict{String,Any}
+  settings = load_db_connection_from_config()
+
+  reload("Database")
+  reload("SearchLight")
+
+  settings
+end
+
+
+function load_db_connection_from_config()
   db_config_file = joinpath(SearchLight.CONFIG_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME)
   isfile(db_config_file) && (SearchLight.config.db_config_settings = read_db_connection_data!!(db_config_file))
 

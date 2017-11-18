@@ -3761,7 +3761,7 @@ function load_models(dir = SearchLight.RESOURCES_PATH) :: Void
       load_models(full_path)
     else
       if i == SearchLight.SEARCHLIGHT_MODEL_FILE_NAME
-        include(full_path)
+        eval(SearchLight, :(include($full_path)))
         isfile(joinpath(dir, SearchLight.SEARCHLIGHT_VALIDATOR_FILE_NAME)) && eval(Validation, :(include(joinpath($dir, $(SearchLight.SEARCHLIGHT_VALIDATOR_FILE_NAME)))))
       end
     end

@@ -54,6 +54,9 @@ function new_resource(resource_name::String) :: Void
   write_resource_file(SearchLight.TEST_PATH_UNIT, test_file, resource_name) &&
     Logger.log("New $test_file created at $(joinpath(SearchLight.TEST_PATH_UNIT, test_file))")
 
+  SearchLight.load_resources()
+  SearchLight.load_models()
+
   nothing
 end
 
@@ -104,6 +107,12 @@ end
 
 function new_db_config(adapter::Symbol = :sqlite) :: Void
   isdir(SearchLight.CONFIG_PATH) || mkpath(SearchLight.CONFIG_PATH)
+  isdir(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
+  if ! ispath(SearchLight.LOG_PATH)
+    mkpath(SearchLight.LOG_PATH)
+    Logger.setup_loggers()
+  end
+
   open(joinpath(SearchLight.CONFIG_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME), "w") do f
     write(f, FileTemplates.new_db_config(adapter))
   end
