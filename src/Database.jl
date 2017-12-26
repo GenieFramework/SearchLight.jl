@@ -442,4 +442,20 @@ function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
   DatabaseAdapter.rand(m, limit = limit)
 end
 
+
+"""
+
+"""
+function last_insert_id_type()
+  DatabaseAdapter.LAST_INSERT_ID_TYPE
+end
+
+
+"""
+
+"""
+function last_insert_id()
+  DatabaseAdapter.last_insert_id(connection())
+end
+
 end

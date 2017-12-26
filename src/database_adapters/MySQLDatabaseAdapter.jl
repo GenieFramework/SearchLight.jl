@@ -2,7 +2,7 @@ module MySQLDatabaseAdapter
 
 isdir(Pkg.dir("MySQL")) || Pkg.add("MySQL")
 
-using MySQL, DataFrames, Database, Logger, SearchLight, Migration
+using MySQL, DataFrames, Database, Logger, SearchLight, Migration, DataStreams
 
 export DatabaseHandle, ResultHandle
 
@@ -16,9 +16,10 @@ const DB_ADAPTER = MySQL
 const DEFAULT_PORT = 3306
 
 const COLUMN_NAME_FIELD_NAME = :Field
+const LAST_INSERT_ID_TYPE = :manual
 
 const DatabaseHandle = MySQL.MySQLHandle
-const ResultHandle   = Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
+const ResultHandle   = DataStreams.Data.Rows
 
 const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
   :char       => :CHARACTER,
@@ -53,11 +54,11 @@ Connects to the database and returns a handle.
 """
 function connect(conn_data::Dict{String,Any}) :: DatabaseHandle
   try
-    MySQL.mysql_connect(conn_data["host"],
-                        conn_data["username"],
-                        conn_data["password"],
-                        conn_data["database"],
-                        port = conn_data["port"])
+    MySQL.connect(conn_data["host"],
+                  conn_data["username"],
+                  conn_data["password"],
+                  db = conn_data["database"],
+                  port = conn_data["port"])
   catch ex
     Logger.log("Invalid DB connection settings", :err)
     Logger.log(string(ex), :err)
@@ -74,7 +75,7 @@ end
 Disconnects from database.
 """
 function disconnect(conn::DatabaseHandle) :: Void
-  MySQL.mysql_disconnect(conn)
+  MySQL.disconnect(conn)
 end
 
 
@@ -143,16 +144,11 @@ julia>
 ```
 """
 function escape_value{T}(v::T, conn::DatabaseHandle) :: T
-  isa(v, Number) ? v : "'$(mysql_escape(conn, string(v)))'"
+  isa(v, Number) ? v : "'$(MySQL.escape(conn, string(v)))'"
 end
 
-function mysql_escape(hndl::MySQL.MySQLHandle, str::String)
-   output = Vector{UInt8}(length(str)*2 + 1)
-   output_len = MySQL.mysql_real_escape_string(hndl.mysqlptr, output, str, UInt64(length(str)))
-   if output_len == typemax(Cuint)
-       throw(MySQLInternalError(hndl))
-   end
-   return String(output[1:output_len])
+function mysql_escape(s::AbstractString, conn::DatabaseHandle)
+   MySQL.escape(conn, s)
 end
 
 
@@ -179,14 +175,18 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 ```
 """
 function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
-  result = query(sql, suppress_output, conn, MYSQL_DATA_FRAME)
+  try
+    if suppress_output || ( ! config.log_db && ! config.log_queries )
+      DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
+    else
+      Logger.log("SQL QUERY: $(escape_string(sql))")
+      @time DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
+    end
+  catch ex
+    Logger.log(string(ex), :err)
+    Logger.log("MySQL error when running $(escape_string(sql))", :err)
 
-  if isa(result, Number)
-    DataFrames.DataFrame([Dict(:affected_rows => result)])
-  elseif isa(result, Array)
-    result[end]
-  else
-    result
+    rethrow(ex)
   end
 end
 
@@ -194,27 +194,21 @@ end
 """
 
 """
-function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle, result_format = MYSQL_TUPLES) :: Union{ResultHandle,Number}
-  result =  try
-              if suppress_output || ( ! config.log_db && ! config.log_queries )
-                DB_ADAPTER.mysql_execute(conn, sql, opformat = result_format)
-              else
-                Logger.log("SQL QUERY: $(escape_string(sql))")
-                @time DB_ADAPTER.mysql_execute(conn, sql, opformat = result_format)
-              end
-            catch ex
-              Logger.log(string(ex), :err)
-              Logger.log("MySQL error when running $(escape_string(sql))", :err)
-
-              rethrow(ex)
+function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: DataStreams.Data.Rows
+  try
+    query = if suppress_output || ( ! config.log_db && ! config.log_queries )
+              DB_ADAPTER.Query(conn, sql)
+            else
+              Logger.log("SQL QUERY: $(escape_string(sql))")
+              @time DB_ADAPTER.Query(conn, sql)
             end
 
-  result_format == MYSQL_DATA_FRAME && return result
+    Data.rows(query)
+  catch ex
+    Logger.log(string(ex), :err)
+    Logger.log("MySQL error when running $(escape_string(sql))", :err)
 
-  if isa(result, Number)
-    [(result,)]
-  else
-    result
+    rethrow(ex)
   end
 end
 
@@ -547,6 +541,14 @@ end
 """
 function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
   SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("rand()", raw = true)]))
+end
+
+
+"""
+
+"""
+function last_insert_id(conn)
+  MySQL.insertid(conn)
 end
 
 end

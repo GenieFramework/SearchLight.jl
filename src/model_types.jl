@@ -19,16 +19,16 @@ abstract type SearchLightAbstractType end
 abstract type SQLType <: SearchLightAbstractType end
 abstract type AbstractModel <: SearchLightAbstractType end
 
-string{T<:SearchLightAbstractType}(io::IO, t::T) = "$(typeof(t)) <: $(super(typeof(t)))"
-print{T<:SearchLightAbstractType}(io::IO, t::T) = print(io, "$(typeof(t)) <: $(super(typeof(t)))")
-show{T<:SearchLightAbstractType}(io::IO, t::T) = print(io, searchlightabstracttype_to_print(t))
+string(io::IO, t::T) where {T<:SearchLightAbstractType} = "$(typeof(t)) <: $(super(typeof(t)))"
+print(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, "$(typeof(t)) <: $(super(typeof(t)))")
+show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabstracttype_to_print(t))
 
 """
     searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: String
 
 Pretty printing of SearchLight types.
 """
-function searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: String
+function searchlightabstracttype_to_print(m::T) :: String where {T<:SearchLightAbstractType}
   output = "\n" * "$(typeof(m))" * "\n"
   output *= string(Millboard.table(to_string_dict(m))) * "\n"
 
@@ -48,7 +48,7 @@ convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
 """
 The object that defines the rules and stores the validation errors associated with the fields of a `model`.
 """
-immutable ModelValidator <: SQLType
+struct ModelValidator <: SQLType
   rules::Vector{Tuple{Symbol,Function,Vararg{Any}}} # [(:title, :not_empty), (:title, :min_length, (20)), (:content, :not_empty_if_published), (:email, :matches, (r"(.*)@(.*)"))]
   errors::Vector{Tuple{Symbol,Symbol,String}} # [(:title, :not_empty, "title not empty"), (:title, :min_length, "min length 20"), (:content, :min_length, "min length 200")]
 
@@ -63,7 +63,7 @@ end
 """
 Wrapper around a raw SQL query part.
 """
-immutable SQLRaw <: SQLType
+struct SQLRaw <: SQLType
   value::String
 end
 
@@ -81,8 +81,8 @@ mutable struct SQLInput <: SQLType
   raw::Bool
   SQLInput(v::Union{String,Real}; escaped = false, raw = false) = new(v, escaped, raw)
 end
-SQLInput{T}(a::Vector{T}) = map(x -> SQLInput(x), a)
-SQLInput{T}(s::SubString{T}) = convert(String, s) |> SQLInput
+SQLInput(a::Vector{T}) where {T} = map(x -> SQLInput(x), a)
+SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
@@ -102,7 +102,7 @@ show(io::IO, s::SQLInput) = print(io, string(s))
 convert(::Type{SQLInput}, r::Real) = SQLInput(parse(r))
 convert(::Type{SQLInput}, s::Symbol) = SQLInput(string(s))
 convert(::Type{SQLInput}, d::DateTime) = SQLInput(string(d))
-function convert{T}(::Type{SQLInput}, n::Nullable{T})
+function convert(::Type{SQLInput}, n::Nullable{T}) where {T}
   if isnull(n)
     SQLInput("NULL", escaped = true, raw = true)
   else
@@ -245,12 +245,12 @@ SQLWhere(column::SQLColumn, value::SQLInput) = SQLWhere(column, value, SQLLogicO
 SQLWhere(column::Any, value::Any) = SQLWhere(SQLColumn(column), SQLInput(value))
 
 string(w::SQLWhere) = "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
-function string{T <: AbstractModel}(w::SQLWhere, m::T)
+function string(w::SQLWhere, m::T) where {T <: AbstractModel}
   w.column = SQLColumn(w.column.value, escaped = w.column.escaped, raw = w.column.raw, table_name = m._table_name)
   "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
 end
-print{T<:SQLWhere}(io::IO, w::T) = print(io, searchlightabstracttype_to_print(w))
-show{T<:SQLWhere}(io::IO, w::T) = print(io, searchlightabstracttype_to_print(w))
+print(io::IO, w::T) where {T<:SQLWhere} = print(io, searchlightabstracttype_to_print(w))
+show(io::IO, w::T) where {T<:SQLWhere} = print(io, searchlightabstracttype_to_print(w))
 
 convert(::Type{Vector{SQLWhere}}, w::SQLWhere) = [w]
 
@@ -324,8 +324,8 @@ struct SQLWhereExpression <: SQLType
   end
 end
 SQLWhereExpression(sql_expression::String) = SQLWhereExpression(sql_expression, SQLInput[])
-SQLWhereExpression{T}(sql_expression::String, values::Vector{T}) = SQLWhereExpression(sql_expression, SQLInput(values))
-SQLWhereExpression{T}(sql_expression::String, values::T) = SQLWhereExpression(sql_expression, [SQLInput(values)])
+SQLWhereExpression(sql_expression::String, values::Vector{T}) where {T} = SQLWhereExpression(sql_expression, SQLInput(values))
+SQLWhereExpression(sql_expression::String, values::T) where {T} = SQLWhereExpression(sql_expression, [SQLInput(values)])
 
 function string(we::SQLWhereExpression)
   counter = 0
@@ -484,14 +484,13 @@ struct SQLJoin{T<:AbstractModel} <: SQLType
   natural::Bool
   columns::Vector{SQLColumns}
 end
-SQLJoin{T<:AbstractModel}(model_name::Type{T},
-                          on::SQLOn;
-                          join_type = SQLJoinType("INNER"),
-                          outer = false,
-                          where = SQLWhereEntity[],
-                          natural = false,
-                          columns = SQLColumns[]
-                          ) = SQLJoin{T}(model_name, on, join_type, outer, where, natural, columns)
+SQLJoin(model_name::Type{T},
+        on::SQLOn;
+        join_type = SQLJoinType("INNER"),
+        outer = false,
+        where = SQLWhereEntity[],
+        natural = false,
+        columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin{T}(model_name, on, join_type, outer, where, natural, columns)
 function string(j::SQLJoin)
   _m = j.model_name()
   sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(Util.add_quotes(_m._table_name)) $(string(j.on)) """
@@ -570,7 +569,7 @@ struct SQLQuery <: SQLType
     new(columns, where, limit, offset, order, group, having, scopes)
 end
 
-string{T<:AbstractModel}(q::SQLQuery, m::Type{T}) = to_fetch_sql(m, q)
+string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)
 
 #
 # SQLRelation
@@ -585,8 +584,8 @@ mutable struct SQLRelationData{T<:AbstractModel} <: SQLType
 
   SQLRelationData{Vector{T}}(collection::Vector{T}) where T<:AbstractModel = new(collection)
 end
-SQLRelationData{T<:AbstractModel}(collection::Vector{T}) = SQLRelationData{T}(collection)
-SQLRelationData{T<:AbstractModel}(m::T) = SQLRelationData{T}([m])
+SQLRelationData(collection::Vector{T}) where {T<:AbstractModel} = SQLRelationData{T}(collection)
+SQLRelationData(m::T) where {T<:AbstractModel} = SQLRelationData{T}([m])
 
 
 """
@@ -599,13 +598,13 @@ mutable struct SQLRelation{T<:AbstractModel} <: SQLType
   data::Nullable{SQLRelationData}
   join::Nullable{SQLJoin}
 
-  SQLRelation{Type{T}}(model_name::Type{T}, required, eagerness, data, join) where T<:AbstractModel = new(model_name, required, eagerness, data, join)
+  SQLRelation{Type{T}}(model_name::Type{T}, required, eagerness, data, join) where {T<:AbstractModel} = new(model_name, required, eagerness, data, join)
 end
-SQLRelation{T<:AbstractModel}(model_name::Type{T};
-                              required = false,
-                              eagerness = RELATION_EAGERNESS_AUTO,
-                              data = Nullable{SQLRelationData}(),
-                              join = Nullable{SQLJoin}()) = SQLRelation{T}(model_name, required, eagerness, data, join)
+SQLRelation(model_name::Type{T};
+            required = false,
+            eagerness = RELATION_EAGERNESS_AUTO,
+            data = Nullable{SQLRelationData}(),
+            join = Nullable{SQLJoin}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, required, eagerness, data, join)
 
 function lazy(r::SQLRelation)
   r.eagerness == RELATION_EAGERNESS_LAZY ||

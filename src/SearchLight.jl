@@ -788,7 +788,8 @@ function save!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validati
 end
 function save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: T
   df::DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
-  n = find_one!!(typeof(m), df[1, Symbol(m._id)])
+
+  n = find_one!!(typeof(m), insert_id(m, df))
 
   db_fields = persistable_fields(m)
   @sync @parallel for f in fieldnames(m)
@@ -808,6 +809,19 @@ function _save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_valida
   ! in(:before_save, skip_callbacks) && invoke_callback(m, :before_save)
 
   query(to_store_sql(m, conflict_strategy = conflict_strategy))
+end
+
+
+"""
+
+"""
+function insert_id(m, df)
+  if Database.last_insert_id_type() == :manual 
+    lid = Database.last_insert_id()
+    lid == 0 ? getfield(m, Symbol(m._id)) : lid
+  else 
+    df[1, Symbol(m._id)]
+  end
 end
 
 
@@ -1540,7 +1554,7 @@ function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow) ::
   for field in sf
     unq_field = from_fully_qualified(_m, field)
 
-    isna(row[field]) && continue # if it's NA we just leave the default value of the empty obj
+    ismissing(row[field]) && continue # if it's NA we just leave the default value of the empty obj
 
     value = if in(:on_hydration!, fieldnames(_m))
               try

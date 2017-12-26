@@ -14,6 +14,7 @@ const DB_ADAPTER = PostgreSQL
 const DEFAULT_PORT = 5432
 
 const COLUMN_NAME_FIELD_NAME = :column_name
+const LAST_INSERT_ID_TYPE = :auto
 
 typealias DatabaseHandle  PostgreSQL.PostgresDatabaseHandle
 typealias ResultHandle    PostgreSQL.PostgresResultHandle
