@@ -16,7 +16,6 @@ const DB_ADAPTER = MySQL
 const DEFAULT_PORT = 3306
 
 const COLUMN_NAME_FIELD_NAME = :Field
-const LAST_INSERT_ID_TYPE = :manual
 
 const DatabaseHandle = MySQL.MySQLHandle
 const ResultHandle   = DataStreams.Data.Rows
@@ -176,11 +175,17 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 """
 function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
   try
-    if suppress_output || ( ! config.log_db && ! config.log_queries )
-      DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
-    else
-      Logger.log("SQL QUERY: $(escape_string(sql))")
-      @time DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
+    result::DataFrame = if suppress_output || ( ! config.log_db && ! config.log_queries )
+                          DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
+                        else
+                          Logger.log("SQL QUERY: $(escape_string(sql))")
+                          @time DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
+                        end
+
+    if in(:num_rows_affected, names(result)) && DB_ADAPTER.insertid(conn) > 0
+      DataFrame(id = DB_ADAPTER.insertid(conn))
+    else 
+      result
     end
   catch ex
     Logger.log(string(ex), :err)
@@ -237,13 +242,13 @@ end
 """
 
 """
-function to_find_sql{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}}) :: String
+function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
   sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(m, q.where, q.scopes)) " *
                       "$(to_group_part(q.group)) $(to_order_part(m, q.order)) " *
                       "$(to_having_part(q.having)) $(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
   replace(sql, r"\s+", " ")
 end
-function to_find_sql{T<:AbstractModel}(m::Type{T}, q::SQLQuery) :: String
+function to_find_sql(m::Type{T}, q::SQLQuery)::String where {T<:AbstractModel}
   sql::String = ( "$(to_select_part(m, q.columns)) $(to_from_part(m)) $(to_join_part(m)) $(to_where_part(m, q.where, q.scopes)) " *
                       "$(to_group_part(q.group)) $(to_order_part(m, q.order)) " *
                       "$(to_having_part(q.having)) $(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
@@ -255,7 +260,7 @@ const to_fetch_sql = to_find_sql
 """
 
 """
-function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String # upsert strateygy = :none | :error | :ignore | :update
+function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:AbstractModel} # upsert strateygy = :none | :error | :ignore | :update
   uf = persistable_fields(m)
 
   sql = if ! is_persisted(m) || (is_persisted(m) && conflict_strategy == :update)
@@ -276,14 +281,14 @@ function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: Str
     "UPDATE $(m._table_name) SET $(update_query_part(m))"
   end
 
-  return sql * "; SELECT IF( LAST_INSERT_ID() = 0, $( isnull(getfield(m, Symbol(m._id))) ? -1 : getfield(m, Symbol(m._id)) |> Base.get ), LAST_INSERT_ID() ) AS id"
+  sql # * "; SELECT IF( LAST_INSERT_ID() = 0, $( isnull(getfield(m, Symbol(m._id))) ? -1 : getfield(m, Symbol(m._id)) |> Base.get ), LAST_INSERT_ID() ) AS id"
 end
 
 
 """
 
 """
-function delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false) :: Void
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void where {T<:AbstractModel}
   _m::T = m()
   truncate ? "TRUNCATE $(_m._table_name)" : "DELETE FROM $(_m._table_name)" |> SearchLight.query
 
@@ -539,7 +544,7 @@ end
 """
 
 """
-function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
+function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("rand()", raw = true)]))
 end
 

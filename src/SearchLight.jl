@@ -524,7 +524,7 @@ julia> SearchLight.find_one!!(Article, 387)
 NullException()
 ```
 """
-function find_one!!{T<:AbstractModel}(m::Type{T}, value::Any) :: T
+function find_one!!(m::Type{T}, value::Any)::T where {T<:AbstractModel}
   find_one(m, value) |> Base.get
 end
 
@@ -783,13 +783,18 @@ App.Article
 +--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
-function save!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: T
+function save!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
   save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 end
-function save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: T
+function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
   df::DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
-  n = find_one!!(typeof(m), insert_id(m, df))
+  id = if !in(:id, names(df))
+    getfield(m, Symbol(m._id))
+  else 
+    df[1, Symbol(m._id)]
+  end
+  n = find_one!!(typeof(m), id)
 
   db_fields = persistable_fields(m)
   @sync @parallel for f in fieldnames(m)
@@ -803,25 +808,12 @@ function save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validat
   m
 end
 
-function _save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: DataFrame
+function _save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::DataFrame where {T<:AbstractModel}
   ! skip_validation && ! Validation.validate!(m) && error("SearchLight validation error(s) for $(typeof(m)) \n $(join((Validation.errors(m) |> Base.get), "\n "))")
 
   ! in(:before_save, skip_callbacks) && invoke_callback(m, :before_save)
 
   query(to_store_sql(m, conflict_strategy = conflict_strategy))
-end
-
-
-"""
-
-"""
-function insert_id(m, df)
-  if Database.last_insert_id_type() == :manual 
-    lid = Database.last_insert_id()
-    lid == 0 ? getfield(m, Symbol(m._id)) : lid
-  else 
-    df[1, Symbol(m._id)]
-  end
 end
 
 
@@ -1243,7 +1235,7 @@ App.Article
 +--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
-function update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol, value::Any; ignore = Symbol[], skip_update = false) :: T
+function update_by_or_create!!(m::T, property::Symbol, value::Any; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
   existing = find_one_by(typeof(m), property, value)
   if ! isnull(existing)
     existing = Base.get(existing)
@@ -1260,10 +1252,10 @@ function update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol, value::
     return SearchLight.save!!(m)
   end
 end
-function update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol; ignore = Symbol[], skip_update = false) :: T
+function update_by_or_create!!(m::T, property::Symbol; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
   update_by_or_create!!(m, property, getfield(m, property), ignore = ignore, skip_update = skip_update)
 end
-function update_by_or_create!!{T<:AbstractModel}(m::T) :: T
+function update_by_or_create!!(m::T)::T where {T<:AbstractModel}
   create_or_update!!(m)
 end
 const create_or_update_by!! = update_by_or_create!!
@@ -1277,7 +1269,7 @@ If `m` is already persisted, it gets updated. If not, it is persisted as a new r
 If values are provided for `ignore`, the corresponding properties (fields) of `m` will not be updated.
 If `skip_update` is `true` and `m` is already persisted, no update will be performed, and the originally persisted `m` will be returned.
 """
-function create_or_update!!{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false) :: T
+function create_or_update!!(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
   update_by_or_create!!(m, Symbol(m._id), getfield(m, Symbol(m._id)), ignore = ignore, skip_update = skip_update)
 end
 

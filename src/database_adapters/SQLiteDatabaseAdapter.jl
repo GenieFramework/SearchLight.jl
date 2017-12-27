@@ -14,7 +14,6 @@ export DatabaseHandle, ResultHandle
 
 const DB_ADAPTER = SQLite
 const COLUMN_NAME_FIELD_NAME = :name
-const LAST_INSERT_ID_TYPE = :auto
 
 const DatabaseHandle = SQLite.DB
 const ResultHandle   =  Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
