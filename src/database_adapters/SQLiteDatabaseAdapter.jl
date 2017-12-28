@@ -36,7 +36,7 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
 const SELECT_LAST_ID_QUERY_START = "; SELECT CASE WHEN last_insert_rowid() = 0 THEN"
 const SELECT_LAST_ID_QUERY_END = "ELSE last_insert_rowid() END AS id"
 
-function db_adapter() :: Symbol
+function db_adapter()::Symbol
   :SQLiter
 end
 
@@ -47,13 +47,13 @@ end
 
 
 """
-    connect(conn_data::Dict{String,Any}) :: DatabaseHandle
-    function connect() :: DatabaseHandle
+    connect(conn_data::Dict{String,Any})::DatabaseHandle
+    function connect()::DatabaseHandle
 
 Connects to the database defined in conn_data["filename"] and returns a handle.
 If no conn_data is provided, a temporary, in-memory database will be used.
 """
-function connect(conn_data::Dict{String,Any}) :: DatabaseHandle
+function connect(conn_data::Dict{String,Any})::DatabaseHandle
   try
     SQLite.DB(conn_data["filename"])
   catch ex
@@ -64,7 +64,7 @@ function connect(conn_data::Dict{String,Any}) :: DatabaseHandle
     rethrow(ex)
   end
 end
-function connect() :: DatabaseHandle
+function connect()::DatabaseHandle
   try
     SQLite.DB()
   catch ex
@@ -78,11 +78,11 @@ end
 
 
 """
-    disconnect(conn::DatabaseHandle) :: Void
+    disconnect(conn::DatabaseHandle)::Void
 
 Disconnects from database.
 """
-function disconnect(conn::DatabaseHandle) :: Void
+function disconnect(conn::DatabaseHandle)::Void
   conn = nothing
 end
 
@@ -93,23 +93,23 @@ end
 
 
 """
-    table_columns_sql(table_name::AbstractString) :: String
+    table_columns_sql(table_name::AbstractString)::String
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
-function table_columns_sql(table_name::String) :: String
+function table_columns_sql(table_name::String)::String
   "PRAGMA table_info(`$table_name`)"
 end
 
 
 """
-    create_migrations_table(table_name::String) :: Bool
+    create_migrations_table(table_name::String)::Bool
 
 Runs a SQL DB query that creates the table `table_name` with the structure needed to be used as the DB migrations table.
 The table should contain one column, `version`, unique, as a string of maximum 30 chars long.
 Returns `true` on success.
 """
-function create_migrations_table(table_name::String) :: Bool
+function create_migrations_table(table_name::String)::Bool
   "CREATE TABLE `$table_name` (
     `version` varchar(30) NOT NULL DEFAULT '',
     PRIMARY KEY (`version`)
@@ -127,7 +127,7 @@ end
 
 
 """
-    escape_column_name(c::AbstractString, conn::DatabaseHandle) :: String
+    escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
 
 Escapes the column name using native features provided by the database backend.
 
@@ -136,13 +136,13 @@ Escapes the column name using native features provided by the database backend.
 julia>
 ```
 """
-function escape_column_name(c::AbstractString, conn::DatabaseHandle) :: String
+function escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
   DB_ADAPTER.esc_id(c)
 end
 
 
 """
-    escape_value{T}(v::T, conn::DatabaseHandle) :: T
+    escape_value{T}(v::T, conn::DatabaseHandle)::T
 
 Escapes the value `v` using native features provided by the database backend if available.
 
@@ -151,7 +151,7 @@ Escapes the value `v` using native features provided by the database backend if 
 julia>
 ```
 """
-function escape_value{T}(v::T, conn::DatabaseHandle) :: T
+function escape_value(v::T, conn::DatabaseHandle)::T where {T}
   isa(v, Number) ? v : "'$(replace(string(v), "'", "''"))'"
 end
 
@@ -162,7 +162,7 @@ end
 
 
 """
-    query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
+    query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
 
 Executes the `sql` query against the database backend and returns a DataFrame result.
 
@@ -178,7 +178,7 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 ...
 ```
 """
-function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
+function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
   parts::Vector{String} = if contains(sql, SELECT_LAST_ID_QUERY_START)
                             split(sql, SELECT_LAST_ID_QUERY_START)
                           else
@@ -215,7 +215,7 @@ const query_df = query
 """
 
 """
-function relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol}) :: String
+function relation_to_sql(m::T, rel::Tuple{SQLRelation,Symbol})::String where {T<:AbstractModel}
   rel, rel_type = rel
   j = disposable_instance(rel.model_name)
   join_table_name = j._table_name
@@ -236,13 +236,13 @@ end
 """
 
 """
-function to_find_sql{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}}) :: String
+function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
   sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(m, q.where, q.scopes)) " *
                       "$(to_group_part(q.group)) $(to_order_part(m, q.order)) " *
                       "$(to_having_part(q.having)) $(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
   replace(sql, r"\s+", " ")
 end
-function to_find_sql{T<:AbstractModel}(m::Type{T}, q::SQLQuery) :: String
+function to_find_sql(m::Type{T}, q::SQLQuery)::String where {T<:AbstractModel}
   sql::String = ( "$(to_select_part(m, q.columns)) $(to_from_part(m)) $(to_join_part(m)) $(to_where_part(m, q.where, q.scopes)) " *
                       "$(to_group_part(q.group)) $(to_order_part(m, q.order)) " *
                       "$(to_having_part(q.having)) $(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
@@ -254,7 +254,7 @@ const to_fetch_sql = to_find_sql
 """
 
 """
-function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String # upsert strateygy = :none | :error | :ignore | :update
+function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:AbstractModel} # upsert strateygy = :none | :error | :ignore | :update
   uf = persistable_fields(m)
 
   sql = if ! is_persisted(m) || (is_persisted(m) && conflict_strategy == :update)
@@ -276,7 +276,7 @@ end
 """
 
 """
-function delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false) :: Void
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void where {T<:AbstractModel}
   _m::T = m()
   truncate ? "TRUNCATE $(_m._table_name)" : "DELETE FROM $(_m._table_name)" |> SearchLight.query
 
@@ -287,7 +287,7 @@ end
 """
 
 """
-function delete{T<:AbstractModel}(m::T) :: T
+function delete(m::T)::T where {T<:AbstractModel}
   "DELETE FROM $(m._table_name) WHERE $(m._id) = '$(m.id |> Base.get)'" |> SearchLight.query
 
   tmp::T = T()
@@ -300,7 +300,7 @@ end
 """
 
 """
-function count{T<:AbstractModel}(m::Type{T}, q::SQLQuery = SQLQuery()) :: Int
+function count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
   count_column = SQLColumn("COUNT(*) AS __cid", raw = true)
   q = SearchLight.clone(q, :columns, push!(q.columns, count_column))
 
@@ -311,7 +311,7 @@ end
 """
 
 """
-function update_query_part{T<:AbstractModel}(m::T) :: String
+function update_query_part(m::T)::String where {T<:AbstractModel}
   update_values = join(map(x -> "$(string(SQLColumn(x))) = $( string(to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))) )", persistable_fields(m)), ", ")
 
   " $update_values WHERE $(m._table_name).$(m._id) = '$(Base.get(m.id))'"
@@ -321,7 +321,7 @@ end
 """
 
 """
-function column_data_to_column_name(column::SQLColumn, column_data::Dict{Symbol,Any}) :: String
+function column_data_to_column_name(column::SQLColumn, column_data::Dict{Symbol,Any})::String
   "$(to_fully_qualified(column_data[:column_name], column_data[:table_name])) AS $( isempty(column_data[:alias]) ? SearchLight.to_sql_column_name(column_data[:column_name], column_data[:table_name]) : column_data[:alias] )"
 end
 
@@ -329,7 +329,7 @@ end
 """
 
 """
-function to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[]) :: String
+function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
   "SELECT " * Database._to_select_part(m, cols, joins)
 end
 
@@ -337,7 +337,7 @@ end
 """
 
 """
-function to_from_part{T<:AbstractModel}(m::Type{T}) :: String
+function to_from_part(m::Type{T})::String where {T<:AbstractModel}
   "FROM " * Database.escape_column_name(m()._table_name)
 end
 
@@ -345,7 +345,7 @@ end
 """
 
 """
-function to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}, scopes::Vector{Symbol}) :: String
+function to_where_part(m::Type{T}, w::Vector{SQLWhereEntity}, scopes::Vector{Symbol})::String where {T<:AbstractModel}
   w = vcat(w, required_scopes(m)) # automatically include required scopes
 
   _m::T = m()
@@ -355,7 +355,7 @@ function to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}, 
 
   to_where_part(w)
 end
-function to_where_part(w::Vector{SQLWhereEntity}) :: String
+function to_where_part(w::Vector{SQLWhereEntity})::String
   where = isempty(w) ?
           "" :
           "WHERE " * (string(first(w).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(wx -> string(wx), w), " ")
@@ -367,7 +367,7 @@ end
 """
 
 """
-function required_scopes{T<:AbstractModel}(m::Type{T}) :: Vector{SQLWhereEntity}
+function required_scopes(m::Type{T})::Vector{SQLWhereEntity} where {T<:AbstractModel}
   s = scopes(m)
   haskey(s, :required) ? s[:required] : SQLWhereEntity[]
 end
@@ -376,7 +376,7 @@ end
 """
 
 """
-function scopes{T<:AbstractModel}(m::Type{T}) :: Dict{Symbol,Vector{SQLWhereEntity}}
+function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
   in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
 end
 
@@ -384,7 +384,7 @@ end
 """
 
 """
-function to_order_part{T<:AbstractModel}(m::Type{T}, o::Vector{SQLOrder}) :: String
+function to_order_part(m::Type{T}, o::Vector{SQLOrder})::String where {T<:AbstractModel}
   isempty(o) ?
     "" :
     "ORDER BY " * join(map(x -> (! is_fully_qualified(x.column.value) ? to_fully_qualified(m, x.column) : x.column.value) * " " * x.direction, o), ", ")
@@ -394,7 +394,7 @@ end
 """
 
 """
-function to_group_part(g::Vector{SQLColumn}) :: String
+function to_group_part(g::Vector{SQLColumn})::String
   isempty(g) ?
     "" :
     " GROUP BY " * join(map(x -> string(x), g), ", ")
@@ -404,7 +404,7 @@ end
 """
 
 """
-function to_limit_part(l::SQLLimit) :: String
+function to_limit_part(l::SQLLimit)::String
   l.value != "ALL" ? "LIMIT " * (l |> string) : ""
 end
 
@@ -412,7 +412,7 @@ end
 """
 
 """
-function to_offset_part(o::Int) :: String
+function to_offset_part(o::Int)::String
   o != 0 ? "OFFSET " * (o |> string) : ""
 end
 
@@ -420,7 +420,7 @@ end
 """
 
 """
-function to_having_part(h::Vector{SQLWhereEntity}) :: String
+function to_having_part(h::Vector{SQLWhereEntity})::String
   having =  isempty(h) ?
             "" :
             "HAVING " * (string(first(h).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(w -> string(w), h), " ")
@@ -432,7 +432,7 @@ end
 """
 
 """
-function to_join_part{T<:AbstractModel}(m::Type{T}, joins = SQLJoin[]) :: String
+function to_join_part(m::Type{T}, joins = SQLJoin[])::String where {T<:AbstractModel}
   _m::T = m()
   join_part = ""
 
@@ -451,11 +451,11 @@ end
 
 
 """
-    cast_type(v::Bool) :: Union{Bool,Int,Char,String}
+    cast_type(v::Bool)::Union{Bool,Int,Char,String}
 
 Converts the Julia type to the corresponding type in the database.
 """
-function cast_type(v::Bool) :: Int
+function cast_type(v::Bool)::Int
   v ? 1 : 0
 end
 
@@ -463,7 +463,7 @@ end
 """
 
 """
-function create_table_sql(f::Function, name::String, options::String = "") :: String
+function create_table_sql(f::Function, name::String, options::String = "")::String
   "CREATE TABLE $name (" * join(f()::Vector{String}, ", ") * ") $options" |> strip
 end
 
@@ -471,7 +471,7 @@ end
 """
 
 """
-function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
   "$name $(TYPE_MAPPINGS[column_type] |> string) " *
     (isa(limit, Int) ? "($limit)" : "") *
     (default == nothing ? "" : " DEFAULT $default ") *
@@ -483,7 +483,7 @@ end
 """
 
 """
-function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
+function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
   "$name INTEGER PRIMARY KEY $options"
 end
 
@@ -491,7 +491,7 @@ end
 """
 
 """
-function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
+function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::String
   name = isempty(name) ? Migration.index_name(table_name, column_name) : name
   "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
 end
@@ -500,7 +500,7 @@ end
 """
 
 """
-function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
   "ALTER TABLE $table_name ADD $(column_sql(name, column_type, default = default, limit = limit, not_null = not_null))"
 end
 
@@ -508,7 +508,7 @@ end
 """
 
 """
-function drop_table_sql(name::String) :: String
+function drop_table_sql(name::String)::String
   "DROP TABLE $name"
 end
 
@@ -516,7 +516,7 @@ end
 """
 
 """
-function remove_column_sql(table_name::String, name::String) :: Void
+function remove_column_sql(table_name::String, name::String)::Void
   throw(Migration.UnsupportedException(:remove_column, Symbol(DB_ADAPTER)))
 end
 
@@ -524,7 +524,7 @@ end
 """
 
 """
-function remove_index_sql(table_name::String, name::String) :: String
+function remove_index_sql(table_name::String, name::String)::String
   "DROP INDEX $name"
 end
 
@@ -532,7 +532,7 @@ end
 """
 
 """
-function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
+function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("random()", raw = true)]))
 end
 

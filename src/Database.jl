@@ -17,9 +17,9 @@ else
 end
 
 """
-    connect() :: DatabaseHandle
-    connect(conn_settings::Dict{String,Any}) :: DatabaseHandle
-    connection() :: DatabaseHandle
+    connect()::DatabaseHandle
+    connect(conn_settings::Dict{String,Any})::DatabaseHandle
+    connection()::DatabaseHandle
 
 Connects to the DB and returns a database handler. If used without arguments, it defaults to using `config.db_config_settings`
 
@@ -41,13 +41,13 @@ julia> Database.connect(dict)
 PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false)
 ```
 """
-function connect() :: DatabaseHandle
+function connect()::DatabaseHandle
   connect(config.db_config_settings)
 end
 function connect(conn_settings::Dict{String,Any})
-  DatabaseAdapter.connect(conn_settings) :: DatabaseHandle
+  DatabaseAdapter.connect(conn_settings)::DatabaseHandle
 end
-function connection() :: DatabaseHandle
+function connection()::DatabaseHandle
   connect()
 end
 
@@ -61,7 +61,7 @@ end
 
 
 """
-    query_tools() :: Tuple{DatabaseHandle,Symbol}
+    query_tools()::Tuple{DatabaseHandle,Symbol}
 
 Returns a Tuple consisting of the database handle of the current DB connection and a symbol
 representing the type of the adapter.
@@ -72,49 +72,49 @@ julia> Database.query_tools()
 (PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false),:PostgreSQL)
 ```
 """
-function query_tools() :: Tuple{DatabaseHandle,Symbol}
+function query_tools()::Tuple{DatabaseHandle,Symbol}
   (connect(), DatabaseAdapter.db_adapter())
 end
 
 
 """
-    create_database() :: Bool
-    create_database(db_name::String) :: Bool
+    create_database()::Bool
+    create_database(db_name::String)::Bool
 
 Invokes the database adapter's create database method. If invoked without param, it defaults to the
 database name defined in `config.db_config_settings`
 """
-function create_database() :: Bool
+function create_database()::Bool
   create_database(config.db_config_settings["database"])
 end
-function create_database(db_name::String) :: Bool
+function create_database(db_name::String)::Bool
   DatabaseAdapter.create_database(db_name)
 end
 
 
 """
-    create_migrations_table(table_name::String) :: Bool
+    create_migrations_table(table_name::String)::Bool
 
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `config.db_migrations_table_name`
 """
-function create_migrations_table(table_name::String) :: Bool
+function create_migrations_table(table_name::String)::Bool
   DatabaseAdapter.create_migrations_table(table_name)
 end
 
 
 """
-    db_init() :: Bool
+    db_init()::Bool
 
 Sets up the DB tables used by SearchLight.
 """
-function db_init() :: Bool
+function db_init()::Bool
   DatabaseAdapter.create_migrations_table(config.db_migrations_table_name)
 end
 
 
 """
-    query(sql::AbstractString; system_query::Bool = false) :: ResultHandle
+    query(sql::AbstractString; system_query::Bool = false)::ResultHandle
 
 Executes the `sql` query against the database adapter. If it is a `system_query` it won't be logged.
 
@@ -129,7 +129,7 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query
 PostgreSQL.PostgresResultHandle(Ptr{Void} @0x00007fcdaf33a450,DataType[PostgreSQL.PostgresType{:int4},PostgreSQL.PostgresType{:varchar},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:varchar}],5,7)
 ```
 """
-function query(sql::AbstractString; system_query::Bool = false) :: ResultHandle
+function query(sql::AbstractString; system_query::Bool = false)::ResultHandle
   conn = connection()
   result =  try
               DatabaseAdapter.query(sql, system_query || config.suppress_output, conn)
@@ -144,7 +144,7 @@ end
 @memoize function escape_column_name(c::AbstractString)
   conn = connection()
   result =  try
-              DatabaseAdapter.escape_column_name(c, conn) :: String
+              DatabaseAdapter.escape_column_name(c, conn)::String
             finally
               disconnect(conn)
             end
@@ -153,7 +153,7 @@ end
 end
 
 
-function escape_value{T}(v::T) :: T
+function escape_value{T}(v::T)::T
   conn = connection()
   result =  try
               DatabaseAdapter.escape_value(v, conn)
@@ -166,12 +166,12 @@ end
 
 
 @memoize function table_columns(table_name::AbstractString)
-  query_df(DatabaseAdapter.table_columns_sql(table_name), suppress_output = true) :: DataFrames.DataFrame
+  query_df(DatabaseAdapter.table_columns_sql(table_name), suppress_output = true)::DataFrames.DataFrame
 end
 
 
 """
-    query_df(sql::AbstractString; suppress_output::Bool = false) :: DataFrames.DataFrame
+    query_df(sql::AbstractString; suppress_output::Bool = false)::DataFrames.DataFrame
 
 Executes the `sql` query against the database adapter and returns a DataFrame result.
 Optionally logs the result DataFrame.
@@ -188,7 +188,7 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query_
 ...
 ```
 """
-function query_df(sql::AbstractString; suppress_output::Bool = false, system_query::Bool = false) :: DataFrames.DataFrame
+function query_df(sql::AbstractString; suppress_output::Bool = false, system_query::Bool = false)::DataFrames.DataFrame
   conn = connection()
   df::DataFrames.DataFrame =  try
                                  DatabaseAdapter.query_df(sql, (suppress_output || system_query || config.suppress_output), conn)
@@ -204,7 +204,7 @@ end
 """
 
 """
-function relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol}) :: String
+function relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol})::String
   DatabaseAdapter.relation_to_sql(m, rel)
 end
 
@@ -212,10 +212,10 @@ end
 """
 
 """
-function to_find_sql{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}}) :: String
+function to_find_sql{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String
   DatabaseAdapter.to_find_sql(m, q, joins)
 end
-function to_find_sql{T<:AbstractModel}(m::Type{T}, q::SQLQuery) :: String
+function to_find_sql{T<:AbstractModel}(m::Type{T}, q::SQLQuery)::String
   DatabaseAdapter.to_find_sql(m, q)
 end
 const to_fetch_sql = to_find_sql
@@ -224,7 +224,7 @@ const to_fetch_sql = to_find_sql
 """
 
 """
-function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String # upsert strateygy = :none | :error | :ignore | :update
+function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error)::String # upsert strateygy = :none | :error | :ignore | :update
   DatabaseAdapter.to_store_sql(m, conflict_strategy = conflict_strategy)
 end
 
@@ -232,7 +232,7 @@ end
 """
 
 """
-function delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false) :: Void
+function delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void
   DatabaseAdapter.delete_all(m, truncate = truncate, reset_sequence = reset_sequence, cascade = cascade)
 end
 
@@ -240,7 +240,7 @@ end
 """
 
 """
-function delete{T<:AbstractModel}(m::T) :: T
+function delete{T<:AbstractModel}(m::T)::T
   DatabaseAdapter.delete(m)
 end
 
@@ -248,7 +248,7 @@ end
 """
 
 """
-function count{T<:AbstractModel}(m::Type{T}, q::SQLQuery = SQLQuery()) :: Int
+function count{T<:AbstractModel}(m::Type{T}, q::SQLQuery = SQLQuery())::Int
   DatabaseAdapter.count(m, q)
 end
 
@@ -256,7 +256,7 @@ end
 """
 
 """
-function update_query_part{T<:AbstractModel}(m::T) :: String
+function update_query_part{T<:AbstractModel}(m::T)::String
   DatabaseAdapter.update_query_part(m)
 end
 
@@ -264,13 +264,13 @@ end
 """
 
 """
-function to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[]) :: String
+function to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String
   DatabaseAdapter.to_select_part(m, cols, joins)
 end
 """
 
 """
-function _to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[]) :: String
+function _to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String
   _m::T = m()
 
   joined_tables = []
@@ -320,7 +320,7 @@ end
 """
 
 """
-function to_from_part{T<:AbstractModel}(m::Type{T}) :: String
+function to_from_part{T<:AbstractModel}(m::Type{T})::String
   DatabaseAdapter.to_from_part(m)
 end
 
@@ -328,10 +328,10 @@ end
 """
 
 """
-function to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}, scopes::Vector{Symbol}) :: String
+function to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}, scopes::Vector{Symbol})::String
   DatabaseAdapter.to_where_part(m, w, scopes)
 end
-function to_where_part(w::Vector{SQLWhereEntity}) :: String
+function to_where_part(w::Vector{SQLWhereEntity})::String
   DatabaseAdapter.to_where_part(w)
 end
 
@@ -339,7 +339,7 @@ end
 """
 
 """
-function required_scopes{T<:AbstractModel}(m::Type{T}) :: Vector{SQLWhereEntity}
+function required_scopes{T<:AbstractModel}(m::Type{T})::Vector{SQLWhereEntity}
   DatabaseAdapter.required_scopes(m)
 end
 
@@ -347,7 +347,7 @@ end
 """
 
 """
-function scopes{T<:AbstractModel}(m::Type{T}) :: Dict{Symbol,Vector{SQLWhereEntity}}
+function scopes{T<:AbstractModel}(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}}
   DatabaseAdapter.scopes(m)
 end
 
@@ -355,7 +355,7 @@ end
 """
 
 """
-function to_order_part{T<:AbstractModel}(m::Type{T}, o::Vector{SQLOrder}) :: String
+function to_order_part{T<:AbstractModel}(m::Type{T}, o::Vector{SQLOrder})::String
   DatabaseAdapter.to_order_part(m, o)
 end
 
@@ -363,7 +363,7 @@ end
 """
 
 """
-function to_group_part(g::Vector{SQLColumn}) :: String
+function to_group_part(g::Vector{SQLColumn})::String
   DatabaseAdapter.to_group_part(g)
 end
 
@@ -371,7 +371,7 @@ end
 """
 
 """
-function to_limit_part(l::SQLLimit) :: String
+function to_limit_part(l::SQLLimit)::String
   DatabaseAdapter.to_limit_part(l)
 end
 
@@ -379,7 +379,7 @@ end
 """
 
 """
-function to_offset_part(o::Int) :: String
+function to_offset_part(o::Int)::String
   DatabaseAdapter.to_offset_part(o)
 end
 
@@ -387,7 +387,7 @@ end
 """
 
 """
-function to_having_part(h::Vector{SQLHaving}) :: String
+function to_having_part(h::Vector{SQLHaving})::String
   DatabaseAdapter.to_having_part(h)
 end
 
@@ -395,17 +395,17 @@ end
 """
 
 """
-function to_join_part{T<:AbstractModel}(m::Type{T}, joins = SQLJoin[]) :: String
+function to_join_part{T<:AbstractModel}(m::Type{T}, joins = SQLJoin[])::String
   DatabaseAdapter.to_join_part(m, joins)
 end
 
 
 """
-  columns_from_joins(joins::Vector{SQLJoin}) :: Vector{SQLColumn}
+  columns_from_joins(joins::Vector{SQLJoin})::Vector{SQLColumn}
 
 Extracts columns from joins param and adds to be used for the SELECT part
 """
-function columns_from_joins(joins::Vector{SQLJoin}) :: Vector{SQLColumn}
+function columns_from_joins(joins::Vector{SQLJoin})::Vector{SQLColumn}
   jcols = SQLColumn[]
   for j in joins
     jcols = vcat(jcols, j.columns)
@@ -418,7 +418,7 @@ end
 """
 
 """
-function prepare_column_name(column::SQLColumn) :: String
+function prepare_column_name(column::SQLColumn)::String
   if column.raw
     column.value |> string
   else

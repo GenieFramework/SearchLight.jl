@@ -46,21 +46,21 @@ const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_AUTO
 
 
 """
-      direct_relations() :: Vector{Symbol}
+      direct_relations()::Vector{Symbol}
 
 Vector of available direct relations types.
 """
-function direct_relations() :: Vector{Symbol}
+function direct_relations()::Vector{Symbol}
   [RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY]
 end
 
 
 """
-  relation_eagerness(eagerness::Symbol) :: Bool
+  relation_eagerness(eagerness::Symbol)::Bool
 
 Sets the default, global relation eagerness.
 """
-function relation_eagerness(eagerness::Symbol) :: Bool
+function relation_eagerness(eagerness::Symbol)::Bool
   ! in(eagerness, direct_relations()) && return false
   MODEL_RELATION_EAGERNESS = eagerness
 
@@ -69,11 +69,11 @@ end
 
 
 """
-    relation_eagerness() :: Symbol
+    relation_eagerness()::Symbol
 
 Returns the default global relation eagerness.
 """
-function relation_eagerness() :: Symbol
+function relation_eagerness()::Symbol
   MODEL_RELATION_EAGERNESS
 end
 
@@ -83,8 +83,8 @@ end
 
 
 """
-    find_df{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]]) :: DataFrame
-    find_df{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id)) :: DataFrame
+    find_df{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]])::DataFrame
+    find_df{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::DataFrame
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `DataFrame`.
 
@@ -117,20 +117,20 @@ julia> SearchLight.find_df(Article, SQLQuery(limit = 5))
 ...
 ```
 """
-function find_df{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}}) :: DataFrame
-  query(to_fetch_sql(m, q, j)) :: DataFrame
+function find_df{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::DataFrame
+  query(to_fetch_sql(m, q, j))::DataFrame
 end
-function find_df{T<:AbstractModel}(m::Type{T}, q::SQLQuery) :: DataFrame
-  query(to_fetch_sql(m, q)) :: DataFrame
+function find_df{T<:AbstractModel}(m::Type{T}, q::SQLQuery)::DataFrame
+  query(to_fetch_sql(m, q))::DataFrame
 end
-function find_df{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id)) :: DataFrame
+function find_df{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::DataFrame
   find_df(m, SQLQuery(order = order))
 end
 
 
 """
-    find_df{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id)) :: DataFrame
-    find_df{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id)) :: DataFrame
+    find_df{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::DataFrame
+    find_df{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::DataFrame
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `DataFrame`.
 
@@ -155,17 +155,17 @@ julia> SearchLight.find_df(Article, SQLWhereEntity[SQLWhereExpression("id BETWEE
 ...
 ```
 """
-function find_df{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id)) :: DataFrame
+function find_df{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::DataFrame
   find_df(m, SQLQuery(where = [w], order = order))
 end
-function find_df{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id)) :: DataFrame
+function find_df{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::DataFrame
   find_df(m, SQLQuery(where = w, order = order))
 end
 
 
 """
-    find{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]]) :: Vector{T}
-    find{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id)) :: Vector{T}
+    find{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]])::Vector{T}
+    find{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::Vector{T}
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `Vector{T<:AbstractModel}`.
 
@@ -190,20 +190,20 @@ julia> SearchLight.find(Article)
 ...
 ```
 """
-function find{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}}) :: Vector{T}
+function find{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::Vector{T}
   to_models(m, find_df(m, q, j))
 end
-function find{T<:AbstractModel}(m::Type{T}, q::SQLQuery) :: Vector{T}
+function find{T<:AbstractModel}(m::Type{T}, q::SQLQuery)::Vector{T}
   to_models(m, find_df(m, q))
 end
-function find{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id)) :: Vector{T}
+function find{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::Vector{T}
   find(m, SQLQuery(order = order))
 end
 
 
 """
-    find{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id)) :: Vector{T}
-    find{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id)) :: Vector{T}
+    find{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::Vector{T}
+    find{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::Vector{T}
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `Vector{T<:AbstractModel}`.
 
@@ -228,18 +228,18 @@ julia> SearchLight.find(Article, SQLWhereEntity[SQLWhereExpression("id BETWEEN ?
 ...
 ```
 """
-function find{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id)) :: Vector{T}
+function find{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::Vector{T}
   find(m, SQLQuery(where = [w], order = order))
 end
-function find{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id)) :: Vector{T}
+function find{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::Vector{T}
   find(m, SQLQuery(where = w, order = order))
 end
 
 
 """
-    find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id)) :: Vector{T}
-    find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id)) :: Vector{T}
-    find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id)) :: Vector{T}
+    find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Vector{T}
+    find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Vector{T}
+    find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T}
 
 Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using the `column_name` and the `value`.
 Returns the resultset as a `Vector{T<:AbstractModel}`.
@@ -285,21 +285,21 @@ App.Article
 +--------------+---------------------------------------------------------+
 ```
 """
-function find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id)) :: Vector{T}
+function find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Vector{T}
   find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order))
 end
-function find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id)) :: Vector{T}
+function find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Vector{T}
   find_by(m, SQLColumn(column_name), SQLInput(value), order = order)
 end
-function find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id)) :: Vector{T}
+function find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T}
   find(m, SQLQuery(where = [sql_expression], order = order))
 end
 
 
 """
-    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id)) :: Nullable{T}
-    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id)) :: Nullable{T}
-    find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id)) :: Nullable{T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Nullable{T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Nullable{T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Nullable{T}
 
 Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using the `column_name` and the `value`
 or the `sql_expression`.
@@ -377,20 +377,20 @@ App.Article
 )
 ```
 """
-function find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id)) :: Nullable{T}
+function find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Nullable{T}
   find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order, limit = 1)) |> to_nullable
 end
-function find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id)) :: Nullable{T}
+function find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Nullable{T}
   find_one_by(m, SQLColumn(column_name), SQLInput(value), order = order)
 end
-function find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id)) :: Nullable{T}
+function find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Nullable{T}
   find(m, SQLQuery(where = [sql_expression], order = order, limit = 1)) |> to_nullable
 end
 
 
 """
-    find_one_by!!{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id)) :: T
-    find_one_by!!{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id)) :: T
+    find_one_by!!{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::T
+    find_one_by!!{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::T
 
 Similar to `find_one_by` but also attempts to `get` the value inside the `Nullable` by means of `Base.get`.
 Returns the value if is not `NULL`. Throws a `NullException` otherwise.
@@ -445,16 +445,16 @@ julia> SearchLight.find_one_by!!(Article, SQLWhereExpression("title LIKE ?", "fo
 NullException()
 ```
 """
-function find_one_by!!{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id)) :: T
+function find_one_by!!{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::T
   find_one_by(m, column_name, value, order = order) |> Base.get
 end
-function find_one_by!!{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id)) :: T
+function find_one_by!!{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::T
   find_one_by(m, sql_expression, order = order) |> Base.get
 end
 
 
 """
-    find_one{T<:AbstractModel}(m::Type{T}, value::Any) :: Nullable{T}
+    find_one{T<:AbstractModel}(m::Type{T}, value::Any)::Nullable{T}
 
 Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using
 `SearchLight`s `_id` column and the `value`.
@@ -479,14 +479,14 @@ App.Article
 )
 ```
 """
-function find_one{T<:AbstractModel}(m::Type{T}, value::Any) :: Nullable{T}
+function find_one{T<:AbstractModel}(m::Type{T}, value::Any)::Nullable{T}
   _m::T = m()
   find_one_by(m, SQLColumn( to_fully_qualified(_m._id, _m._table_name) ), SQLInput(value))
 end
 
 
 """
-    find_one!!{T<:AbstractModel}(m::Type{T}, value::Any) :: T
+    find_one!!{T<:AbstractModel}(m::Type{T}, value::Any)::T
 
 Similar to `find_one` but also attempts to get the value inside the `Nullable`.
 Returns the value if is not `NULL`. Throws a `NullException` otherwise.
@@ -530,7 +530,7 @@ end
 
 
 """
-    rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
+    rand{T<:AbstractModel}(m::Type{T}; limit = 1)::Vector{T}
 
 Executes a SQL `SELECT` query against the database, `SORT`ing the results randomly and applying a `LIMIT` of `limit`.
 Returns the resultset as a `Vector{T<:AbstractModel}`.
@@ -563,13 +563,13 @@ julia> SearchLight.rand(Article, limit = 3)
 ...
 ```
 """
-function rand{T<:AbstractModel}(m::Type{T}; limit = 1) :: Vector{T}
+function rand{T<:AbstractModel}(m::Type{T}; limit = 1)::Vector{T}
   Database.rand(m, limit = limit)
 end
 
 
 """
-    rand_one{T<:AbstractModel}(m::Type{T}) :: Nullable{T}
+    rand_one{T<:AbstractModel}(m::Type{T})::Nullable{T}
 
 Similar to `SearchLight.rand` -- returns one random instance of {T<:AbstractModel}, wrapped into a Nullable{T}.
 
@@ -592,13 +592,13 @@ App.Article
 )
 ```
 """
-function rand_one{T<:AbstractModel}(m::Type{T}) :: Nullable{T}
+function rand_one{T<:AbstractModel}(m::Type{T})::Nullable{T}
   to_nullable(SearchLight.rand(m, limit = 1))
 end
 
 
 """
-    rand_one!!{T<:AbstractModel}(m::Type{T}) :: T
+    rand_one!!{T<:AbstractModel}(m::Type{T})::T
 
 Similar to `SearchLight.rand_one` -- returns one random instance of {T<:AbstractModel}, but also attempts to get the object within the Nullable{T} instance.
 Will throw an error if Nullable{T} is null.
@@ -616,13 +616,13 @@ App.Article
 ...
 ```
 """
-function rand_one!!{T<:AbstractModel}(m::Type{T}) :: T
+function rand_one!!{T<:AbstractModel}(m::Type{T})::T
   SearchLight.rand_one(m) |> Base.get
 end
 
 
 """
-    all{T<:AbstractModel}(m::Type{T}) :: Vector{T}
+    all{T<:AbstractModel}(m::Type{T})::Vector{T}
 
 Executes a SQL `SELECT` query against the database and return all the results. Alias for `find(m)`
 Returns the resultset as a `Vector{T<:AbstractModel}`.
@@ -639,13 +639,13 @@ julia> SearchLight.all(Article)
 ...
 ```
 """
-function all{T<:AbstractModel}(m::Type{T}) :: Vector{T}
+function all{T<:AbstractModel}(m::Type{T})::Vector{T}
   find(m)
 end
 
 
 """
-    save{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: Bool
+    save{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::Bool
 
 Attempts to persist the model's data to the database. Returns boolean `true` if successful, `false` otherwise.
 Invokes validations and callbacks.
@@ -698,7 +698,7 @@ julia> SearchLight.save(a)
 true
 ```
 """
-function save{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: Bool
+function save{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::Bool
   try
     _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
@@ -713,8 +713,8 @@ end
 
 
 """
-    save!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: T
-    save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}()) :: T
+    save!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T
+    save!!{T<:AbstractModel}(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T
 
 Similar to `save` but it returns the model reloaded from the database, applying callbacks. Throws an exception if the model can't be persisted.
 
@@ -818,7 +818,7 @@ end
 
 
 """
-    invoke_callback{T<:AbstractModel}(m::T, callback::Symbol) :: Tuple{Bool,T}
+    invoke_callback{T<:AbstractModel}(m::T, callback::Symbol)::Tuple{Bool,T}
 
 Checks if the `callback` method is defined on `m` - if yes, it invokes it and returns `(true, m)`.
 If not, it return `(false, m)`.
@@ -858,7 +858,7 @@ App.Article
 )
 ```
 """
-function invoke_callback{T<:AbstractModel}(m::T, callback::Symbol) :: Tuple{Bool,T}
+function invoke_callback{T<:AbstractModel}(m::T, callback::Symbol)::Tuple{Bool,T}
   if in(callback, fieldnames(m))
     getfield(m, callback)(m)
     (true, m)
@@ -869,8 +869,8 @@ end
 
 
 """
-    update_with!{T<:AbstractModel}(m::T, w::T) :: T
-    update_with!{T<:AbstractModel}(m::T, w::Dict) :: T
+    update_with!{T<:AbstractModel}(m::T, w::T)::T
+    update_with!{T<:AbstractModel}(m::T, w::Dict)::T
 
 Copies the data from `w` into the corresponding properties in `m`. Returns `m`.
 
@@ -1013,7 +1013,7 @@ App.Article
 +--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
-function update_with!{T<:AbstractModel}(m::T, w::T) :: T
+function update_with!{T<:AbstractModel}(m::T, w::T)::T
   for fieldname in fieldnames(typeof(m))
     ( startswith(string(fieldname), "_") || string(fieldname) == m._id ) && continue
     setfield!(m, fieldname, getfield(w, fieldname))
@@ -1021,7 +1021,7 @@ function update_with!{T<:AbstractModel}(m::T, w::T) :: T
 
   m
 end
-function update_with!{T<:AbstractModel}(m::T, w::Dict) :: T
+function update_with!{T<:AbstractModel}(m::T, w::Dict)::T
   for fieldname in fieldnames(typeof(m))
     ( startswith(string(fieldname), "_") || string(fieldname) == m._id ) && continue
 
@@ -1053,7 +1053,7 @@ end
 
 
 """
-    update_with!!{T<:AbstractModel}(m::T, w::Union{T,Dict}) :: T
+    update_with!!{T<:AbstractModel}(m::T, w::Union{T,Dict})::T
 
 Similar to `update_with` but also calls `save!!` on `m`.
 
@@ -1120,7 +1120,7 @@ App.Article
 +--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
-function update_with!!{T<:AbstractModel}(m::T, w::Union{T,Dict}) :: T
+function update_with!!{T<:AbstractModel}(m::T, w::Union{T,Dict})::T
   SearchLight.save!!(update_with!(m, w))
 end
 
@@ -1128,13 +1128,13 @@ end
 """
 
 """
-function create_with{T<:AbstractModel}(m::Type{T}, w::Dict) :: T
+function create_with{T<:AbstractModel}(m::Type{T}, w::Dict)::T
   update_with!(m(), w)
 end
 
 
 """
-    update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol[, value::Any]; ignore = Symbol[], skip_update = false) :: T
+    update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol[, value::Any]; ignore = Symbol[], skip_update = false)::T
 
 Looks up `m` by `property` and `value`. If value is not provided, it uses the corresponding value of `m`.
 If `m` is already persisted, it gets updated. If not, it is persisted as a new row.
@@ -1262,7 +1262,7 @@ const create_or_update_by!! = update_by_or_create!!
 
 
 """
-    create_or_update!!{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false) :: T
+    create_or_update!!{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false)::T
 
 Looks up `m` by `id` as configured in `_id`.
 If `m` is already persisted, it gets updated. If not, it is persisted as a new row.
@@ -1275,7 +1275,7 @@ end
 
 
 """
-    find_one_by_or_create{T<:AbstractModel}(m::Type{T}, property::Any, value::Any) :: T
+    find_one_by_or_create{T<:AbstractModel}(m::Type{T}, property::Any, value::Any)::T
 
 Looks up `m` by `property` and `value`. If it exists, it is returned.
 If not, a new instance is created, `property` is set to `value` and the instance is returned.
@@ -1338,7 +1338,7 @@ App.Article
 +--------------+-------------------------+
 ```
 """
-function find_one_by_or_create{T<:AbstractModel}(m::Type{T}, property::Any, value::Any) :: T
+function find_one_by_or_create{T<:AbstractModel}(m::Type{T}, property::Any, value::Any)::T
   lookup = find_one_by(m, SQLColumn(property), SQLInput(value))
   ! isnull( lookup ) && return Base.get(lookup)
 
@@ -1355,7 +1355,7 @@ end
 
 
 """
-   to_models{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame) :: Vector{T}
+   to_models{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame)::Vector{T}
 
 Converts a DataFrame `df` to a Vector{T}
 
@@ -1409,7 +1409,7 @@ App.Article
 +--------------+-------------------------------------------------------------+
 ```
 """
-function to_models{T<:AbstractModel}(m::Type{T}, df::DataFrame) :: Vector{T}
+function to_models{T<:AbstractModel}(m::Type{T}, df::DataFrame)::Vector{T}
   models = OrderedDict{DbId,T}()
   dfs = dataframes_by_table(m, df)
 
@@ -1448,11 +1448,11 @@ end
 
 
 """
-    set_relation{T<:AbstractModel}(r::SQLRelation, related_model::Type{T}, related_model_df::DataFrames.DataFrame) :: SQLRelation
+    set_relation{T<:AbstractModel}(r::SQLRelation, related_model::Type{T}, related_model_df::DataFrames.DataFrame)::SQLRelation
 
 Sets relation data for one to many relations.
 """
-function set_relation{T<:AbstractModel}(r::SQLRelation, related_model::Type{T}, related_model_df::DataFrames.DataFrame) :: SQLRelation
+function set_relation{T<:AbstractModel}(r::SQLRelation, related_model::Type{T}, related_model_df::DataFrames.DataFrame)::SQLRelation
   data =  if isnull(r.data)
             SQLRelationData{T}(T[])
           else
@@ -1537,7 +1537,7 @@ App.Article
 +--------------+-------------------------------------------------------------+
 ```
 """
-function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow) :: T
+function to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow)::T
   _m::T = m()
   obj::T = m()
   sf = settable_fields(_m, row)
@@ -1608,7 +1608,7 @@ end
 
 
 """
-    to_model!!{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1) :: T
+    to_model!!{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::T
 
 Gets the DataFrameRow instance at `row_index` and converts it into an instance of model `T`.
 
@@ -1661,7 +1661,7 @@ julia> SearchLight.to_model!!(Article, df)
 BoundsError: attempt to access 0-element BitArray{1} at index [1]
 ```
 """
-function to_model!!{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1) :: T
+function to_model!!{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::T
   dfr = DataFrames.DataFrameRow(df, row_index)
 
   to_model(m, dfr)
@@ -1669,7 +1669,7 @@ end
 
 
 """
-    to_model{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1) :: Nullable{T}
+    to_model{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Nullable{T}
 
 Attempts to extract row at `row_index` from `df` and convert it to an instance of `T`.
 
@@ -1721,7 +1721,7 @@ julia> SearchLight.to_model(Article, df)
 Nullable{App.Article}()
 ```
 """
-function to_model{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1) :: Nullable{T}
+function to_model{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Nullable{T}
   nrows, _ = size(df)
   if nrows >= row_index
     Nullable{T}(to_model!!(m, df, row_index = row_index))
@@ -1737,10 +1737,10 @@ end
 
 
 """
-    to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}[, joins = SQLJoin[] ]) :: String
-    to_select_part{T<:AbstractModel}(m::Type{T}, c::SQLColumn) :: String
-    to_select_part{T<:AbstractModel}(m::Type{T}, c::String) :: String
-    to_select_part{T<:AbstractModel}(m::Type{T}) :: String
+    to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}[, joins = SQLJoin[] ])::String
+    to_select_part{T<:AbstractModel}(m::Type{T}, c::SQLColumn)::String
+    to_select_part{T<:AbstractModel}(m::Type{T}, c::String)::String
+    to_select_part{T<:AbstractModel}(m::Type{T})::String
 
 Generates the SELECT part of the SQL query.
 
@@ -1759,16 +1759,16 @@ julia> SearchLight.to_select_part(Article, SQLColumn[:id, :slug, :title])
 "SELECT articles.id AS articles_id, articles.slug AS articles_slug, articles.title AS articles_title"
 ```
 """
-function to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[]) :: String
+function to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String
   Database.to_select_part(m, cols, joins)
 end
-function to_select_part{T<:AbstractModel}(m::Type{T}, c::SQLColumn) :: String
+function to_select_part{T<:AbstractModel}(m::Type{T}, c::SQLColumn)::String
   to_select_part(m, [c])
 end
-function to_select_part{T<:AbstractModel}(m::Type{T}, c::String) :: String
+function to_select_part{T<:AbstractModel}(m::Type{T}, c::String)::String
   to_select_part(m, SQLColumn(c, raw = c == "*"))
 end
-function to_select_part{T<:AbstractModel}(m::Type{T}) :: String
+function to_select_part{T<:AbstractModel}(m::Type{T})::String
   to_select_part(m, SQLColumn[])
 end
 
@@ -1784,14 +1784,14 @@ julia> SearchLight.to_from_part(Article)
 "FROM \"articles\""
 ```
 """
-function to_from_part{T<:AbstractModel}(m::Type{T}) :: String
+function to_from_part{T<:AbstractModel}(m::Type{T})::String
   Database.to_from_part(m)
 end
 
 
 """
-    to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}) :: String
-    to_where_part(w::Vector{SQLWhereEntity}) :: String
+    to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity})::String
+    to_where_part(w::Vector{SQLWhereEntity})::String
 
 Generates the WHERE part of the SQL query.
 
@@ -1826,16 +1826,16 @@ julia> SearchLight.to_where_part(Article, SQLWhereEntity[SQLWhere(:id, 2)], [:ow
 "WHERE (\"id\" = 2) AND id BETWEEN 1 AND 2 AND (\"user_id\" = 1)"
 ```
 """
-function to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity} = Vector{SQLWhereEntity}(), scopes::Vector{Symbol} = Vector{Symbol}()) :: String
+function to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity} = Vector{SQLWhereEntity}(), scopes::Vector{Symbol} = Vector{Symbol}())::String
   Database.to_where_part(m, w, scopes)
 end
-function to_where_part(w::Vector{SQLWhereEntity}) :: String
+function to_where_part(w::Vector{SQLWhereEntity})::String
   Database.to_where_part(w)
 end
 
 
 """
-    required_scopes{T<:AbstractModel}(m::Type{T}) :: Vector{SQLWhereEntity}
+    required_scopes{T<:AbstractModel}(m::Type{T})::Vector{SQLWhereEntity}
 
 Returns the Vector containing the required scopes defined on the model `m`.
 The required scopes are defined under the `:required` key and are automatically applied to all the SQL queries.
@@ -1857,13 +1857,13 @@ SearchLight.SQLWhereExpression
 +----------------+--------------------+
 ```
 """
-function required_scopes{T<:AbstractModel}(m::Type{T}) :: Vector{SQLWhereEntity}
+function required_scopes{T<:AbstractModel}(m::Type{T})::Vector{SQLWhereEntity}
   Database.required_scopes(m)
 end
 
 
 """
-    scopes{T<:AbstractModel}(m::Type{T}) :: Dict{Symbol,Vector{SQLWhereEntity}}
+    scopes{T<:AbstractModel}(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}}
 
 Returns a `Dict` containing the names of all the scopes defined on the model `m` as keys, and the corresponding `Vectors` of `SQLWhereEntity` that make up the actual scopes.
 Includes the `:required` scope if defined.
@@ -1890,13 +1890,13 @@ SearchLight.SQLWhereExpression
 +----------------+--------------------+
 ```
 """
-function scopes{T<:AbstractModel}(m::Type{T}) :: Dict{Symbol,Vector{SQLWhereEntity}}
+function scopes{T<:AbstractModel}(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}}
   Database.scopes(m)
 end
 
 
 """
-    scopes_names{T<:AbstractModel}(m::Type{T}) :: Vector{Symbol}
+    scopes_names{T<:AbstractModel}(m::Type{T})::Vector{Symbol}
 
 Returns the names of all the scopes defined on the model `m`, as a `Vector` of `Symbol`.
 Includes the `:required` scope if defined.
@@ -1909,13 +1909,13 @@ julia> SearchLight.scopes_names(Article)
  :required
 ```
 """
-function scopes_names{T<:AbstractModel}(m::Type{T}) :: Vector{Symbol}
+function scopes_names{T<:AbstractModel}(m::Type{T})::Vector{Symbol}
   scopes(m) |> keys |> collect
 end
 
 
 """
-    to_order_part{T<:AbstractModel}(m::Type{T}, o::Vector{SQLOrder}) :: String
+    to_order_part{T<:AbstractModel}(m::Type{T}, o::Vector{SQLOrder})::String
 
 Generates the ORDER part of the SQL query.
 
@@ -1925,13 +1925,13 @@ julia> SearchLight.to_order_part(Article, SQLOrder[:id, :title])
 "ORDER BY articles.id ASC, articles.title ASC"
 ```
 """
-function to_order_part{T<:AbstractModel}(m::Type{T}, o::Vector{SQLOrder}) :: String
+function to_order_part{T<:AbstractModel}(m::Type{T}, o::Vector{SQLOrder})::String
   Database.to_order_part(m, o)
 end
 
 
 """
-    to_group_part(g::Vector{SQLColumn}) :: String
+    to_group_part(g::Vector{SQLColumn})::String
 
 Generates the GROUP part of the SQL query.
 
@@ -1941,14 +1941,14 @@ julia> SearchLight.to_group_part(SQLColumn[:id, :title])
 " GROUP BY \"id\", \"title\""
 ```
 """
-function to_group_part(g::Vector{SQLColumn}) :: String
+function to_group_part(g::Vector{SQLColumn})::String
   Database.to_group_part(g)
 end
 
 
 """
-    to_limit_part(l::SQLLimit) :: String
-    to_limit_part(l::Int) :: String
+    to_limit_part(l::SQLLimit)::String
+    to_limit_part(l::Int)::String
 
 Generates the LIMIT part of the SQL query.
 
@@ -1961,16 +1961,16 @@ julia> SearchLight.to_limit_part(1)
 "LIMIT 1"
 ```
 """
-function to_limit_part(l::SQLLimit) :: String
+function to_limit_part(l::SQLLimit)::String
   Database.to_limit_part(l)
 end
-function to_limit_part(l::Int) :: String
+function to_limit_part(l::Int)::String
   to_limit_part(SQLLimit(l))
 end
 
 
 """
-    to_offset_part(o::Int) :: String
+    to_offset_part(o::Int)::String
 
 Generates the OFFSET part of the SQL query.
 
@@ -1980,13 +1980,13 @@ julia> SearchLight.to_offset_part(10)
 "OFFSET 10"
 ```
 """
-function to_offset_part(o::Int) :: String
+function to_offset_part(o::Int)::String
   Database.to_offset_part(o)
 end
 
 
 """
-    to_having_part(h::Vector{SQLHaving}) :: String
+    to_having_part(h::Vector{SQLHaving})::String
 
 Generates the HAVING part of the SQL query.
 
@@ -1996,13 +1996,13 @@ julia> SearchLight.to_having_part(SQLHaving[SQLWhere(:aggregated_amount, 200, ">
 "HAVING (\"aggregated_amount\" >= 200)"
 ```
 """
-function to_having_part(h::Vector{SQLWhereEntity}) :: String
+function to_having_part(h::Vector{SQLWhereEntity})::String
   Database.to_having_part(h)
 end
 
 
 """
-    to_join_part{T<:AbstractModel}(m::Type{T}[, joins = SQLJoin[] ]) :: String
+    to_join_part{T<:AbstractModel}(m::Type{T}[, joins = SQLJoin[] ])::String
 
 Generates the JOIN part of the SQL query.
 
@@ -2049,13 +2049,13 @@ julia> SearchLight.to_join_part(User, [j])
 "  INNER  JOIN \"roles\"  ON \"users\".\"role_id\" = \"roles\".\"id\"  WHERE role_id > 10"
 ```
 """
-function to_join_part{T<:AbstractModel}(m::Type{T}, joins = SQLJoin[]) :: String
+function to_join_part{T<:AbstractModel}(m::Type{T}, joins = SQLJoin[])::String
   Database.to_join_part(m, joins)
 end
 
 
 """
-    relations{T<:AbstractModel}(m::Type{T}) :: Vector{Tuple{SQLRelation,Symbol}}
+    relations{T<:AbstractModel}(m::Type{T})::Vector{Tuple{SQLRelation,Symbol}}
 
 Returns the vector of relations for the given model type.
 
@@ -2081,7 +2081,7 @@ SearchLight.SQLRelation{App.Role}
 ,:belongs_to)
 ```
 """
-function relations{T<:AbstractModel}(m::Type{T}) :: Vector{Tuple{SQLRelation,Symbol}}
+function relations{T<:AbstractModel}(m::Type{T})::Vector{Tuple{SQLRelation,Symbol}}
   _m::T = m()
 
   rls = Tuple{SQLRelation,Symbol}[]
@@ -2102,7 +2102,7 @@ end
 
 
 """
-    relation{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol) :: Nullable{SQLRelation{R}}
+    relation{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelation{R}}
 
 Gets the relation instance of `relation_type` for the model instance `m` and `model_name`.
 
@@ -2175,7 +2175,7 @@ SearchLight.SQLRelation{App.Role}
 )
 ```
 """
-function relation{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol) :: Nullable{SQLRelation{R}}
+function relation{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelation{R}}
   nullable_defined_rels::Nullable{Vector{SQLRelation}} = getfield(m, relation_type)
   if ! isnull(nullable_defined_rels)
     defined_rels::Vector{SQLRelation{R}} = Base.get(nullable_defined_rels)
@@ -2195,7 +2195,7 @@ end
 
 
 """
-    relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol) :: Nullable{SQLRelationData{R}}
+    relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}}
 
 Retrieves the data (model object or vector of model objects) associated by the relation.
 
@@ -2244,7 +2244,7 @@ SearchLight.SQLRelationData{App.Role}
 )
 ```
 """
-function relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol) :: Nullable{SQLRelationData{R}}
+function relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}}
   rel::SQLRelation{R} = relation(m, model_name, relation_type) |> Base.get
   if isnull(rel.data)
     rel.data = get_relation_data(m, rel, relation_type)
@@ -2255,7 +2255,7 @@ end
 
 
 """
-    relation_data!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol) :: SQLRelationData{R}
+    relation_data!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::SQLRelationData{R}
 
 Retrieves the data (model object or vector of model objects) associated by the relation. Similar to `relation_data` except if the data is null, throws error.
 
@@ -2302,13 +2302,13 @@ SearchLight.SQLRelationData{App.Role}
 +------------+-------------------------------+
 ```
 """
-function relation_data!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol) :: SQLRelationData{R}
+function relation_data!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::SQLRelationData{R}
   Base.get( relation_data(m, model_name, relation_type) )
 end
 
 
 """
-    relation_collection!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol) :: Vector{R}
+    relation_collection!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Vector{R}
 
 Returns the collection (vector) containing the data associated through the relation.
 
@@ -2335,13 +2335,13 @@ App.Role
 +------+--------------------+
 ```
 """
-function relation_collection!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol) :: Vector{R}
+function relation_collection!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Vector{R}
   relation_data!!(m, model_name, relation_type).collection
 end
 
 
 """
-    relation_object!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol; idx = 1) :: R
+    relation_object!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol; idx = 1)::R
 
 Returns the model object at `idx` from the collection defined by the associated relation.
 
@@ -2367,14 +2367,14 @@ App.Role
 +------+--------------------+
 ```
 """
-function relation_object!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol; idx = 1) :: R
+function relation_object!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol; idx = 1)::R
   relation_collection!!(m, model_name, relation_type)[idx]
 end
 
 
 """
-    get_relation_data{T<:AbstractModel}{R<:AbstractModel}(m::T, rel::SQLRelation{R}, relation_type::Symbol) :: Nullable{SQLRelationData{R}}
-    get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, relation_info::Tuple{SQLRelation,Symbol}) :: Nullable{SQLRelationData{R}}
+    get_relation_data{T<:AbstractModel}{R<:AbstractModel}(m::T, rel::SQLRelation{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}}
+    get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, relation_info::Tuple{SQLRelation,Symbol})::Nullable{SQLRelationData{R}}
 
 Extracts the data (instantiates the models) associated by the relation, performing the corresponding SQL queries.
 
@@ -2473,7 +2473,7 @@ SearchLight.SQLRelationData{App.Role}
 )
 ```
 """
-function get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, rel::SQLRelation{R}, relation_type::Symbol) :: Nullable{SQLRelationData{R}}
+function get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, rel::SQLRelation{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}}
   conditions = SQLWhere[]
   limit = if relation_type == RELATION_HAS_ONE || relation_type == RELATION_BELONGS_TO
             1
@@ -2499,13 +2499,13 @@ function get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, rel::SQLRela
 
   Nullable{SQLRelationData{R}}()
 end
-function get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, relation_info::Tuple{SQLRelation{R},Symbol}) :: Nullable{SQLRelationData{R}}
+function get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, relation_info::Tuple{SQLRelation{R},Symbol})::Nullable{SQLRelationData{R}}
   get_relation_data(m, relation_info[1], relation_info[2])
 end
 
 
 """
-    relations_tables_names{T<:AbstractModel}(m::Type{T}) :: Vector{String}
+    relations_tables_names{T<:AbstractModel}(m::Type{T})::Vector{String}
 
 Returns a vector of strings containing the names of the related SQL database tables.
 
@@ -2516,7 +2516,7 @@ julia> SearchLight.relations_tables_names(User)
  "roles"
 ```
 """
-function relations_tables_names{T<:AbstractModel}(m::Type{T}) :: Vector{String}
+function relations_tables_names{T<:AbstractModel}(m::Type{T})::Vector{String}
   tables_names = String[]
   for r in relations(m)
     r, r_type = r
@@ -2529,7 +2529,7 @@ end
 
 
 """
-    columns_names_by_table(tables_names::Vector{String}, df::DataFrame) :: Dict{String,Vector{Symbol}}
+    columns_names_by_table(tables_names::Vector{String}, df::DataFrame)::Dict{String,Vector{Symbol}}
 
 Returns the names of the columns from `df` grouped by table name -- as a `Dict` that has as keys the names of the tables from `tables_names` and as values vectors of symbols representing the names of the columns from `df`.
 
@@ -2553,7 +2553,7 @@ Dict{String,Array{Symbol,1}} with 1 entry:
   "users" => Symbol[:users_id,:users_name,:users_email,:users_password,:users_role_id,:users_updated_at]
 ```
 """
-function columns_names_by_table(tables_names::Vector{String}, df::DataFrame) :: Dict{String,Vector{Symbol}}
+function columns_names_by_table(tables_names::Vector{String}, df::DataFrame)::Dict{String,Vector{Symbol}}
   tables_columns = Dict{String,Vector{Symbol}}()
 
   for t in tables_names
@@ -2583,7 +2583,7 @@ end
 
 
 """
-    dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{String,Vector{Symbol}}, df::DataFrame) :: Dict{String,DataFrame}
+    dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{String,Vector{Symbol}}, df::DataFrame)::Dict{String,DataFrame}
 
 Breaks a `DataFrame` into multiple dataframes by table names - one `DataFrame` corresponding to the columns of each table.
 The resulting `DataFrame`s are return as a `Dict` with the keys being the table names.
@@ -2614,7 +2614,7 @@ julia> SearchLight.dataframes_by_table(["users"], SearchLight.columns_names_by_t
 │ 1   │ 1        │ "Adrian Salceanu" │ "e@essenciary.com" │ "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" │ 2             │ "2016-08-25 20:05:24" │
 ```
 """
-function dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{String,Vector{Symbol}}, df::DataFrame) :: Dict{String,DataFrame}
+function dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{String,Vector{Symbol}}, df::DataFrame)::Dict{String,DataFrame}
   sub_dfs = Dict{String,DataFrame}()
 
   for t in tables_names
@@ -2623,7 +2623,7 @@ function dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{
 
   sub_dfs
 end
-function dataframes_by_table{T<:AbstractModel}(m::Type{T}, df::DataFrame) :: Dict{String,DataFrame}
+function dataframes_by_table{T<:AbstractModel}(m::Type{T}, df::DataFrame)::Dict{String,DataFrame}
   tables_names = vcat(String[m()._table_name], relations_tables_names(m))
 
   dataframes_by_table(tables_names, columns_names_by_table(tables_names, df), df)
@@ -2631,7 +2631,7 @@ end
 
 
 """
-    relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol}) :: String
+    relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol})::String
 
 Returns the part of the SQL query that corresponds to the SQL JOIN defined by the relationship.
 
@@ -2649,13 +2649,13 @@ julia> SearchLight.relation_to_sql(SearchLight.find_one!!(User, 1), SearchLight.
 "\"roles\" ON \"users\".\"role_id\" = \"roles\".\"id\""
 ```
 """
-function relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol}) :: String
+function relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol})::String
   Database.relation_to_sql(m, rel)
 end
 
 
 """
-    to_find_sql{T<:AbstractModel,N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, joins::Vector{SQLJoin{N}}]]) :: String
+    to_find_sql{T<:AbstractModel,N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, joins::Vector{SQLJoin{N}}]])::String
 
 Returns the complete SELECT SQL query corresponding to `m` and `q`.
 
@@ -2665,7 +2665,7 @@ julia> SearchLight.to_find_sql(User, SQLQuery())
 "SELECT \"users\".\"id\" AS \"users_id\", \"users\".\"name\" AS \"users_name\", \"users\".\"email\" AS \"users_email\", \"users\".\"password\" AS \"users_password\", \"users\".\"role_id\" AS \"users_role_id\", \"users\".\"updated_at\" AS \"users_updated_at\", \"roles\".\"id\" AS \"roles_id\", \"roles\".\"name\" AS \"roles_name\" FROM \"users\" LEFT JOIN \"roles\" ON \"users\".\"role_id\" = \"roles\".\"id\""
 ```
 """
-function to_find_sql{T<:AbstractModel,N<:AbstractModel}(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}}) :: String
+function to_find_sql{T<:AbstractModel,N<:AbstractModel}(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String
   Database.to_find_sql(m, q, joins)
 end
 function to_find_sql{T<:AbstractModel}(m::Type{T}, q::SQLQuery)
@@ -2677,17 +2677,17 @@ end
 const to_fetch_sql = to_find_sql
 
 """
-    to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String
+    to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error)::String
 
 Generates the INSERT SQL query.
 """
-function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error) :: String # upsert strateygy = :none | :error | :ignore | :update
+function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error)::String # upsert strateygy = :none | :error | :ignore | :update
   Database.to_store_sql(m, conflict_strategy = conflict_strategy)
 end
 
 
 """
-    to_sqlinput{T<:AbstractModel}(m::T, field::Symbol, value) :: SQLInput
+    to_sqlinput{T<:AbstractModel}(m::T, field::Symbol, value)::SQLInput
 
 SQLInput constructor that applies various processing steps to prepare the enclosed value for database persistance (escaping, etc).
 Applies `on_dehydration` callback if defined.
@@ -2706,7 +2706,7 @@ julia> SearchLight.to_sqlinput(SearchLight.find_one!!(User, 1), :email, "genie@e
 'genie@example.com''; DROP users;'
 ```
 """
-function to_sqlinput{T<:AbstractModel}(m::T, field::Symbol, value) :: SQLInput
+function to_sqlinput{T<:AbstractModel}(m::T, field::Symbol, value)::SQLInput
   value = if in(:on_dehydration, fieldnames(m))
             try
               r = m.on_dehydration(m, field, value)
@@ -2732,7 +2732,7 @@ end
 
 
 """
-    delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false) :: Void
+    delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void
 
 Deletes all the rows from the database table corresponding to `m`. If `truncate` is `true`, the table will be truncated.
 If `reset_sequence` is `true`, the auto-increment counter will be reset (where supported by the underlying RDBMS).
@@ -2743,13 +2743,13 @@ If `cascade` is `true`, the delete will be cascaded to all related tables (where
 julia> SearchLight.delete_all(Article)
 ```
 """
-function delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false) :: Void
+function delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void
   Database.delete_all(m, truncate = truncate, reset_sequence = reset_sequence, cascade = cascade)
 end
 
 
 """
-    delete{T<:AbstractModel}(m::T) :: T
+    delete{T<:AbstractModel}(m::T)::T
 
 Deletes the database row correspoding to `m` and returns a copy of `m` that is no longer persisted.
 
@@ -2785,7 +2785,7 @@ App.Article
 +--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
-function delete{T<:AbstractModel}(m::T) :: T
+function delete{T<:AbstractModel}(m::T)::T
   Database.delete(m)
 end
 
@@ -2795,7 +2795,7 @@ end
 
 
 """
-    query(sql::String) :: DataFrame
+    query(sql::String)::DataFrame
 
 Executes the `sql` SQL query string against the underlying database.
 
@@ -2810,17 +2810,17 @@ julia> SearchLight.query("SELECT * FROM articles LIMIT 5")
 5×7 DataFrames.DataFrame
 ```
 """
-function query(sql::String; system_query::Bool = false) :: DataFrame
+function query(sql::String; system_query::Bool = false)::DataFrame
   Database.query_df(sql, system_query = system_query)
 end
 
 
 """
-    query_raw(sql::AbstractString; system_query::Bool = false) :: DatabaseAdapter.ResultHandle
+    query_raw(sql::AbstractString; system_query::Bool = false)::DatabaseAdapter.ResultHandle
 
 Sends a raw query string to be executed by the database adapter.
 """
-function query_raw(sql::AbstractString; system_query::Bool = false) :: DatabaseAdapter.ResultHandle
+function query_raw(sql::AbstractString; system_query::Bool = false)::DatabaseAdapter.ResultHandle
   Database.query(sql, system_query = system_query)
 end
 
@@ -2831,7 +2831,7 @@ end
 
 
 """
-    count{T<:AbstractModel}(m::Type{T}[, q::SQLQuery = SQLQuery()]) :: Int
+    count{T<:AbstractModel}(m::Type{T}[, q::SQLQuery = SQLQuery()])::Int
 
 Executes a count query against `m` applying `q`.
 
@@ -2852,7 +2852,7 @@ julia> SearchLight.count(Article, SQLQuery(where = SQLWhereEntity[SQLWhereExpres
 9
 ```
 """
-function count{T<:AbstractModel}(m::Type{T}, q::SQLQuery = SQLQuery()) :: Int
+function count{T<:AbstractModel}(m::Type{T}, q::SQLQuery = SQLQuery())::Int
   Database.count(m, q)
 end
 
@@ -2863,17 +2863,17 @@ end
 
 
 """
-    disposable_instance{T<:AbstractModel}(m::Type{T}) :: T
+    disposable_instance{T<:AbstractModel}(m::Type{T})::T
 
 Returns a type stable object T().
 """
-function disposable_instance{T<:AbstractModel}(m::Type{T}) :: T
-  m() :: T
+function disposable_instance{T<:AbstractModel}(m::Type{T})::T
+  m()::T
 end
 
 
 """
-    clone{T<:SQLType}(o::T, fieldname::Symbol, value::Any) :: T
+    clone{T<:SQLType}(o::T, fieldname::Symbol, value::Any)::T
 
 Creates a copy of `o` changing `fieldname` with `value`.
 To be used to change instances of immutable types.
@@ -2931,7 +2931,7 @@ SearchLight.SQLQuery
 +---------+--------------------------------------------------------------+
 ```
 """
-function clone{T<:SQLType}(o::T, fieldname::Symbol, value::Any) :: T
+function clone{T<:SQLType}(o::T, fieldname::Symbol, value::Any)::T
   content = Dict{Symbol,Any}()
   for field in fieldnames(o)
     content[field] = getfield(o, field)
@@ -2943,7 +2943,7 @@ end
 
 
 """
-    clone{T<:SQLType}(o::T, changes::Dict{Symbol,Any}) :: T
+    clone{T<:SQLType}(o::T, changes::Dict{Symbol,Any})::T
 
 Creates a copy of `o` changing `fieldname` with `value`; or replacing the corresponding properties from `o` with the corresponding values from `changes`.
 To be used to change instances of immutable types.
@@ -2999,7 +2999,7 @@ SearchLight.SQLQuery
 +---------+--------------------------------------------------------------+
 ```
 """
-function clone{T<:SQLType}(o::T, changes::Dict{Symbol,Any}) :: T
+function clone{T<:SQLType}(o::T, changes::Dict{Symbol,Any})::T
   content = Dict{Symbol,Any}()
   for field in fieldnames(o)
     content[field] = getfield(o, field)
@@ -3011,21 +3011,21 @@ end
 
 
 """
-    columns{T<:AbstractModel}(m::Type{T}) :: DataFrames.DataFrame
-    columns{T<:AbstractModel}(m::T) :: DataFrames.DataFrame
+    columns{T<:AbstractModel}(m::Type{T})::DataFrames.DataFrame
+    columns{T<:AbstractModel}(m::T)::DataFrames.DataFrame
 
 Returns a DataFrame representing schema information for the database table columns associated with `m`.
 """
-function columns{T<:AbstractModel}(m::Type{T}) :: DataFrames.DataFrame
+function columns{T<:AbstractModel}(m::Type{T})::DataFrames.DataFrame
   Database.table_columns(disposable_instance(m)._table_name)
 end
-function columns{T<:AbstractModel}(m::T) :: DataFrames.DataFrame
+function columns{T<:AbstractModel}(m::T)::DataFrames.DataFrame
   Database.table_columns(m._table_name)
 end
 
 
 """
-    is_persisted{T<:AbstractModel}(m::T) :: Bool
+    is_persisted{T<:AbstractModel}(m::T)::Bool
 
 Returns wheter or not the model object is persisted to the database.
 
@@ -3046,13 +3046,13 @@ julia> SearchLight.is_persisted(SearchLight.find_one!!(User, 1))
 true
 ```
 """
-function is_persisted{T<:AbstractModel}(m::T) :: Bool
+function is_persisted{T<:AbstractModel}(m::T)::Bool
   ! ( isa(getfield(m, Symbol(m._id)), Nullable) && isnull( getfield(m, Symbol(m._id)) ) )
 end
 
 
 """
-    persistable_fields{T<:AbstractModel}(m::T; fully_qualified::Bool = false) :: Vector{String}
+    persistable_fields{T<:AbstractModel}(m::T; fully_qualified::Bool = false)::Vector{String}
 
 Returns a vector containing the names of the fields of `m` that are mapped to corresponding database columns.
 The `fully_qualified` param will prepend the name of the table and add an automatically generated alias.
@@ -3096,7 +3096,7 @@ julia> SearchLight.persistable_fields(SearchLight.find_one!!(User, 1))
  "users.updated_at AS users_updated_at"
 ```
 """
-function persistable_fields{T<:AbstractModel}(m::T; fully_qualified::Bool = false) :: Vector{String}
+function persistable_fields{T<:AbstractModel}(m::T; fully_qualified::Bool = false)::Vector{String}
   object_fields = map(x -> string(x), fieldnames(m))
   db_columns = columns(typeof(m))[DatabaseAdapter.COLUMN_NAME_FIELD_NAME]
 
@@ -3110,11 +3110,11 @@ end
 
 
 """
-    settable_fields{T<:AbstractModel}(m::T, row::DataFrames.DataFrameRow) :: Vector{Symbol}
+    settable_fields{T<:AbstractModel}(m::T, row::DataFrames.DataFrameRow)::Vector{Symbol}
 
 ???
 """
-function settable_fields{T<:AbstractModel}(m::T, row::DataFrames.DataFrameRow) :: Vector{Symbol}
+function settable_fields{T<:AbstractModel}(m::T, row::DataFrames.DataFrameRow)::Vector{Symbol}
   df_cols::Vector{Symbol} = names(row)
   fields = is_fully_qualified(m, df_cols[1]) ? to_sql_column_names(m, fieldnames(m)) : fieldnames(m)
 
@@ -3128,27 +3128,27 @@ end
 
 
 """
-    id{T<:AbstractModel}(m::T) :: String
+    id{T<:AbstractModel}(m::T)::String
 
 Returns the "id" property defined on `m`.
 """
-function id{T<:AbstractModel}(m::T) :: String
+function id{T<:AbstractModel}(m::T)::String
   m._id
 end
 
 
 """
-    table_name{T<:AbstractModel}(m::T) :: String
+    table_name{T<:AbstractModel}(m::T)::String
 
 Returns the table_name property defined on `m`.
 """
-function table_name{T<:AbstractModel}(m::T) :: String
+function table_name{T<:AbstractModel}(m::T)::String
   m._table_name
 end
 
 
 """
-    validator!!{T<:AbstractModel}(m::T) :: ModelValidator
+    validator!!{T<:AbstractModel}(m::T)::ModelValidator
 
 Gets the ModelValidator object defined for `m`.
 If no ModelValidator is defined, an error will be thrown.
@@ -3177,13 +3177,13 @@ SearchLight.ModelValidator
 +--------+---------------------------------------------------------------------------------------------------------+
 ```
 """
-function validator!!{T<:AbstractModel}(m::T) :: ModelValidator
+function validator!!{T<:AbstractModel}(m::T)::ModelValidator
   Validation.validator!!(m)
 end
 
 
 """
-    validator{T<:AbstractModel}(m::T) :: Nullable{ModelValidator}
+    validator{T<:AbstractModel}(m::T)::Nullable{ModelValidator}
 
 Gets the ModelValidator object defined for `m` wrapped in a Nullable{ModelValidator}.
 
@@ -3203,13 +3203,13 @@ SearchLight.ModelValidator
 )
 ```
 """
-function validator{T<:AbstractModel}(m::T) :: Nullable{ModelValidator}
+function validator{T<:AbstractModel}(m::T)::Nullable{ModelValidator}
   Validation.validator!!(m)
 end
 
 
 """
-    has_field{T<:AbstractModel}(m::T, f::Symbol) :: Bool
+    has_field{T<:AbstractModel}(m::T, f::Symbol)::Bool
 
 Returns a `Bool` whether or not the field `f` is defined on the model `m`.
 
@@ -3222,13 +3222,13 @@ julia> SearchLight.has_field(ar, :moo)
 false
 ```
 """
-function has_field{T<:AbstractModel}(m::T, f::Symbol) :: Bool
+function has_field{T<:AbstractModel}(m::T, f::Symbol)::Bool
   in(f, fieldnames(m))
 end
 
 
 """
-    strip_table_name{T<:AbstractModel}(m::T, f::Symbol) :: Symbol
+    strip_table_name{T<:AbstractModel}(m::T, f::Symbol)::Symbol
 
 Strips the table name associated with the model from a fully qualified alias column name string.
 
@@ -3238,14 +3238,14 @@ julia> SearchLight.strip_table_name(SearchLight.rand_one!!(Article), :articles_u
 :updated_at
 ```
 """
-function strip_table_name{T<:AbstractModel}(m::T, f::Symbol) :: Symbol
+function strip_table_name{T<:AbstractModel}(m::T, f::Symbol)::Symbol
   replace(string(f), Regex("^$(m._table_name)_"), "", 1) |> Symbol
 end
 
 
 """
-    is_fully_qualified{T<:AbstractModel}(m::T, f::Symbol) :: Bool
-    is_fully_qualified{T<:SQLType}(t::T) :: Bool
+    is_fully_qualified{T<:AbstractModel}(m::T, f::Symbol)::Bool
+    is_fully_qualified{T<:SQLType}(t::T)::Bool
 
 Returns a `Bool` whether or not `f` represents a fully qualified column name alias of the table associated with the model `m`.
 
@@ -3258,16 +3258,16 @@ julia> SearchLight.is_fully_qualified(SearchLight.rand_one!!(Article), :users_up
 false
 ```
 """
-function is_fully_qualified{T<:AbstractModel}(m::T, f::Symbol) :: Bool
+function is_fully_qualified{T<:AbstractModel}(m::T, f::Symbol)::Bool
   startswith(string(f), m._table_name) && has_field(m, strip_table_name(m, f))
 end
-function is_fully_qualified{T<:SQLType}(t::T) :: Bool
+function is_fully_qualified{T<:SQLType}(t::T)::Bool
   replace(t |> string, "\"", "") |> string |> is_fully_qualified
 end
 
 
 """
-    is_fully_qualified(s::String) :: Bool
+    is_fully_qualified(s::String)::Bool
 
 Returns a `Bool` whether or not `s` represents a fully qualified SQL column name.
 
@@ -3280,13 +3280,13 @@ julia> SearchLight.is_fully_qualified("updated_at")
 false
 ```
 """
-function is_fully_qualified(s::String) :: Bool
+function is_fully_qualified(s::String)::Bool
   ! startswith(s, ".") && contains(s, ".")
 end
 
 
 """
-    from_fully_qualified{T<:AbstractModel}(m::T, f::Symbol) :: String
+    from_fully_qualified{T<:AbstractModel}(m::T, f::Symbol)::String
 
 If `f` is a fully qualified column name alias of the table associated with the model `m`, it returns the column name with the table name stripped off.
 Otherwise it returns `f`.
@@ -3300,13 +3300,13 @@ julia> SearchLight.from_fully_qualified(SearchLight.rand_one!!(Article), :foo_ba
 :foo_bar
 ```
 """
-function from_fully_qualified{T<:AbstractModel}(m::T, f::Symbol) :: Symbol
+function from_fully_qualified{T<:AbstractModel}(m::T, f::Symbol)::Symbol
   is_fully_qualified(m, f) ? strip_table_name(m, f) : f
 end
 
 
 """
-    from_fully_qualified(s::String) :: Tuple{String,String}
+    from_fully_qualified(s::String)::Tuple{String,String}
 
 Attempts to split a fully qualified SQL column name into a Tuple of table_name and column_name.
 If `s` is not in the table_name.column_name format, an error is thrown.
@@ -3324,20 +3324,20 @@ julia> SearchLight.from_fully_qualified("articles_updated_at")
 "articles_updated_at is not a fully qualified SQL column name in the format table_name.column_name"
 ```
 """
-function from_fully_qualified(s::String) :: Tuple{String,String}
+function from_fully_qualified(s::String)::Tuple{String,String}
   ! contains(s, ".") && throw("$s is not a fully qualified SQL column name in the format table_name.column_name")
 
   (x,y) = split(s, ".")
 
   (string(x),string(y))
 end
-function from_fully_qualified{T<:SQLType}(t::T) :: Tuple{String,String}
+function from_fully_qualified{T<:SQLType}(t::T)::Tuple{String,String}
   replace(t |> string, "\"", "") |> string |> from_fully_qualified
 end
 
 
 """
-    strip_module_name(s::String) :: String
+    strip_module_name(s::String)::String
 
 If `s` is in the format module_name.function_name, only the function name will be returned.
 Otherwise `s` will be returned.
@@ -3348,13 +3348,13 @@ julia> SearchLight.strip_module_name("SearchLight.rand")
 "rand"
 ```
 """
-function strip_module_name(s::String) :: String
+function strip_module_name(s::String)::String
   split(s, ".") |> last
 end
 
 
 """
-    to_fully_qualified(v::String, t::String) :: String
+    to_fully_qualified(v::String, t::String)::String
 
 Takes `v` as the column name and `t` as the table name and returns a fully qualified SQL column name as `table_name.column_name`.
 
@@ -3364,15 +3364,15 @@ julia> SearchLight.to_fully_qualified("updated_at", "articles")
 "articles.updated_at"
 ```
 """
-function to_fully_qualified(v::String, t::String) :: String
+function to_fully_qualified(v::String, t::String)::String
   t * "." * v
 end
 
 
 """
-    to_fully_qualified{T<:AbstractModel}(m::T, v::String) :: String
-    to_fully_qualified{T<:AbstractModel}(m::T, c::SQLColumn) :: String
-    to_fully_qualified{T<:AbstractModel}(m::Type{T}, c::SQLColumn) :: String
+    to_fully_qualified{T<:AbstractModel}(m::T, v::String)::String
+    to_fully_qualified{T<:AbstractModel}(m::T, c::SQLColumn)::String
+    to_fully_qualified{T<:AbstractModel}(m::Type{T}, c::SQLColumn)::String
 
 Returns the fully qualified SQL column name corresponding to the column `v` and the model `m`.
 
@@ -3382,20 +3382,20 @@ julia> SearchLight.to_fully_qualified(SearchLight.rand_one!!(Article), "updated_
 "articles.updated_at"
 ```
 """
-function to_fully_qualified{T<:AbstractModel}(m::T, v::String) :: String
+function to_fully_qualified{T<:AbstractModel}(m::T, v::String)::String
   to_fully_qualified(v, m._table_name)
 end
-function to_fully_qualified{T<:AbstractModel}(m::T, c::SQLColumn) :: String
+function to_fully_qualified{T<:AbstractModel}(m::T, c::SQLColumn)::String
   c.raw && return c.value
   to_fully_qualified(c.value, m._table_name)
 end
-function to_fully_qualified{T<:AbstractModel}(m::Type{T}, c::SQLColumn) :: String
+function to_fully_qualified{T<:AbstractModel}(m::Type{T}, c::SQLColumn)::String
   to_fully_qualified(disposable_instance(m), c)
 end
 
 
 """
-    to_sql_column_names{T<:AbstractModel}(m::T, fields::Vector{Symbol}) :: Vector{Symbol}
+    to_sql_column_names{T<:AbstractModel}(m::T, fields::Vector{Symbol})::Vector{Symbol}
 
 Takes a model `m` and a Vector{Symbol} corresponding to unqualified SQL column names and returns a Vector{Symbol} of fully qualified alias columns.
 
@@ -3407,17 +3407,17 @@ julia> SearchLight.to_sql_column_names(SearchLight.rand_one!!(Article), Symbol[:
  :articles_deleted
 ```
 """
-function to_sql_column_names{T<:AbstractModel}(m::T, fields::Vector{Symbol}) :: Vector{Symbol}
+function to_sql_column_names{T<:AbstractModel}(m::T, fields::Vector{Symbol})::Vector{Symbol}
   map(x -> (to_sql_column_name(m, string(x))) |> Symbol, fields)
 end
 
 
 """
-    to_sql_column_name(v::String, t::String) :: String
+    to_sql_column_name(v::String, t::String)::String
 
 Generates a column name in the form `table_column` from `t` and `v` as `t_v`.
 """
-function to_sql_column_name(v::String, t::String) :: String
+function to_sql_column_name(v::String, t::String)::String
   str = Util.strip_quotes(t) * "_" * Util.strip_quotes(v)
   if Util.is_quoted(t) && Util.is_quoted(v)
     Util.add_quotes(str)
@@ -3425,30 +3425,30 @@ function to_sql_column_name(v::String, t::String) :: String
     str
   end
 end
-function to_sql_column_name{T<:AbstractModel}(m::T, v::String) :: String
+function to_sql_column_name{T<:AbstractModel}(m::T, v::String)::String
   to_sql_column_name(v, m._table_name)
 end
-function to_sql_column_name{T<:AbstractModel}(m::T, c::SQLColumn) :: String
+function to_sql_column_name{T<:AbstractModel}(m::T, c::SQLColumn)::String
   to_sql_column_name(c.value, m._table_name)
 end
 
 
 """
-    to_fully_qualified_sql_column_names{T<:AbstractModel}(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false) :: Vector{String}
+    to_fully_qualified_sql_column_names{T<:AbstractModel}(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false)::Vector{String}
 
 Takes a `vector` of field names and generates corresponding SQL column names.
 """
-function to_fully_qualified_sql_column_names{T<:AbstractModel}(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false) :: Vector{String}
+function to_fully_qualified_sql_column_names{T<:AbstractModel}(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false)::Vector{String}
   map(x -> to_fully_qualified_sql_column_name(m, x, escape_columns = escape_columns), persistable_fields)
 end
 
 
 """
-    to_fully_qualified_sql_column_name{T<:AbstractModel}(m::T, f::String; escape_columns::Bool = false, alias::String = "") :: String
+    to_fully_qualified_sql_column_name{T<:AbstractModel}(m::T, f::String; escape_columns::Bool = false, alias::String = "")::String
 
 Generates a fully qualified SQL column name, in the form of `table_name.column AS table_name_column` for the underlying table of `m` and the column `f`.
 """
-function to_fully_qualified_sql_column_name{T<:AbstractModel}(m::T, f::String; escape_columns::Bool = false, alias::String = "") :: String
+function to_fully_qualified_sql_column_name{T<:AbstractModel}(m::T, f::String; escape_columns::Bool = false, alias::String = "")::String
   if escape_columns
     "$(to_fully_qualified(m, f) |> escape_column_name) AS $(isempty(alias) ? (to_sql_column_name(m, f) |> escape_column_name) : alias)"
   else
@@ -3458,11 +3458,11 @@ end
 
 
 """
-    from_literal_column_name(c::String) :: Dict{Symbol,String}
+    from_literal_column_name(c::String)::Dict{Symbol,String}
 
 Takes a SQL column name `c` and returns a `Dict` of its parts (`:column_name`, `:alias`, `:original_string`)
 """
-function from_literal_column_name(c::String) :: Dict{Symbol,String}
+function from_literal_column_name(c::String)::Dict{Symbol,String}
   result = Dict{Symbol,String}()
   result[:original_string] = c
 
@@ -3487,35 +3487,35 @@ end
 
 
 """
-    to_dict{T<:AbstractModel}(m::T; all_fields::Bool = false) :: Dict{String,Any}
+    to_dict{T<:AbstractModel}(m::T; all_fields::Bool = false)::Dict{String,Any}
 
 Converts a model `m` to a `Dict`. Orginal types of the fields values are kept.
 If `all_fields` is `true`, all fields are included; otherwise just the fields corresponding to database columns.
 """
-function to_dict{T<:AbstractModel}(m::T; all_fields::Bool = false) :: Dict{String,Any}
+function to_dict{T<:AbstractModel}(m::T; all_fields::Bool = false)::Dict{String,Any}
   fields = all_fields ? fieldnames(m) : persistable_fields(m)
   Dict( string(f) => Util.expand_nullable( getfield(m, Symbol(f)) ) for f in fields )
 end
 
 
 """
-    to_dict(m::Any) :: Dict{String,Any}
+    to_dict(m::Any)::Dict{String,Any}
 
 Creates a `Dict` using the fields and the values of `m`.
 """
-function to_dict(m::Any) :: Dict{String,Any}
+function to_dict(m::Any)::Dict{String,Any}
   Dict(string(f) => getfield(m, Symbol(f)) for f in fieldnames(m))
 end
 
 
 """
-    to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_output::Bool = false) :: Dict{String,String}
+    to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_output::Bool = false)::Dict{String,String}
 
 Converts a model `m` to a `Dict{String,String}`. Orginal types of the fields values are converted to strings.
 If `all_fields` is `true`, all fields are included; otherwise just the fields corresponding to database columns.
 If `all_output` is `false` the values are truncated if longer than `output_length`.
 """
-function to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_output::Bool = false) :: Dict{String,String}
+function to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_output::Bool = false)::Dict{String,String}
   fields = all_fields ? fieldnames(m) : persistable_fields(m)
   output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
   response = Dict{String,String}()
@@ -3530,10 +3530,10 @@ function to_string_dict{T<:AbstractModel}(m::T; all_fields::Bool = false, all_ou
 
   response
 end
-function to_string_dict(m::Any; all_output::Bool = false) :: Dict{String,String}
+function to_string_dict(m::Any; all_output::Bool = false)::Dict{String,String}
   to_string_dict(m, fieldnames(m), all_output = all_output)
 end
-function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false) :: Dict{String,String}
+function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false)::Dict{String,String}
   output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
   response = Dict{String,String}()
   for f in fields
@@ -3550,31 +3550,31 @@ end
 
 
 """
-    to_nullable{T<:AbstractModel}(result::Vector{T}) :: Nullable{T}
+    to_nullable{T<:AbstractModel}(result::Vector{T})::Nullable{T}
 
 Wraps a result vector into a `Nullable`.
 """
-function to_nullable{T<:AbstractModel}(result::Vector{T}) :: Nullable{T}
+function to_nullable{T<:AbstractModel}(result::Vector{T})::Nullable{T}
   isempty(result) ? Nullable{T}() : Nullable{T}(result |> first)
 end
 
 
 """
-    has_relation{T<:AbstractModel}(m::T, relation_type::Symbol) :: Bool
+    has_relation{T<:AbstractModel}(m::T, relation_type::Symbol)::Bool
 
 Returns wheter or not the model `m` has defined a relation of type `relation_type`.
 """
-function has_relation{T<:AbstractModel}(m::T, relation_type::Symbol) :: Bool
+function has_relation{T<:AbstractModel}(m::T, relation_type::Symbol)::Bool
   has_field(m, relation_type)
 end
 
 
 """
-    dataframe_to_dict(df::DataFrames.DataFrame) :: Vector{Dict{Symbol,Any}}
+    dataframe_to_dict(df::DataFrames.DataFrame)::Vector{Dict{Symbol,Any}}
 
 Converts a `DataFrame` to a `Vector{Dict{Symbol,Any}}`.
 """
-function dataframe_to_dict(df::DataFrames.DataFrame) :: Vector{Dict{Symbol,Any}}
+function dataframe_to_dict(df::DataFrames.DataFrame)::Vector{Dict{Symbol,Any}}
   result = Dict{Symbol,Any}[]
   for r in eachrow(df)
     push!(result, Dict{Symbol,Any}( [k => r[k] for k in DataFrames.names(df)] ) )
@@ -3585,11 +3585,11 @@ end
 
 
 """
-    enclosure(v::Any, o::Any) :: String
+    enclosure(v::Any, o::Any)::String
 
 Wraps SQL query parts in parenthesys.
 """
-function enclosure(v::Any, o::Any) :: String
+function enclosure(v::Any, o::Any)::String
   in(string(o), ["IN", "in"]) ? "($(string(v)))" : string(v)
 end
 
@@ -3599,48 +3599,48 @@ end
 #
 
 if ! method_exists(convert, (Type{DateTime}, String))
-  function convert(::Type{DateTime}, value::String) :: DateTime
+  function convert(::Type{DateTime}, value::String)::DateTime
     DateParser.parse(DateTime, value)
   end
 end
 
-function convert(::Type{Nullable{DateTime}}, value::String) :: Nullable{DateTime}
+function convert(::Type{Nullable{DateTime}}, value::String)::Nullable{DateTime}
   DateParser.parse(DateTime, value) |> Nullable
 end
 
 
-function update_query_part{T<:AbstractModel}(m::T) :: String
+function update_query_part{T<:AbstractModel}(m::T)::String
   Database.update_query_part(m)
 end
 
 
 """
-    create_migrations_table() :: Bool
+    create_migrations_table()::Bool
 
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `config.db_migrations_table_name`
 """
-function create_migrations_table(table_name::String = config.db_migrations_table_name) :: Bool
+function create_migrations_table(table_name::String = config.db_migrations_table_name)::Bool
   DatabaseAdapter.create_migrations_table(table_name)
 end
 
 
 """
-    adapter_type(v::Bool) :: Union{Bool,Int,Char,String}
+    adapter_type(v::Bool)::Union{Bool,Int,Char,String}
 
 Converts the Julia type to the corresponding type in the database. For example, the bool type for SQLite is 1 or 0
 """
-function adapter_type(v::Bool) :: Union{Bool,Int,Char,String}
+function adapter_type(v::Bool)::Union{Bool,Int,Char,String}
   DatabaseAdapter.cast_type(v)
 end
 
 
 """
-    function create_table() :: String
+    function create_table()::String
 
 Creates a new DB table
 """
-function create_table(f::Function, name::String, options::String = "") :: Void
+function create_table(f::Function, name::String, options::String = "")::Void
   DatabaseAdapter.create_table_sql(f, name, options) |> SearchLight.query
 
   nothing
@@ -3648,11 +3648,11 @@ end
 
 
 """
-    function column_definition(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+    function column_definition(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
 
 Returns the adapter-dependent SQL for defining a table column
 """
-function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
   DatabaseAdapter.column_sql(name, column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
@@ -3660,7 +3660,7 @@ end
 """
 
 """
-function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
+function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
   DatabaseAdapter.column_id_sql(name, options, constraint = constraint, nextval = nextval)
 end
 
@@ -3668,7 +3668,7 @@ end
 """
 
 """
-function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: Void
+function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Void
   DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
 
   nothing
@@ -3678,7 +3678,7 @@ end
 """
 
 """
-function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: Void
+function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::Void
   DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
 
   nothing
@@ -3688,7 +3688,7 @@ end
 """
 
 """
-function drop_table(name::String) :: Void
+function drop_table(name::String)::Void
   DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
 
   nothing
@@ -3698,7 +3698,7 @@ end
 """
 
 """
-function remove_column(table_name::String, name::String) :: Void
+function remove_column(table_name::String, name::String)::Void
   DatabaseAdapter.remove_column_sql(table_name, name) |> SearchLight.query
 
   nothing
@@ -3708,7 +3708,7 @@ end
 """
 
 """
-function remove_index(table_name::String, name::String) :: Void
+function remove_index(table_name::String, name::String)::Void
   DatabaseAdapter.remove_index_sql(table_name, name) |> SearchLight.query
 
   nothing
@@ -3718,7 +3718,7 @@ end
 """
 
 """
-function create_sequence(name::String) :: Void
+function create_sequence(name::String)::Void
   DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
 
   nothing
@@ -3728,7 +3728,7 @@ end
 """
 
 """
-function remove_sequence(name::String, options::String = "") :: Void
+function remove_sequence(name::String, options::String = "")::Void
   DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
 
   nothing
@@ -3736,11 +3736,11 @@ end
 
 
 """
-    load_resources(dir = SearchLight.RESOURCES_PATH) :: Void
+    load_resources(dir = SearchLight.RESOURCES_PATH)::Void
 
 Recursively adds subfolders of resources to LOAD_PATH.
 """
-function load_resources(dir = SearchLight.RESOURCES_PATH) :: Void
+function load_resources(dir = SearchLight.RESOURCES_PATH)::Void
   ! isdir(abspath(dir)) && return nothing
 
   res_dirs = Util.walk_dir(dir, only_dirs = true)
@@ -3751,12 +3751,12 @@ end
 
 
 """
-    load_models(dir = SearchLight.RESOURCES_PATH) :: Void
+    load_models(dir = SearchLight.RESOURCES_PATH)::Void
 
 Loads (includes) all available `model` and `validator` files.
 The modules are included in the `App` module.
 """
-function load_models(dir = SearchLight.RESOURCES_PATH) :: Void
+function load_models(dir = SearchLight.RESOURCES_PATH)::Void
   ! isdir(abspath(dir)) && return nothing
 
   dir_contents = readdir(abspath(dir))
