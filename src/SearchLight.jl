@@ -15,10 +15,8 @@ include(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
 isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
-const config =  Configuration.Settings()
-
-SearchLight.Configuration.load_db_connection()
-
+isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl")) ? include(abspath(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))) : const config =  SearchLight.Configuration.Settings()
+config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
 using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Logger, Millboard, Generator
 
@@ -791,7 +789,7 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
 
   id = if !in(:id, names(df))
     getfield(m, Symbol(m._id))
-  else 
+  else
     df[1, Symbol(m._id)]
   end
   n = find_one!!(typeof(m), id)

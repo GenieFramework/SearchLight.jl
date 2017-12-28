@@ -2,10 +2,6 @@ module Database
 
 using YAML, Memoize, SearchLight, DataFrames, Logger
 
-const config = SearchLight.config
-
-export config
-
 if haskey(SearchLight.config.db_config_settings, "adapter") && SearchLight.config.db_config_settings["adapter"] != nothing
   db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
 
@@ -42,7 +38,7 @@ PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false
 ```
 """
 function connect()::DatabaseHandle
-  connect(config.db_config_settings)
+  connect(SearchLight.config.db_config_settings)
 end
 function connect(conn_settings::Dict{String,Any})
   DatabaseAdapter.connect(conn_settings)::DatabaseHandle
@@ -85,7 +81,7 @@ Invokes the database adapter's create database method. If invoked without param,
 database name defined in `config.db_config_settings`
 """
 function create_database()::Bool
-  create_database(config.db_config_settings["database"])
+  create_database(SearchLight.config.db_config_settings["database"])
 end
 function create_database(db_name::String)::Bool
   DatabaseAdapter.create_database(db_name)
@@ -109,7 +105,7 @@ end
 Sets up the DB tables used by SearchLight.
 """
 function db_init()::Bool
-  DatabaseAdapter.create_migrations_table(config.db_migrations_table_name)
+  DatabaseAdapter.create_migrations_table(SearchLight.config.db_migrations_table_name)
 end
 
 
@@ -132,7 +128,7 @@ PostgreSQL.PostgresResultHandle(Ptr{Void} @0x00007fcdaf33a450,DataType[PostgreSQ
 function query(sql::AbstractString; system_query::Bool = false)::ResultHandle
   conn = connection()
   result =  try
-              DatabaseAdapter.query(sql, system_query || config.suppress_output, conn)
+              DatabaseAdapter.query(sql, system_query || SearchLight.config.suppress_output, conn)
             finally
               disconnect(conn)
             end
@@ -191,11 +187,11 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query_
 function query_df(sql::AbstractString; suppress_output::Bool = false, system_query::Bool = false)::DataFrames.DataFrame
   conn = connection()
   df::DataFrames.DataFrame =  try
-                                 DatabaseAdapter.query_df(sql, (suppress_output || system_query || config.suppress_output), conn)
+                                 DatabaseAdapter.query_df(sql, (suppress_output || system_query || SearchLight.config.suppress_output), conn)
                               finally
                                 disconnect(conn)
                               end
-  (! suppress_output && ! system_query && config.log_db) && Logger.log(df)
+  (! suppress_output && ! system_query && SearchLight.config.log_db) && Logger.log(df)
 
   df
 end

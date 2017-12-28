@@ -175,7 +175,7 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 """
 function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
   try
-    result::DataFrame = if suppress_output || ( ! config.log_db && ! config.log_queries )
+    result::DataFrame = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
                           DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
                         else
                           Logger.log("SQL QUERY: $(escape_string(sql))")
@@ -184,7 +184,7 @@ function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHand
 
     if in(:num_rows_affected, names(result)) && DB_ADAPTER.insertid(conn) > 0
       DataFrame(id = DB_ADAPTER.insertid(conn))
-    else 
+    else
       result
     end
   catch ex
@@ -201,7 +201,7 @@ end
 """
 function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataStreams.Data.Rows
   try
-    query = if suppress_output || ( ! config.log_db && ! config.log_queries )
+    query = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
               DB_ADAPTER.Query(conn, sql)
             else
               Logger.log("SQL QUERY: $(escape_string(sql))")

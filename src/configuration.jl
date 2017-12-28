@@ -1,5 +1,5 @@
 """
-Core genie configuration / settings functionality.
+Core SearchLight configuration / settings functionality.
 """
 module Configuration
 
@@ -37,9 +37,9 @@ julia> Configuration.is_prod()
 false
 ```
 """
-is_dev()  :: Bool = (Genie.config.app_env == DEV)
-is_prod() :: Bool = (Genie.config.app_env == PROD)
-is_test() :: Bool = (Genie.config.app_env == TEST)
+is_dev()  :: Bool = (SearchLight.config.app_env == DEV)
+is_prod() :: Bool = (SearchLight.config.app_env == PROD)
+is_test() :: Bool = (SearchLight.config.app_env == TEST)
 
 
 """
@@ -123,9 +123,9 @@ end
 
 function load_db_connection_from_config()
   db_config_file = joinpath(SearchLight.CONFIG_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME)
-  isfile(db_config_file) && (SearchLight.config.db_config_settings = read_db_connection_data!!(db_config_file))
+  isfile(db_config_file) && (return read_db_connection_data!!(db_config_file))
 
-  SearchLight.config.db_config_settings
+  error("DB configuration file not found")
 end
 
 
