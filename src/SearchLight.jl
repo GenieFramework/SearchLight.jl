@@ -117,13 +117,13 @@ julia> SearchLight.find_df(Article, SQLQuery(limit = 5))
 ...
 ```
 """
-function find_df{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::DataFrame
+function find_df(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::DataFrame where {T<:AbstractModel, N<:AbstractModel}
   query(to_fetch_sql(m, q, j))::DataFrame
 end
-function find_df{T<:AbstractModel}(m::Type{T}, q::SQLQuery)::DataFrame
+function find_df(m::Type{T}, q::SQLQuery)::DataFrame where {T<:AbstractModel}
   query(to_fetch_sql(m, q))::DataFrame
 end
-function find_df{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::DataFrame
+function find_df(m::Type{T}; order = SQLOrder(m()._id))::DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(order = order))
 end
 
@@ -155,10 +155,10 @@ julia> SearchLight.find_df(Article, SQLWhereEntity[SQLWhereExpression("id BETWEE
 ...
 ```
 """
-function find_df{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::DataFrame
+function find_df(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(where = [w], order = order))
 end
-function find_df{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::DataFrame
+function find_df(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(where = w, order = order))
 end
 
@@ -190,13 +190,13 @@ julia> SearchLight.find(Article)
 ...
 ```
 """
-function find{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::Vector{T}
+function find(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::Vector{T} where {T<:AbstractModel, N<:AbstractModel}
   to_models(m, find_df(m, q, j))
 end
-function find{T<:AbstractModel}(m::Type{T}, q::SQLQuery)::Vector{T}
+function find(m::Type{T}, q::SQLQuery)::Vector{T} where {T<:AbstractModel}
   to_models(m, find_df(m, q))
 end
-function find{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::Vector{T}
+function find(m::Type{T}; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order))
 end
 
@@ -228,10 +228,10 @@ julia> SearchLight.find(Article, SQLWhereEntity[SQLWhereExpression("id BETWEEN ?
 ...
 ```
 """
-function find{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::Vector{T}
+function find(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [w], order = order))
 end
-function find{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::Vector{T}
+function find(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = w, order = order))
 end
 
@@ -285,13 +285,13 @@ App.Article
 +--------------+---------------------------------------------------------+
 ```
 """
-function find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Vector{T}
+function find_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order))
 end
-function find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Vector{T}
+function find_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
   find_by(m, SQLColumn(column_name), SQLInput(value), order = order)
 end
-function find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T}
+function find_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [sql_expression], order = order))
 end
 
@@ -377,13 +377,13 @@ App.Article
 )
 ```
 """
-function find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Nullable{T}
+function find_one_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order, limit = 1)) |> to_nullable
 end
-function find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Nullable{T}
+function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
   find_one_by(m, SQLColumn(column_name), SQLInput(value), order = order)
 end
-function find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Nullable{T}
+function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [sql_expression], order = order, limit = 1)) |> to_nullable
 end
 
@@ -445,10 +445,10 @@ julia> SearchLight.find_one_by!!(Article, SQLWhereExpression("title LIKE ?", "fo
 NullException()
 ```
 """
-function find_one_by!!{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::T
+function find_one_by!!(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::T where {T<:AbstractModel}
   find_one_by(m, column_name, value, order = order) |> Base.get
 end
-function find_one_by!!{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::T
+function find_one_by!!(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::T where {T<:AbstractModel}
   find_one_by(m, sql_expression, order = order) |> Base.get
 end
 
@@ -479,7 +479,7 @@ App.Article
 )
 ```
 """
-function find_one{T<:AbstractModel}(m::Type{T}, value::Any)::Nullable{T}
+function find_one(m::Type{T}, value::Any)::Nullable{T} where {T<:AbstractModel}
   _m::T = m()
   find_one_by(m, SQLColumn( to_fully_qualified(_m._id, _m._table_name) ), SQLInput(value))
 end
