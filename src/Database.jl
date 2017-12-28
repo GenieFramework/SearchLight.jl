@@ -153,7 +153,7 @@ end
 end
 
 
-function escape_value{T}(v::T)::T
+function escape_value(v::T)::T where {T}
   conn = connection()
   result =  try
               DatabaseAdapter.escape_value(v, conn)
@@ -204,7 +204,7 @@ end
 """
 
 """
-function relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol})::String
+function relation_to_sql(m::T, rel::Tuple{SQLRelation,Symbol})::String where {T<:AbstractModel}
   DatabaseAdapter.relation_to_sql(m, rel)
 end
 
@@ -212,10 +212,10 @@ end
 """
 
 """
-function to_find_sql{T<:AbstractModel, N<:AbstractModel}(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String
+function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
   DatabaseAdapter.to_find_sql(m, q, joins)
 end
-function to_find_sql{T<:AbstractModel}(m::Type{T}, q::SQLQuery)::String
+function to_find_sql(m::Type{T}, q::SQLQuery)::String where {T<:AbstractModel}
   DatabaseAdapter.to_find_sql(m, q)
 end
 const to_fetch_sql = to_find_sql
@@ -224,7 +224,7 @@ const to_fetch_sql = to_find_sql
 """
 
 """
-function to_store_sql{T<:AbstractModel}(m::T; conflict_strategy = :error)::String # upsert strateygy = :none | :error | :ignore | :update
+function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:AbstractModel} # upsert strateygy = :none | :error | :ignore | :update
   DatabaseAdapter.to_store_sql(m, conflict_strategy = conflict_strategy)
 end
 
@@ -232,7 +232,7 @@ end
 """
 
 """
-function delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void where {T<:AbstractModel}
   DatabaseAdapter.delete_all(m, truncate = truncate, reset_sequence = reset_sequence, cascade = cascade)
 end
 
@@ -240,7 +240,7 @@ end
 """
 
 """
-function delete{T<:AbstractModel}(m::T)::T
+function delete(m::T)::T where {T<:AbstractModel}
   DatabaseAdapter.delete(m)
 end
 
@@ -248,7 +248,7 @@ end
 """
 
 """
-function count{T<:AbstractModel}(m::Type{T}, q::SQLQuery = SQLQuery())::Int
+function count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
   DatabaseAdapter.count(m, q)
 end
 
@@ -256,7 +256,7 @@ end
 """
 
 """
-function update_query_part{T<:AbstractModel}(m::T)::String
+function update_query_part(m::T)::String where {T<:AbstractModel}
   DatabaseAdapter.update_query_part(m)
 end
 
@@ -264,13 +264,13 @@ end
 """
 
 """
-function to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String
+function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
   DatabaseAdapter.to_select_part(m, cols, joins)
 end
 """
 
 """
-function _to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String
+function _to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
   _m::T = m()
 
   joined_tables = []
@@ -320,7 +320,7 @@ end
 """
 
 """
-function to_from_part{T<:AbstractModel}(m::Type{T})::String
+function to_from_part(m::Type{T})::String where {T<:AbstractModel}
   DatabaseAdapter.to_from_part(m)
 end
 
@@ -328,7 +328,7 @@ end
 """
 
 """
-function to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}, scopes::Vector{Symbol})::String
+function to_where_part(m::Type{T}, w::Vector{SQLWhereEntity}, scopes::Vector{Symbol})::String where {T<:AbstractModel}
   DatabaseAdapter.to_where_part(m, w, scopes)
 end
 function to_where_part(w::Vector{SQLWhereEntity})::String
@@ -339,7 +339,7 @@ end
 """
 
 """
-function required_scopes{T<:AbstractModel}(m::Type{T})::Vector{SQLWhereEntity}
+function required_scopes(m::Type{T})::Vector{SQLWhereEntity} where {T<:AbstractModel}
   DatabaseAdapter.required_scopes(m)
 end
 
@@ -347,7 +347,7 @@ end
 """
 
 """
-function scopes{T<:AbstractModel}(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}}
+function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
   DatabaseAdapter.scopes(m)
 end
 
@@ -355,7 +355,7 @@ end
 """
 
 """
-function to_order_part{T<:AbstractModel}(m::Type{T}, o::Vector{SQLOrder})::String
+function to_order_part(m::Type{T}, o::Vector{SQLOrder})::String where {T<:AbstractModel}
   DatabaseAdapter.to_order_part(m, o)
 end
 
@@ -395,7 +395,7 @@ end
 """
 
 """
-function to_join_part{T<:AbstractModel}(m::Type{T}, joins = SQLJoin[])::String
+function to_join_part(m::Type{T}, joins = SQLJoin[])::String where {T<:AbstractModel}
   DatabaseAdapter.to_join_part(m, joins)
 end
 
