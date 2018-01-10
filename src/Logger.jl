@@ -113,8 +113,8 @@ julia> Logger.truncate_logged_output("abc " ^ 10)
 ```
 """
 function truncate_logged_output(output::AbstractString) :: String
-  if length(output) > Genie.config.output_length
-    output = output[1:Genie.config.output_length] * "..."
+  if length(output) > SearchLight.config.output_length
+    output = output[1:SearchLight.config.output_length] * "..."
   end
 
   output

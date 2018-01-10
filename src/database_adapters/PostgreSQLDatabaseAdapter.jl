@@ -197,7 +197,7 @@ end
 function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::PostgreSQL.PostgresResultHandle
   stmt = DB_ADAPTER.prepare(conn, sql)
 
-  result = if suppress_output || ( ! config.log_db && ! config.log_queries )
+  result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
     DB_ADAPTER.execute(stmt)
   else
     Logger.log("SQL QUERY: $sql")
