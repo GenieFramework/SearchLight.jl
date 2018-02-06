@@ -44,7 +44,7 @@ const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_AUTO
 
 
 """
-      direct_relations()::Vector{Symbol}
+    direct_relations()::Vector{Symbol}
 
 Vector of available direct relations types.
 """
@@ -54,7 +54,7 @@ end
 
 
 """
-  relation_eagerness(eagerness::Symbol)::Bool
+    relation_eagerness(eagerness::Symbol)::Bool
 
 Sets the default, global relation eagerness.
 """
