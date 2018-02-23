@@ -27,11 +27,11 @@ end
 
 
 """
-    function new_resource(resource_name::String, config::Settings) :: Void
+    new_resource(resource_name::Union{String,Symbol}) :: Void
 
 Generates all the files associated with a new resource and persists them to the resources folder.
 """
-function new_resource(resource_name::String) :: Void
+function new_resource(resource_name::Union{String,Symbol}) :: Void
   sf = Inflector.to_singular(resource_name)
   model_name = (isnull(sf) ? resource_name : Base.get(sf)) |> ucfirst
   new_model(Dict{String,Any}("model:new" => model_name))

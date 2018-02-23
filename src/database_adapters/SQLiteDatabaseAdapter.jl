@@ -37,7 +37,7 @@ const SELECT_LAST_ID_QUERY_START = "; SELECT CASE WHEN last_insert_rowid() = 0 T
 const SELECT_LAST_ID_QUERY_END = "ELSE last_insert_rowid() END AS id"
 
 function db_adapter()::Symbol
-  :SQLiter
+  :SQLite
 end
 
 
@@ -187,7 +187,7 @@ function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)
 
   length(parts) == 2 && (parts[2] = SELECT_LAST_ID_QUERY_START * parts[2])
 
-  result =  if suppress_output || ( ! config.log_db && ! config.log_queries )
+  result =  if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
               if length(parts) == 2
                 DataFrame(SQLite.Source(conn, parts[1]))
                 DataFrame(SQLite.Source(conn, parts[2]))
