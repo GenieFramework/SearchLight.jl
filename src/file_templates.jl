@@ -47,7 +47,11 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
   table_name = Inflector.to_plural(resource_name) |> Base.get |> lowercase
 
   """
-  export $model_name, $pluralized_name
+  module $pluralized_name
+
+  using SearchLight
+
+  export $model_name
 
   mutable struct $model_name <: AbstractModel
     ### internals
@@ -104,7 +108,6 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
             )
   end
 
-  module $pluralized_name
   end
   """
 end

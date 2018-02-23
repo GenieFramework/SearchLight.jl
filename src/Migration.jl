@@ -3,7 +3,7 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using SearchLight, FileTemplates, Millboard, SearchLight.Configuration, Logger, Macros, Database
+using SearchLight, SearchLight.FileTemplates, Millboard, SearchLight.Configuration, Logger, Macros, Database
 
 import Base.showerror
 
@@ -47,10 +47,10 @@ function new(migration_name::String, content::String = "") :: Void
   mfn = migration_file_name(migration_name)
 
   ispath(mfn) && error("Migration file already exists")
-  ispath(config.db_migrations_folder) || mkpath(config.db_migrations_folder)
+  ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
-    write(f, isempty(content) ? FileTemplates.new_database_migration(migration_module_name(migration_name)) : content)
+    write(f, isempty(content) ? SearchLight.FileTemplates.new_database_migration(migration_module_name(migration_name)) : content)
   end
 
   Logger.log("New migration created at $mfn")
@@ -79,7 +79,7 @@ end
 Computes the name of a new migration file.
 """
 function migration_file_name(migration_name::String) :: String
-  joinpath(config.db_migrations_folder, migration_hash() * "_" * migration_name * ".jl")
+  joinpath(SearchLight.config.db_migrations_folder, migration_hash() * "_" * migration_name * ".jl")
 end
 function migration_file_name(cmd_args::Dict{String,Any}, config::Configuration.Settings) :: String
   joinpath(config.db_migrations_folder, migration_hash() * "_" * cmd_args["migration:new"] * ".jl")
@@ -180,7 +180,7 @@ Returns the list of all the migrations.
 function all_migrations() :: Tuple{Vector{String},Dict{String,DatabaseMigration}}
   migrations = String[]
   migrations_files = Dict{String,DatabaseMigration}()
-  for f in readdir(config.db_migrations_folder)
+  for f in readdir(SearchLight.config.db_migrations_folder)
     if ismatch(r"\d{16,17}_.*\.jl", f)
       parts = map(x -> String(x), split(f, "_", limit = 2))
       push!(migrations, parts[1])
@@ -218,13 +218,13 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   end
 
   try
-    m = include(abspath(joinpath(config.db_migrations_folder, migration.migration_file_name)))
+    m = include(abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))
     Base.invokelatest(getfield(m, direction))
     # getfield(m, direction)()
 
     store_migration_status(migration, direction, force = force)
 
-    ! config.suppress_output && Logger.log("Executed migration $(migration.migration_module_name) $(direction)")
+    ! SearchLight.config.suppress_output && Logger.log("Executed migration $(migration.migration_module_name) $(direction)")
   catch ex
     Logger.log("Failed executing migration $(migration.migration_module_name) $(direction)", :err)
     Logger.log(string(ex), :err)
@@ -245,9 +245,9 @@ Persists the `direction` of the `migration` into the database.
 function store_migration_status(migration::DatabaseMigration, direction::Symbol; force = false) :: Void
   try
     if direction == :up
-      SearchLight.query_raw("INSERT INTO $(config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", system_query = true)
+      SearchLight.query_raw("INSERT INTO $(SearchLight.config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", system_query = true)
     else
-      SearchLight.query_raw("DELETE FROM $(config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", system_query = true)
+      SearchLight.query_raw("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", system_query = true)
     end
   catch ex
     Logger.log(string(ex), :err)
@@ -266,7 +266,7 @@ end
 List of all migrations that are `up`.
 """
 function upped_migrations() :: Vector{String}
-  result = SearchLight.query("SELECT version FROM $(config.db_migrations_table_name) ORDER BY version DESC", system_query = true)
+  result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC", system_query = true)
 
   String[string(x) for x = result[:version]]
 end
