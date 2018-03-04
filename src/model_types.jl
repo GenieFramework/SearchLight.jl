@@ -505,10 +505,10 @@ end
 
 convert(::Type{Vector{SQLJoin}}, j::SQLJoin) = [j]
 
+
 #
 # SQLQuery
 #
-
 
 """
     SQLQuery( columns = SQLColumn[],
@@ -571,10 +571,10 @@ end
 
 string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)
 
+
 #
 # SQLRelation
 #
-
 
 """
 Represents the data contained by a SQL relation.
