@@ -54,6 +54,14 @@ Connects to the database defined in conn_data["filename"] and returns a handle.
 If no conn_data is provided, a temporary, in-memory database will be used.
 """
 function connect(conn_data::Dict{String,Any})::DatabaseHandle
+  if ! haskey(conn_data, "filename")
+    conn_data["filename"] = if haskey(conn_data, "host")
+                              conn_data["host"]
+                            elseif haskey(conn_data, "database")
+                              conn_data["database"]
+                            end
+  end
+
   try
     SQLite.DB(conn_data["filename"])
   catch ex

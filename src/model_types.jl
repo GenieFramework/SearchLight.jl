@@ -60,6 +60,7 @@ end
 # SQLRaw
 #
 
+
 """
 Wrapper around a raw SQL query part.
 """
