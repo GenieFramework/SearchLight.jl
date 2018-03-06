@@ -197,21 +197,21 @@ function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)
 
   result =  if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
               if length(parts) == 2
-                SQLite.Source(conn, parts[1]) |> DataFrame
-                SQLite.Source(conn, parts[2]) |> DataFrame
+                SQLite.query(conn, parts[1]) |> DataFrame
+                SQLite.query(conn, parts[2]) |> DataFrame
               else
                 SQLite.query(conn, parts[1]) |> DataFrame
               end
             else
               if length(parts) == 2
                 Logger.log("SQL QUERY: $(parts[1])")
-                @time SQLite.Source(conn, parts[1]) |> DataFrame
+                @time SQLite.query(conn, parts[1]) |> DataFrame
 
                 Logger.log("SQL QUERY: $(parts[2])")
-                @time SQLite.Source(conn, parts[2]) |> DataFrame
+                @time SQLite.query(conn, parts[2]) |> DataFrame
               else
                 Logger.log("SQL QUERY: $(parts[1])")
-                @time SQLite.Source(conn, parts[1]) |> DataFrame
+                @time SQLite.query(conn, parts[1]) |> DataFrame
               end
             end
 
