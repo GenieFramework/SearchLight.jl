@@ -49,7 +49,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
   """
   module $pluralized_name
 
-  using SearchLight
+  using SearchLight #, $(Inflector.to_plural(model_name) |> Base.get)Validator
 
   export $model_name
 
@@ -84,7 +84,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
       id = Nullable{SearchLight.DbId}(),
 
       # validator = ModelValidator([
-        # (:title, Validation.$(model_name)Validator.not_empty)
+        # (:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
       # ]),
 
       # belongs_to = [],
@@ -120,13 +120,14 @@ Default content for a new SearchLight validator.
 """
 function new_validator(validator_name::String) :: String
   """
-  module $(validator_name)Validator
+  module $(Inflector.to_plural(validator_name) |> Base.get)Validator
 
   using SearchLight, Validation
 
-  function not_empty{T<:AbstractModel}(field::Symbol, m::T, args::Vararg{Any})::Bool
-    isempty(getfield(m, field)) && return false
-    true
+  function not_empty{T<:AbstractModel}(field::Symbol, m::T, args::Vararg{Any}) :: ValidationResult
+    isempty(getfield(m, field)) && return ValidationResult(invalid, :not_empty, "should not be empty")
+
+    ValidationResult(valid)
   end
 
   end

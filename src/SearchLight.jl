@@ -1,6 +1,6 @@
 module SearchLight
 
-using Revise
+using Revise, Reexport
 
 push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
                   joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"),
@@ -8,6 +8,7 @@ push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
 
 include(joinpath(Pkg.dir("SearchLight"), "src", "constants.jl"))
 include("model_types.jl")
+@reexport using Validation
 
 const OUTPUT_LENGTH = 256
 
@@ -19,7 +20,8 @@ Revise.track(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
 if isfile(joinpath(ROOT_PATH, "env.jl"))
   include(joinpath(ROOT_PATH, "env.jl"))
   Revise.track(joinpath(ROOT_PATH, "env.jl"))
-elseif isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
+end
+if isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
   include(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
   Revise.track(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
 else
@@ -29,10 +31,8 @@ end
 config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
 include(joinpath(Pkg.dir("SearchLight"), "src", "file_templates.jl"))
-using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Logger, Millboard
+using Database, DataFrames, DataStructures, DateParser, Util, Logger, Millboard
 include(joinpath(Pkg.dir("SearchLight"), "src", "generator.jl"))
-
-@reexport using Validation
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export disposable_instance, to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified

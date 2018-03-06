@@ -17,15 +17,41 @@ QueryPart(; model::Type{T} = MissingModel, query::SQLQuery = SQLQuery()) where {
 
 """
 """
-function query(model::Type{T}) where {T<:AbstractModel}
+function from(model::Type{T})::QueryPart where {T<:AbstractModel}
   QueryPart(model)
 end
 
 
 """
 """
-function select(columns)
-  QueryPart(MissingModel, SQLQuery(columns = columns))
+function select(columns::Vector) :: QueryPart
+  QueryPart(MissingModel, SQLQuery(columns = SQLColumns(columns)))
 end
 
+
+"""
+"""
+function where(sql_expression::String, values::Vector{T} = T[])::QueryPart where {T}
+  QueryPart(MissingModel, SQLQuery(where = SQLWhereExpression(sql_expression, values)))
+end
+
+
+"""
+"""
+function limit(lim::Int)
+  QueryPart(MissingModel, SQLQuery(limit = SQLLimit(lim)))
+end
+
+
+"""
+"""
+function offset(off::Int)
+  QueryPart(MissingModel, SQLQuery(offset = off))
+end
+
+
+"""
+"""
+function prepare(qb::QueryBuilder)
+  (qb.model, qb.query)
 end
