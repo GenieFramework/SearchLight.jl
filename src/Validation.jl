@@ -2,9 +2,49 @@ module Validation
 
 using SearchLight
 
-export ValidationStatus
+export ValidationResult, valid, invalid
+export ValidtionError, ValidationRule, ModelValidator
 
-const ValidationStatus = Tuple{Bool,Symbol,String}
+const valid = true
+const invalid = false
+
+struct ValidationResult
+  validation_status::Bool
+  error_type::Symbol
+  error_message::String
+
+  ValidationResult(validation_status, error_type, error_message) = new(validation_status, error_type, error_message)
+end
+ValidationResult(; validation_status = false, error_type = :validation_error, validation_message = "Model's data is invalid") = ValidationResult(validation_status, error_type, error_message)
+ValidationResult(validation_status::Bool) = validation_status ? ValidationResult(true, :no_error, "") : ValidationResult(validation_status = false)
+
+
+struct ValidationError
+  field::Symbol
+  error_type::Symbol
+  error_message::String
+end
+
+
+struct ValidationRule
+  field::Symbol
+  validator_function::Function
+  validator_arguments::Tuple
+
+  ValidationRule(field, validator_function, validator_arguments = ()) = new(field, validator_function, validator_arguments)
+end
+
+
+"""
+The object that defines the rules and stores the validation errors associated with the fields of a `model`.
+"""
+struct ModelValidator
+  rules::Vector{ValidationRule} # [(:title, :not_empty), (:title, :min_length, (20)), (:content, :not_empty_if_published), (:email, :matches, (r"(.*)@(.*)"))]
+  errors::Vector{ValidationError} # [(:title, :not_empty, "title not empty"), (:title, :min_length, "min length 20"), (:content, :min_length, "min length 200")]
+
+  ModelValidator(rules) = new(rules, Vector{ValidationError}())
+end
+
 
 #
 # errors manipulation
@@ -12,23 +52,23 @@ const ValidationStatus = Tuple{Bool,Symbol,String}
 
 
 """
-    push_error!{T<:AbstractModel}(m::T, field::Symbol, error::Symbol, error_message::AbstractString) :: Bool
+    push_error!(m::T, validation_error::ValidationError)::Bool where {T<:AbstractModel}
 
 Pushes the `error` and its corresponding `error_message` to the errors stack of the validator of the model `m` for the field `field`.
 """
-function push_error!{T<:AbstractModel}(m::T, field::Symbol, error::Symbol, error_message::AbstractString) :: Bool
-  push!(errors!!(m), (field, error, error_message))
+function push_error!(m::T, validation_error::ValidationError)::Bool where {T<:AbstractModel}
+  push!(errors!!(m), validation_error)
 
   true # this must be bool cause it's used for chaining Bool values
 end
 
 
 """
-    clear_errors!{T<:AbstractModel}(m::T) :: Void
+    clear_errors!(m::T)::Void where {T<:AbstractModel}
 
 Clears all the errors associated with the validator of `m`.
 """
-function clear_errors!{T<:AbstractModel}(m::T) :: Void
+function clear_errors!(m::T)::Void where {T<:AbstractModel}
   errors!!(m) |> empty!
 
   nothing
@@ -40,25 +80,18 @@ end
 
 
 """
-    validate!{T<:AbstractModel}(m::T) :: Bool
+    validate!(m::T)::Bool where {T<:AbstractModel}
 
 Validates `m`'s data. A `bool` is return and existing errors are pushed to the validator's error stack.
 """
-function validate!{T<:AbstractModel}(m::T) :: Bool
-  ! has_validator(m) && return true
+function validate!(m::T)::Bool where {T<:AbstractModel}
+  has_validator(m) || return true
 
   clear_errors!(m)
 
   for r in rules!!(m)
-    field = r[1]
-    rule = r[2]
-    args = length(r) == 3 ? r[3] : ()
-
-    status, error_type, error_message = rule(field, m, args...)
-
-    if ! status
-      push_error!(m, field, error_type, error_message)
-    end
+    vr::ValidationResult = r.validator_function(r.field, m, r.validator_arguments...)
+    vr.validation_status || push_error!(m, ValidationError(r.field, vr.error_type, vr.error_message))
   end
 
   is_valid(m)
@@ -66,116 +99,116 @@ end
 
 
 """
-    rules!!{T<:AbstractModel}(m::T) :: Vector{Tuple{Symbol,Function,Vararg{Any}}}
+    rules!!(m::T)::Vector{ValidationRule} where {T<:AbstractModel}
 
 Returns the `vector` of validation rules. An error is thrown if no validator is defined.
 """
-function rules!!{T<:AbstractModel}(m::T) :: Vector{Tuple{Symbol,Function,Vararg{Any}}}
-  validator!!(m).rules # rules::Vector{Tuple{Symbol,Symbol,Vararg{Any}}} -- field,method,args
+function rules!!(m::T)::Vector{ValidationRule} where {T<:AbstractModel}
+  validator!!(m).rules
 end
 
 
 """
-    rules{T<:AbstractModel}(m::T) :: Nullable{Vector{Tuple{Symbol,Function,Vararg{Any}}}}
+    rules(m::T)::Nullable{Vector{ValidationRule}} where {T<:AbstractModel}
 
 Returns the `vector` of validation rules wrapped in a `Nullable`.
 """
-function rules{T<:AbstractModel}(m::T) :: Nullable{Vector{Tuple{Symbol,Function,Vararg{Any}}}}
+function rules(m::T)::Nullable{Vector{ValidationRule}} where {T<:AbstractModel}
   v = validator(m)
-  isnull(v) ? Nullable{Vector{Tuple{Symbol,Symbol,Vararg{Any}}}}() : Nullable{Vector{Tuple{Symbol,Symbol,Vararg{Any}}}}(Base.get(v).errors)
+  isnull(v) ? Nullable{Vector{ValidationRule}}() : Nullable{Vector{ValidationRule}}(Base.get(v).errors)
 end
 
 
 """
-    errors!!{T<:AbstractModel}(m::T) :: Vector{Tuple{Symbol,Symbol,String}}
+    errors!!(m::T)::Vector{ValidationError} where {T<:AbstractModel}
 
 Returns the `vector` of validation errors. An error is thrown if no validator is defined.
 """
-function errors!!{T<:AbstractModel}(m::T) :: Vector{Tuple{Symbol,Symbol,String}}
+function errors!!(m::T)::Vector{ValidationError} where {T<:AbstractModel}
   validator!!(m).errors
 end
 
 
 """
-    errors{T<:AbstractModel}(m::T) :: Nullable{Vector{Tuple{Symbol,Symbol,String}}}
+    errors(m::T)::Nullable{Vector{ValidationError}} where {T<:AbstractModel}
 
 Returns the `vector` of validation errors wrapped in a `Nullable`.
 """
-function errors{T<:AbstractModel}(m::T) :: Nullable{Vector{Tuple{Symbol,Symbol,String}}}
+function errors(m::T)::Nullable{Vector{ValidationError}} where {T<:AbstractModel}
   v = validator(m)
-  isnull(v) ? Nullable{Vector{Tuple{Symbol,Symbol,String}}}() : Nullable{Vector{Tuple{Symbol,Symbol,String}}}(Base.get(v).errors)
+  isnull(v) ? Nullable{Vector{ValidationError}}() : Nullable{Vector{ValidationError}}(Base.get(v).errors)
 end
 
 
 """
-    validator!!{T<:AbstractModel}(m::T) :: ModelValidator
+    validator!!(m::T)::ModelValidator where {T<:AbstractModel}
 
 Returns the `ModelValidator` instance associated with `m`. Errors if no validator is defined.
 """
-function validator!!{T<:AbstractModel}(m::T) :: ModelValidator
+function validator!!(m::T)::ModelValidator where {T<:AbstractModel}
   m.validator
 end
 
 
 """
-    validator{T<:AbstractModel}(m::T) :: Nullable{ModelValidator}
+    validator(m::T)::Nullable{ModelValidator} where {T<:AbstractModel}
 
 `m`'s validator, wrapped in a Nullable.
 """
-function validator{T<:AbstractModel}(m::T) :: Nullable{ModelValidator}
+function validator(m::T)::Nullable{ModelValidator} where {T<:AbstractModel}
   has_validator(m) ? Nullable{ModelValidator}(m.validator) : Nullable{ModelValidator}()
 end
 
 
 """
-    has_validator{T<:AbstractModel}(m::T) :: Bool
+    has_validator(m::T)::Bool where {T<:AbstractModel}
 
 Whether or not `m` has a validator defined.
 """
-function has_validator{T<:AbstractModel}(m::T) :: Bool
+function has_validator(m::T)::Bool where {T<:AbstractModel}
   has_field(m, :validator)
 end
 
 
 """
-    has_errors{T<:AbstractModel}(m::T) :: Bool
+    has_errors(m::T)::Bool where {T<:AbstractModel}
 
 Whether or not `m` has validation errors.
 """
-function has_errors{T<:AbstractModel}(m::T) :: Bool
+function has_errors(m::T)::Bool where {T<:AbstractModel}
   ! isempty( errors!!(m) )
 end
 
 
 """
-    has_errors_for{T<:AbstractModel}(m::T, field::Symbol) :: Bool
+    has_errors_for(m::T, field::Symbol)::Bool where {T<:AbstractModel}
 
 True if `m.field` has validation errors.
 """
-function has_errors_for{T<:AbstractModel}(m::T, field::Symbol) :: Bool
+function has_errors_for(m::T, field::Symbol)::Bool where {T<:AbstractModel}
   ! isempty(errors_for(m, field))
 end
 
 
 """
-    is_valid{T<:AbstractModel}(m::T) :: Bool
+    is_valid(m::T)::Bool where {T<:AbstractModel}
 
 Returns true if `m` has no validation errors.
 """
-function is_valid{T<:AbstractModel}(m::T) :: Bool
+function is_valid(m::T)::Bool where {T<:AbstractModel}
   ! has_errors(m)
 end
 
 
 """
-    errors_for{T<:AbstractModel}(m::T, field::Symbol) :: Vector{Tuple{Symbol,Symbol,AbstractString}}
+    errors_for(m::T, field::Symbol)::Vector{ValidationError} where {T<:AbstractModel}
 
 The vector of validation errors corresponding to `m.field`.
 """
-function errors_for{T<:AbstractModel}(m::T, field::Symbol) :: Vector{Tuple{Symbol,Symbol,AbstractString}}
-  result = Tuple{Symbol,Symbol,AbstractString}[]
+function errors_for(m::T, field::Symbol)::Vector{ValidationError} where {T<:AbstractModel}
+  result = ValidationError[]
   for err in errors!!(m)
-    err[1] == field && push!(result, err)
+    err.field == field && push!(result, err)
   end
 
   result
@@ -183,14 +216,14 @@ end
 
 
 """
-    errors_messages_for{T<:AbstractModel}(m::T, field::Symbol) :: Vector{AbstractString}
+    errors_messages_for(m::T, field::Symbol)::Vector{AbstractString} where {T<:AbstractModel}
 
 Vector of error messages corresponding to the validation errors of `m.field`.
 """
-function errors_messages_for{T<:AbstractModel}(m::T, field::Symbol) :: Vector{AbstractString}
+function errors_messages_for(m::T, field::Symbol)::Vector{AbstractString} where {T<:AbstractModel}
   result = AbstractString[]
   for err in errors_for(m, field)
-    push!(result, err[3])
+    push!(result, err.error_message)
   end
 
   result
@@ -198,11 +231,11 @@ end
 
 
 """
-    errors_to_string{T<:AbstractModel}(m::T, field::Symbol, separator = "\n"; upper_case_first = false) :: String
+    errors_to_string(m::T, field::Symbol, separator = "\n"; upper_case_first = false)::String where {T<:AbstractModel}
 
 Concatenates the validation errors of `m.field` into a single string -- meant to be displayed easily to end users.
 """
-function errors_to_string{T<:AbstractModel}(m::T, field::Symbol, separator = "\n"; upper_case_first = false) :: String
+function errors_to_string(m::T, field::Symbol, separator = "\n"; upper_case_first = false)::String where {T<:AbstractModel}
   join( map(x -> upper_case_first ? ucfirst(x) : x, errors_messages_for(m, field)), separator)
 end
 

@@ -54,6 +54,14 @@ Connects to the database defined in conn_data["filename"] and returns a handle.
 If no conn_data is provided, a temporary, in-memory database will be used.
 """
 function connect(conn_data::Dict{String,Any})::DatabaseHandle
+  if ! haskey(conn_data, "filename")
+    conn_data["filename"] = if haskey(conn_data, "host")
+                              conn_data["host"]
+                            elseif haskey(conn_data, "database")
+                              conn_data["database"]
+                            end
+  end
+
   try
     SQLite.DB(conn_data["filename"])
   catch ex
@@ -189,21 +197,21 @@ function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)
 
   result =  if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
               if length(parts) == 2
-                DataFrame(SQLite.Source(conn, parts[1]))
-                DataFrame(SQLite.Source(conn, parts[2]))
+                SQLite.query(conn, parts[1]) |> DataFrame
+                SQLite.query(conn, parts[2]) |> DataFrame
               else
-                DataFrame(SQLite.Source(conn, parts[1]))
+                SQLite.query(conn, parts[1]) |> DataFrame
               end
             else
               if length(parts) == 2
                 Logger.log("SQL QUERY: $(parts[1])")
-                @time DataFrame(SQLite.Source(conn, parts[1]))
+                @time SQLite.query(conn, parts[1]) |> DataFrame
 
                 Logger.log("SQL QUERY: $(parts[2])")
-                @time DataFrame(SQLite.Source(conn, parts[2]))
+                @time SQLite.query(conn, parts[2]) |> DataFrame
               else
                 Logger.log("SQL QUERY: $(parts[1])")
-                @time DataFrame(SQLite.Source(conn, parts[1]))
+                @time SQLite.query(conn, parts[1]) |> DataFrame
               end
             end
 

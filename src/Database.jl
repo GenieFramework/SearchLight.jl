@@ -293,13 +293,13 @@ function _to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])
     cols = vcat(cols, columns_from_joins(joins))
 
     for column in cols
-      push!(table_columns, prepare_column_name(column))
+      push!(table_columns, prepare_column_name(column, _m))
     end
 
     return join(table_columns, ", ")
   else
     table_columns = join(to_fully_qualified_sql_column_names(_m, persistable_fields(_m), escape_columns = true), ", ")
-    table_columns = isempty(table_columns) ? AbstractString[] : vcat(table_columns, map(x -> prepare_column_name(x), columns_from_joins(joins)))
+    table_columns = isempty(table_columns) ? AbstractString[] : vcat(table_columns, map(x -> prepare_column_name(x, _m), columns_from_joins(joins)))
 
     related_table_columns = String[]
     for rels in map(x -> to_fully_qualified_sql_column_names(x, persistable_fields(x), escape_columns = true), joined_tables)
@@ -414,11 +414,11 @@ end
 """
 
 """
-function prepare_column_name(column::SQLColumn)::String
+function prepare_column_name(column::SQLColumn, _m::T)::String where {T<:AbstractModel}
   if column.raw
     column.value |> string
   else
-    column_data = SearchLight.from_literal_column_name(column.value)
+    column_data::Dict{Symbol,Any} = SearchLight.from_literal_column_name(column.value)
     if ! haskey(column_data, :table_name)
       column_data[:table_name] = _m._table_name
     end
