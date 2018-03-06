@@ -25,7 +25,7 @@ end
 """
 """
 function select(columns)
-  QueryPart(MissingModel, SQLQuery(columns = ))
+  QueryPart(MissingModel, SQLQuery(columns = columns))
 end
 
 end

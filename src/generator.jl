@@ -146,8 +146,16 @@ function new_db_config(adapter::Symbol = :sqlite) :: Void
     write(f, SearchLight.FileTemplates.new_db_config(adapter))
   end
 
+  reload("SearchLight")
+  reload("Database")
+
+  SearchLight.load_resources()
+
+  Logger.log("New app ready")
+
   nothing
 end
+const new_app = new_db_config
 
 
 """
@@ -173,6 +181,13 @@ end
 """
 function validator_file_name(resource_name::Union{String,Symbol})
   string(resource_name) * SearchLight.SEARCHLIGHT_VALIDATOR_FILE_POSTFIX
+end
+
+
+"""
+"""
+function create_migrations_table()
+  SearchLight.create_migrations_table()
 end
 
 end

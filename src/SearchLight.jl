@@ -1,5 +1,7 @@
 module SearchLight
 
+using Revise
+
 push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
                   joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"),
                   abspath(pwd()))
@@ -9,17 +11,25 @@ include("model_types.jl")
 
 const OUTPUT_LENGTH = 256
 
-
-include(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
-
-isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
-isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl")) ? include(abspath(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))) : const config =  SearchLight.Configuration.Settings()
+include(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
+Revise.track(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
+
+if isfile(joinpath(ROOT_PATH, "env.jl"))
+  include(joinpath(ROOT_PATH, "env.jl"))
+  Revise.track(joinpath(ROOT_PATH, "env.jl"))
+elseif isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
+  include(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
+  Revise.track(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
+else
+  const config =  SearchLight.Configuration.Settings()
+end
+
 config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
-using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Logger, Millboard
 include(joinpath(Pkg.dir("SearchLight"), "src", "file_templates.jl"))
+using Database, DataFrames, DataStructures, DateParser, Util, Reexport, Logger, Millboard
 include(joinpath(Pkg.dir("SearchLight"), "src", "generator.jl"))
 
 @reexport using Validation
@@ -28,9 +38,9 @@ export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export disposable_instance, to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
 export relations, has_relation, find_df, is_persisted, to_sqlinput, has_field, relation_eagerness
 
-const RELATION_HAS_ONE = :has_one
+const RELATION_HAS_ONE =    :has_one
 const RELATION_BELONGS_TO = :belongs_to
-const RELATION_HAS_MANY = :has_many
+const RELATION_HAS_MANY =   :has_many
 
 export RELATION_EAGERNESS_AUTO, RELATION_EAGERNESS_LAZY, RELATION_EAGERNESS_EAGER
 
@@ -3748,40 +3758,11 @@ function load_resources(dir = SearchLight.RESOURCES_PATH)::Void
   res_dirs = Util.walk_dir(dir, only_dirs = true)
   ! isempty(res_dirs) && push!(LOAD_PATH, res_dirs...)
 
-  unique(LOAD_PATH)
-
   nothing
 end
-
-
-"""
-    load_models(dir = SearchLight.RESOURCES_PATH)::Void
-
-Loads (includes) all available `model` and `validator` files.
-The modules are included in the `App` module.
-"""
-function load_models(dir = SearchLight.RESOURCES_PATH)::Void
-  ! isdir(abspath(dir)) && return nothing
-
-  dir_contents = readdir(abspath(dir))
-
-  for i in dir_contents
-    full_path = joinpath(dir, i)
-    if isdir(full_path)
-      load_models(full_path)
-    else
-      if i == SearchLight.SEARCHLIGHT_MODEL_FILE_NAME
-        eval(SearchLight, :(include($full_path)))
-        isfile(joinpath(dir, SearchLight.SEARCHLIGHT_VALIDATOR_FILE_NAME)) && eval(Validation, :(include(joinpath($dir, $(SearchLight.SEARCHLIGHT_VALIDATOR_FILE_NAME)))))
-      end
-    end
-  end
-
-  nothing
-end
+const load_models = load_resources()
 
 
 SearchLight.load_resources()
-SearchLight.load_models()
 
 end
