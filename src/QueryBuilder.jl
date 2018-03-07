@@ -2,37 +2,41 @@ module QueryBuilder
 
 using SearchLight
 
-struct MissingModel <: AbstractModel
+import Base.(+)
+
+struct MissingModel <: SearchLight.AbstractModel
 end
 
-mutable struct QueryPart{T<:AbstractModel}
+struct QueryPart{T<:AbstractModel}
   model::Type{T}
   query::SQLQuery
-
-  QueryPart(model::Type{T}, query::SQLQuery) where {T<:AbstractModel} = new(model, query)
 end
-QueryPart(model::Type{T}; query::SQLQuery = SQLQuery()) where {T<:AbstractModel} = QueryPart(model, query)
-QueryPart(; model::Type{T} = MissingModel, query::SQLQuery = SQLQuery()) where {T<:AbstractModel} = QueryPart(model, query)
+# QueryPart{T}(model::Type{T}, query::SQLQuery) where {T<:AbstractModel} = new(model, query)
+# QueryPart{T}(model::Type{T}; query::SQLQuery = SQLQuery()) where {T<:AbstractModel} = QueryPart(model, query)
+# QueryPart(; model = MissingModel, query::SQLQuery = SQLQuery()) = QueryPart(model, query)
 
 
 """
 """
-function from(model::Type{T})::QueryPart where {T<:AbstractModel}
-  QueryPart(model)
-end
-
-
-"""
-"""
-function select(columns::Vector) :: QueryPart
-  QueryPart(MissingModel, SQLQuery(columns = SQLColumns(columns)))
+function from(model::Type{T})::QueryPart{T} where {T<:AbstractModel}
+  QueryPart(model, SQLQuery())
 end
 
 
 """
 """
-function where(sql_expression::String, values::Vector{T} = T[])::QueryPart where {T}
-  QueryPart(MissingModel, SQLQuery(where = SQLWhereExpression(sql_expression, values)))
+function select(columns::Vararg{Union{Symbol,String}}) :: QueryPart
+  QueryPart(MissingModel, SQLQuery(columns = SQLColumns([columns...])))
+end
+
+
+"""
+"""
+function where(sql_expression::String)::QueryPart
+  QueryPart(MissingModel, SQLQuery(where = [SQLWhereExpression(sql_expression)]))
+end
+function where(sql_expression::String, values::Vararg{Any})::QueryPart
+  QueryPart(MissingModel, SQLQuery(where = [SQLWhereExpression(sql_expression, [values...])]))
 end
 
 
@@ -52,6 +56,57 @@ end
 
 """
 """
-function prepare(qb::QueryBuilder)
+function order(ordering::Union{Symbol,String})
+  QueryPart(MissingModel, SQLQuery(order = SQLOrder(ordering)))
+end
+function order(column::Union{Symbol,String}, direction::Union{Symbol,String})
+  QueryPart(MissingModel, SQLQuery(order = SQLOrder(column, direction)))
+end
+
+
+"""
+"""
+function group(columns::Vararg{Union{Symbol,String}})
+  QueryPart(MissingModel, SQLQuery(group = SQLColumns([columns...])))
+end
+
+
+"""
+"""
+function having(sql_expression::String)::QueryPart
+  QueryPart(MissingModel, SQLQuery(having = [SQLWhereExpression(sql_expression)]))
+end
+function having(sql_expression::String, values::Vararg{Any})::QueryPart
+  QueryPart(MissingModel, SQLQuery(having = [SQLWhereExpression(sql_expression, [values...])]))
+end
+
+
+"""
+"""
+function prepare(qb::QueryPart)
   (qb.model, qb.query)
+end
+
+function (+)(q::SQLQuery, r::SQLQuery)
+  SQLQuery(
+    columns = vcat(q.columns, r.columns),
+    where   = vcat(q.where, r.where),
+    limit   = r.limit.value == SQLLimit_ALL ? q.limit : r.limit,
+    offset  = r.offset != 0 ? r.offset : q.offset,
+    order   = vcat(q.order, r.order),
+    group   = vcat(q.group, r.group),
+    having  = vcat(q.having, r.having)
+  )
+end
+
+
+"""
+"""
+function (+)(q::QueryPart, r::QueryPart)
+  QueryPart(
+    r.model == MissingModel ? q.model : r.model,
+    q.query + r.query
+  )
+end
+
 end

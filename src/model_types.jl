@@ -342,13 +342,17 @@ convert(::Type{SQLWhereEntity}, s::String) = SQLWhereExpression(s);
 """
 Wrapper around SQL `limit` operator.
 """
+
+const SQLLimit_ALL = "ALL"
+export SQLLimit_ALL
+
 struct SQLLimit <: SQLType
   value::Union{Int, String}
   SQLLimit(v::Int) = new(v)
   function SQLLimit(v::String)
     v = strip(uppercase(v))
-    if v == "ALL"
-      return new("ALL")
+    if v == SQLLimit_ALL
+      return new(SQLLimit_ALL)
     else
       i = tryparse(Int, v)
       if isnull(i)
@@ -359,7 +363,7 @@ struct SQLLimit <: SQLType
     end
   end
 end
-SQLLimit() = SQLLimit("ALL")
+SQLLimit() = SQLLimit(SQLLimit_ALL)
 
 string(l::SQLLimit) = string(l.value)
 
@@ -567,7 +571,7 @@ Represents the data contained by a SQL relation.
 mutable struct SQLRelationData{T<:AbstractModel} <: SQLType
   collection::Vector{T}
 
-  SQLRelationData{Vector{T}}(collection::Vector{T}) where T<:AbstractModel = new(collection)
+  SQLRelationData{Vector{T}}(collection::Vector{T}) where {T<:AbstractModel} = new(collection)
 end
 SQLRelationData(collection::Vector{T}) where {T<:AbstractModel} = SQLRelationData{T}(collection)
 SQLRelationData(m::T) where {T<:AbstractModel} = SQLRelationData{T}([m])

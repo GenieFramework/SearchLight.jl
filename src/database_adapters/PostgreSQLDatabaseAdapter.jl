@@ -239,14 +239,14 @@ end
 """
 function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
   sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(m, q.where, q.scopes)) " *
-                      "$(to_group_part(q.group)) $(to_order_part(m, q.order)) " *
-                      "$(to_having_part(q.having)) $(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
+                      "$(to_group_part(q.group)) $(to_having_part(q.having)) $(to_order_part(m, q.order)) " *
+                      "$(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
   replace(sql, r"\s+", " ")
 end
 function to_find_sql(m::Type{T}, q::SQLQuery)::String where {T<:AbstractModel}
   sql::String = ( "$(to_select_part(m, q.columns)) $(to_from_part(m)) $(to_join_part(m)) $(to_where_part(m, q.where, q.scopes)) " *
-                      "$(to_group_part(q.group)) $(to_order_part(m, q.order)) " *
-                      "$(to_having_part(q.having)) $(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
+                      "$(to_group_part(q.group)) $(to_having_part(q.having)) $(to_order_part(m, q.order)) " *
+                      "$(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
   replace(sql, r"\s+", " ")
 end
 const to_fetch_sql = to_find_sql
