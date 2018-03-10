@@ -35,7 +35,7 @@ function new_resource(resource_name::Union{String,Symbol}) :: Void
   sf = Inflector.to_singular(resource_name)
   model_name = (isnull(sf) ? resource_name : Base.get(sf)) |> ucfirst
   new_model(Dict{String,Any}("model:new" => model_name))
-  new_migration(Dict{String,Any}("migration:new" => resource_name))
+  new_table_migration(Dict{String,Any}("migration:new" => resource_name))
 
   resource_name = ucfirst(resource_name)
   if Inflector.is_singular(resource_name)
@@ -61,15 +61,21 @@ end
 
 """
 """
-function new_migration(cmd_args::Dict{String,Any}) :: Void
+function new_table_migration(cmd_args::Dict{String,Any}) :: Void
   resource_name = ucfirst(cmd_args["migration:new"])
 
-  resource_name = ucfirst(resource_name)
-  if Inflector.is_singular(resource_name)
-    resource_name = Inflector.to_plural(resource_name) |> Base.get
-  end
+  Inflector.is_singular(resource_name) && (resource_name = Inflector.to_plural(resource_name) |> Base.get)
 
   migration_name = "create_table_" * lowercase(resource_name)
+  Migration.new_table(migration_name, lowercase(resource_name))
+
+  nothing
+end
+
+
+function new_migration(cmd_args::Dict{String,Any}) :: Void
+  migration_name = ucfirst(cmd_args["migration:new"]) |> lowercase
+
   Migration.new(migration_name)
 
   nothing
@@ -188,6 +194,16 @@ end
 """
 function create_migrations_table()
   SearchLight.create_migrations_table()
+end
+
+
+"""
+    db_init() :: Bool
+
+Sets up the DB tables used by Genie.
+"""
+function db_init() :: Bool
+  SearchLight.create_migrations_table(App.config.db_migrations_table_name)
 end
 
 end

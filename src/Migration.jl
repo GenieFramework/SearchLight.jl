@@ -43,21 +43,38 @@ Base.showerror(io::IO, e::IrreversibleMigration) = print(io, "Migration $(e.migr
 
 Creates a new default migration file and persists it to disk in the configured migrations folder.
 """
-function new(migration_name::String, content::String = "") :: Void
+function new_table(migration_name::String, resource::String) :: Void
   mfn = migration_file_name(migration_name)
 
   ispath(mfn) && error("Migration file already exists")
   ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
-    write(f, isempty(content) ? SearchLight.FileTemplates.new_database_migration(migration_module_name(migration_name)) : content)
+    write(f, SearchLight.FileTemplates.new_table_migration(migration_module_name(migration_name), resource))
   end
 
-  Logger.log("New migration created at $mfn")
+  Logger.log("New table migration created at $mfn")
 
   nothing
 end
 
+
+"""
+"""
+function new(migration_name::String) :: Void
+  mfn = migration_file_name(migration_name)
+
+  ispath(mfn) && error("Migration file already exists")
+  ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
+
+  open(mfn, "w") do f
+    write(f, SearchLight.FileTemplates.new_migration(migration_module_name(migration_name)))
+  end
+
+  Logger.log("New table migration created at $mfn")
+
+  nothing
+end
 
 
 """

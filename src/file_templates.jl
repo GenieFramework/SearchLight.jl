@@ -11,25 +11,46 @@ using Inflector
 
 Default content for a new SearchLight migration.
 """
-function new_database_migration(module_name::String) :: String
+function new_table_migration(module_name::String, resource::String) :: String
   """
   module $module_name
 
   import Migration: create_table, column, column_id, add_index, drop_table
 
   function up()
-    create_table(:table_name) do
+    create_table(:$resource) do
       [
         column_id()
         column(:column_name, :column_type, options)
       ]
     end
 
-    add_index(:table_name, :column_name, options)
+    add_index(:$resource, :column_name, options)
   end
 
   function down()
-    drop_table(:table_name)
+    drop_table(:$resource)
+  end
+
+  end
+  """
+end
+
+
+"""
+"""
+function new_migration(module_name::String) :: String
+  """
+  module $module_name
+
+  import Migration: add_column, add_index
+
+  function up()
+
+  end
+
+  function down()
+    
   end
 
   end
