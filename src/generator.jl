@@ -74,7 +74,7 @@ end
 
 
 function new_migration(cmd_args::Dict{String,Any}) :: Void
-  migration_name = ucfirst(cmd_args["migration:new"]) |> lowercase
+  migration_name = replace(ucfirst(cmd_args["migration:new"]) |> lowercase, " ", "_")
 
   Migration.new(migration_name)
 
