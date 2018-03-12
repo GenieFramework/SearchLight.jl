@@ -121,6 +121,9 @@ Migrates up the last migration. If `force` is `true`, the migration will be exec
 function last_up(; force = false) :: Void
   run_migration(last_migration(), :up, force = force)
 end
+function up(; force = false) :: Void
+  last_up(force = force)
+end
 
 
 """
@@ -130,6 +133,9 @@ Migrates down the last migration. If `force` is `true`, the migration will be ex
 """
 function last_down(; force = false) :: Void
   run_migration(last_migration(), :down, force = force)
+end
+function down(; force = false) :: Void
+  last_down(force = force)
 end
 
 
@@ -315,7 +321,7 @@ function status() :: Void
     push!(arr_output, [migrations_files[m].migration_module_name * ": " * uppercase(string(sts)); migrations_files[m].migration_file_name])
   end
 
-  Millboard.table(arr_output, :colnames => ["Class name & status \nFile name "], :rownames => []) |> println
+  Millboard.table(arr_output, :colnames => ["Module name & status \nFile name "], :rownames => []) |> println
 
   nothing
 end

@@ -18,7 +18,7 @@ const COLUMN_NAME_FIELD_NAME = :column_name
 typealias DatabaseHandle  PostgreSQL.PostgresDatabaseHandle
 typealias ResultHandle    PostgreSQL.PostgresResultHandle
 
-const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
+const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia / Postgres
   :char       => :CHARACTER,
   :string     => :VARCHAR,
   :text       => :TEXT,

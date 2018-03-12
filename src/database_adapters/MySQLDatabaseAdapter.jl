@@ -20,7 +20,7 @@ const COLUMN_NAME_FIELD_NAME = :Field
 const DatabaseHandle = MySQL.MySQLHandle
 const ResultHandle   = DataStreams.Data.Rows
 
-const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
+const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => MySQL
   :char       => :CHARACTER,
   :string     => :VARCHAR,
   :text       => :TEXT,

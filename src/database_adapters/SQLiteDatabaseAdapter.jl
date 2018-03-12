@@ -18,7 +18,7 @@ const COLUMN_NAME_FIELD_NAME = :name
 const DatabaseHandle = SQLite.DB
 const ResultHandle   =  Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
 
-const TYPE_MAPPINGS = Dict{Symbol,Symbol}(
+const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => SQLite
   :char       => :CHARACTER,
   :string     => :VARCHAR,
   :text       => :TEXT,
