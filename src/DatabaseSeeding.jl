@@ -16,7 +16,7 @@ export random_seeder
 Generic random database seeder. `m` must expose a `random()` function which returns a SearchLight instance.
 If `save` the data will be persisted to the database, as configured for the current environment.
 """
-function random_seeder(m::Module, quantity = 10, save = false)
+function random_seeder(m::Module, quantity::Int = 10, save::Bool = true)
   @eval :(using m)
 
   seeds = []

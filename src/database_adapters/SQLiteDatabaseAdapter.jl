@@ -286,7 +286,7 @@ end
 """
 function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void where {T<:AbstractModel}
   _m::T = m()
-  truncate ? "TRUNCATE $(_m._table_name)" : "DELETE FROM $(_m._table_name)" |> SearchLight.query
+  "DELETE FROM $(_m._table_name)" |> SearchLight.query
 
   nothing
 end
