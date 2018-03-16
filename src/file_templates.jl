@@ -50,7 +50,7 @@ function new_migration(module_name::String) :: String
   end
 
   function down()
-    
+
   end
 
   end
@@ -105,7 +105,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
       id = Nullable{SearchLight.DbId}(),
 
       # validator = ModelValidator([
-        # (:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
+        # ValidationRule(:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
       # ]),
 
       # belongs_to = [],
@@ -145,7 +145,7 @@ function new_validator(validator_name::String) :: String
 
   using SearchLight, Validation
 
-  function not_empty{T<:AbstractModel}(field::Symbol, m::T, args::Vararg{Any}) :: ValidationResult
+  function not_empty(field::Symbol, m::T, args::Vararg{Any})::ValidationResult where {T<:AbstractModel}
     isempty(getfield(m, field)) && return ValidationResult(invalid, :not_empty, "should not be empty")
 
     ValidationResult(valid)

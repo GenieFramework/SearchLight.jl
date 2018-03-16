@@ -1,6 +1,8 @@
 module Validation
 
-using SearchLight
+using SearchLight, Millboard
+
+import Base.show
 
 export ValidationResult, valid, invalid
 export ValidtionError, ValidationRule, ModelValidator
@@ -8,7 +10,9 @@ export ValidtionError, ValidationRule, ModelValidator
 const valid = true
 const invalid = false
 
-struct ValidationResult
+abstract type ValidationAbstractType end
+
+struct ValidationResult <: ValidationAbstractType
   validation_status::Bool
   error_type::Symbol
   error_message::String
@@ -19,19 +23,34 @@ ValidationResult(; validation_status = false, error_type = :validation_error, va
 ValidationResult(validation_status::Bool) = validation_status ? ValidationResult(true, :no_error, "") : ValidationResult(validation_status = false)
 
 
-struct ValidationError
+struct ValidationError <: ValidationAbstractType
   field::Symbol
   error_type::Symbol
   error_message::String
 end
 
 
-struct ValidationRule
+struct ValidationRule <: ValidationAbstractType
   field::Symbol
   validator_function::Function
   validator_arguments::Tuple
 
   ValidationRule(field, validator_function, validator_arguments = ()) = new(field, validator_function, validator_arguments)
+end
+
+
+show(io::IO, t::T) where {T<:ValidationAbstractType} = print(io, validationabstracttype_to_print(t))
+
+"""
+    validatortype_to_print{T<:ValidationAbstractType}(m::T) :: String
+
+Pretty printing of SearchLight types.
+"""
+function validationabstracttype_to_print(m::T) :: String where {T<:ValidationAbstractType}
+  output = "\n" * "$(typeof(m))" * "\n"
+  output *= string(Millboard.table(SearchLight.to_string_dict(m))) * "\n"
+
+  output
 end
 
 
