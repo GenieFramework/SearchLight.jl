@@ -1,6 +1,10 @@
 module Database
 
-using YAML, Memoize, SearchLight, DataFrames, Logger, Revise
+using YAML, Memoize, SearchLight, DataFrames, Logger, SearchLight.Configuration
+
+if is_dev()
+  @eval using Revise
+end
 
 if haskey(SearchLight.config.db_config_settings, "adapter") && SearchLight.config.db_config_settings["adapter"] != nothing
   db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")

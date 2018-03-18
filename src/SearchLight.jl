@@ -1,6 +1,6 @@
 module SearchLight
 
-using Revise, Reexport
+using Reexport
 
 push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
                   joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"),
@@ -13,19 +13,17 @@ include("model_types.jl")
 const OUTPUT_LENGTH = 256
 
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
-
 include(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
-Revise.track(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
+isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 
-if isfile(joinpath(ROOT_PATH, "env.jl"))
-  include(joinpath(ROOT_PATH, "env.jl"))
-  Revise.track(joinpath(ROOT_PATH, "env.jl"))
-end
 if isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
   include(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
-  Revise.track(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
 else
   const config =  SearchLight.Configuration.Settings()
+end
+
+if is_dev()
+  @eval using Revise
 end
 
 config.db_config_settings = SearchLight.Configuration.load_db_connection()
