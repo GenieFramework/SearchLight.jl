@@ -867,7 +867,7 @@ App.Article
 ```
 """
 function invoke_callback(m::T, callback::Symbol)::Tuple{Bool,T} where {T<:AbstractModel}
-  if in(callback, fieldnames(m))
+  if isdefined(m, callback)
     getfield(m, callback)(m)
     (true, m)
   else
@@ -1556,7 +1556,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
 
     ismissing(row[field]) && continue # if it's NA we just leave the default value of the empty obj
 
-    value = if in(:on_hydration!, fieldnames(_m))
+    value = if isdefined(_m, :on_hydration!)
               try
                 _m, value = _m.on_hydration!(_m, unq_field, row[field])
                 (is(value, Void) || value == nothing) && (value = row[field])
@@ -1568,7 +1568,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
 
                 row[field]
               end
-            elseif in(:on_hydration, fieldnames(_m))
+            elseif isdefined(_m, :on_hydration)
               try
                 value = _m.on_hydration(_m, unq_field, row[field])
                 (is(value, Void) || value == nothing) && (value = row[field])
@@ -2717,7 +2717,7 @@ julia> SearchLight.to_sqlinput(SearchLight.find_one!!(User, 1), :email, "genie@e
 ```
 """
 function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractModel}
-  value = if in(:on_dehydration, fieldnames(m))
+  value = if isdefined(m, :on_dehydration)
             try
               r = m.on_dehydration(m, field, value)
               is(r, Void) || r == nothing ? value : r
@@ -3233,7 +3233,7 @@ false
 ```
 """
 function has_field(m::T, f::Symbol)::Bool where {T<:AbstractModel}
-  in(f, fieldnames(m))
+  isdefined(m, f)
 end
 
 
