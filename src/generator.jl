@@ -3,7 +3,7 @@ Generates various Genie files.
 """
 module Generator
 
-using Logger, SearchLight.FileTemplates, Inflector, SearchLight.Configuration, SearchLight, Migration
+using Logger, SearchLight.FileTemplates, Inflector, SearchLight.Configuration, SearchLight, Migration, App
 
 
 """
