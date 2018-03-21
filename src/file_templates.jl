@@ -70,7 +70,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
   """
   module $pluralized_name
 
-  using SearchLight #, $(Inflector.to_plural(model_name) |> Base.get)Validator
+  using SearchLight #, Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
 
   export $model_name
 
