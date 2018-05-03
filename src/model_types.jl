@@ -571,7 +571,7 @@ Represents the data contained by a SQL relation.
 mutable struct SQLRelationData{T<:AbstractModel} <: SQLType
   collection::Vector{T}
 
-  SQLRelationData{Vector{T}}(collection::Vector{T}) where {T<:AbstractModel} = new(collection)
+  SQLRelationData{T}(collection::Vector{T}) where {T<:AbstractModel} = new(collection)
 end
 SQLRelationData(collection::Vector{T}) where {T<:AbstractModel} = SQLRelationData{T}(collection)
 SQLRelationData(m::T) where {T<:AbstractModel} = SQLRelationData{T}([m])
@@ -586,14 +586,16 @@ mutable struct SQLRelation{T<:AbstractModel} <: SQLType
   eagerness::Symbol
   data::Nullable{SQLRelationData}
   join::Nullable{SQLJoin}
+  where::Nullable{SQLWhereEntity}
 
-  SQLRelation{Type{T}}(model_name::Type{T}, required, eagerness, data, join) where {T<:AbstractModel} = new(model_name, required, eagerness, data, join)
+  SQLRelation{T}(model_name::Type{T}, required, eagerness, data, join, where) where {T<:AbstractModel} = new(model_name, required, eagerness, data, join, where)
 end
 SQLRelation(model_name::Type{T};
             required = false,
             eagerness = RELATION_EAGERNESS_AUTO,
             data = Nullable{SQLRelationData}(),
-            join = Nullable{SQLJoin}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, required, eagerness, data, join)
+            join = Nullable{SQLJoin}(),
+            where = Nullable{SQLWhereEntity}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, required, eagerness, data, join, where)
 
 function lazy(r::SQLRelation)
   r.eagerness == RELATION_EAGERNESS_LAZY ||

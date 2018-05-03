@@ -116,7 +116,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
       # after_save = (m::$model_name) -> warn("Not implemented"),
       # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> warn("Not implemented"),
       # on_hydration = (m::$model_name, field::Symbol, value::Any) -> warn("Not implemented")
-      # after_hydration = (m::$model_name, field::Symbol, value::Any) -> warn("Not implemented")
+      # after_hydration = (m::$model_name) -> warn("Not implemented")
 
       # scopes = Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}()
 

@@ -1435,7 +1435,7 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
       is_lazy(r) && continue
 
       related_model = r.model_name
-      related_model_df::DataFrame = dfs[ related_model()._table_name ][row_count, :]
+      related_model_df::DataFrame = dfs[related_model()._table_name][row_count, :]
 
       r = set_relation(r, related_model, related_model_df)
 
@@ -1444,7 +1444,7 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
     end
 
     if ! haskey(models, getfield(main_model, Symbol(__m._id)))
-      models[ getfield(main_model, Symbol(__m._id)) |> Base.get ] = main_model
+      models[getfield(main_model, Symbol(__m._id)) |> Base.get] = main_model
     end
 
     row_count += 1
@@ -2483,20 +2483,32 @@ SearchLight.SQLRelationData{App.Role}
 ```
 """
 function get_relation_data(m::T, rel::SQLRelation{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}} where {T<:AbstractModel,R<:AbstractModel}
-  conditions = SQLWhere[]
+  conditions = SQLWhereEntity[]
+
   limit = if relation_type == RELATION_HAS_ONE || relation_type == RELATION_BELONGS_TO
             1
           else
             "ALL"
           end
+
   where = if relation_type == RELATION_HAS_ONE || relation_type == RELATION_HAS_MANY
-            SQLColumn( ( (lowercase(string(typeof(m))) |> strip_module_name) * "_" * m._id |> escape_column_name), raw = true ), m.id
+            if ! isnull(rel.where)
+              Base.get(rel.where)
+            else
+              SQLWhere(SQLColumn(((lowercase(string(typeof(m))) |> strip_module_name) * "_" * m._id |> escape_column_name), raw = true), m.id)
+            end
           elseif relation_type == RELATION_BELONGS_TO
-            _r = (rel.model_name)()
-            SQLColumn(to_fully_qualified(_r._id, _r._table_name), raw = true), getfield(m, Symbol((lowercase(string(typeof(_r))) |> strip_module_name) * "_" * _r._id)) |> Base.get
+            if ! isnull(rel.where)
+              Base.get(rel.where)
+            else
+              _r = (rel.model_name)()
+              SQLWhere(SQLColumn(to_fully_qualified(_r._id, _r._table_name), raw = true), getfield(m, Symbol((lowercase(string(typeof(_r))) |> strip_module_name) * "_" * _r._id)) |> Base.get)
+            end
           end
-  push!(conditions, SQLWhere(where...))
-  data = SearchLight.find( rel.model_name, SQLQuery( where = conditions, limit = SQLLimit(limit) ) )
+
+  push!(conditions, where)
+
+  data = SearchLight.find(rel.model_name, SQLQuery(where = conditions, limit = SQLLimit(limit)))
 
   isempty(data) && return Nullable{SQLRelationData{R}}()
 
