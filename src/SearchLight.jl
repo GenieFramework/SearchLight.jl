@@ -2255,9 +2255,7 @@ SearchLight.SQLRelationData{App.Role}
 """
 function relation_data(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}} where {T<:AbstractModel,R<:AbstractModel}
   rel::SQLRelation{R} = relation(m, model_name, relation_type) |> Base.get
-  if isnull(rel.data)
-    rel.data = get_relation_data(m, rel, relation_type)
-  end
+  isnull(rel.data) && (rel.data = get_relation_data(m, rel, relation_type))
 
   rel.data
 end
@@ -2312,7 +2310,7 @@ SearchLight.SQLRelationData{App.Role}
 ```
 """
 function relation_data!!(m::T, model_name::Type{R}, relation_type::Symbol)::SQLRelationData{R} where {T<:AbstractModel,R<:AbstractModel}
-  Base.get( relation_data(m, model_name, relation_type) )
+  Base.get(relation_data(m, model_name, relation_type))
 end
 
 

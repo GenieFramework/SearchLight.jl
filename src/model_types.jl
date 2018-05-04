@@ -582,20 +582,18 @@ Defines the relation between two models, as reflected by the relation of their u
 """
 mutable struct SQLRelation{T<:AbstractModel} <: SQLType
   model_name::Type{T}
-  required::Bool
   eagerness::Symbol
   data::Nullable{SQLRelationData}
   join::Nullable{SQLJoin}
   where::Nullable{SQLWhereEntity}
 
-  SQLRelation{T}(model_name::Type{T}, required, eagerness, data, join, where) where {T<:AbstractModel} = new(model_name, required, eagerness, data, join, where)
+  SQLRelation{T}(model_name::Type{T}, eagerness, data, join, where) where {T<:AbstractModel} = new(model_name, eagerness, data, join, where)
 end
 SQLRelation(model_name::Type{T};
-            required = false,
             eagerness = RELATION_EAGERNESS_AUTO,
             data = Nullable{SQLRelationData}(),
             join = Nullable{SQLJoin}(),
-            where = Nullable{SQLWhereEntity}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, required, eagerness, data, join, where)
+            where = Nullable{SQLWhereEntity}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, eagerness, data, join, where)
 
 function lazy(r::SQLRelation)
   r.eagerness == RELATION_EAGERNESS_LAZY ||
