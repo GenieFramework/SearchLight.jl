@@ -165,7 +165,7 @@ mutable struct Settings
             db_migrations_folder      = abspath(joinpath("db", "migrations")),
             db_config_settings        = Dict{String,Any}(),
 
-            log_folder        = abspath(joinpath("log")),
+            log_folder    = abspath(joinpath("log")),
 
             log_db        = true,
             log_queries   = true,

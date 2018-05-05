@@ -125,19 +125,15 @@ mutable struct SQLColumn <: SQLType
   value::String
   escaped::Bool
   raw::Bool
-  table_name::Union{String,Symbol}
-  function SQLColumn(v::String; escaped = false, raw = false, table_name = "")
-    if v == "*"
-      raw = true
-    end
-    new(v, escaped, raw, string(table_name))
-  end
+  table_name::String
+  column_name::String
 end
-function SQLColumn(v::Any; escaped = false, raw = false, table_name = "")
-  if is_fully_qualified(string(v))
-    table_name, v = from_fully_qualified(string(v))
-  end
-  SQLColumn(string(v), escaped = escaped, raw = raw, table_name = table_name)
+SQLColumn(v::Union{String,Symbol}; escaped = false, raw = false, table_name = "", column_name = "") = begin
+  v = string(v)
+  v == "*" && (raw = true)
+  is_fully_qualified(v) && ((table_name, v) = from_fully_qualified(v))
+
+  SQLColumn(string(v), escaped, raw, string(table_name), string(v))
 end
 SQLColumn(a::Array) = map(x -> SQLColumn(string(x)), a)
 SQLColumn(c::SQLColumn) = c
@@ -170,9 +166,11 @@ Sanitizes input to be use as column names in SQL queries.
 """
 function escape_column_name(c::SQLColumn) :: SQLColumn
   if ! c.escaped && ! c.raw
-    val = c.table_name != "" && ! startswith(c.value, (c.table_name * ".")) && ! is_fully_qualified(c.value) ? c.table_name * "." * c.value : c.value
+    c.column_name = isempty(c.column_name) && is_fully_qualified(c.value) ? from_fully_qualified(c.value)[2] : c.value
+    val = ! isempty(c.table_name) && ! startswith(c.value, (c.table_name * ".")) && ! is_fully_qualified(c.value) ? c.table_name * "." * c.value : c.value
     c.value = escape_column_name(val)
     c.escaped = true
+
   end
 
   c

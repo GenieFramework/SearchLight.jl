@@ -458,6 +458,9 @@ end
 function find_one_by!!(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::T where {T<:AbstractModel}
   find_one_by(m, sql_expression, order = order) |> Base.get
 end
+function find_one_by!!(m::Type{T}, column::SQLColumn, value::Any; order = SQLOrder(m()._id))::T where {T<:AbstractModel}
+  find_one_by(m, column, value, order = order) |> Base.get
+end
 
 
 """
@@ -1242,7 +1245,7 @@ App.Article
 +--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
-function update_by_or_create!!(m::T, property::Symbol, value::Any; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}, value::Any; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
   existing = find_one_by(typeof(m), property, value)
   if ! isnull(existing)
     existing = Base.get(existing)
@@ -1259,8 +1262,8 @@ function update_by_or_create!!(m::T, property::Symbol, value::Any; ignore = Symb
     return SearchLight.save!!(m)
   end
 end
-function update_by_or_create!!(m::T, property::Symbol; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  update_by_or_create!!(m, property, getfield(m, property), ignore = ignore, skip_update = skip_update)
+function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+  update_by_or_create!!(m, property, getfield(m, isa(property, SQLColumn) ? Symbol(property.column_name) : Symbol(property)), ignore = ignore, skip_update = skip_update)
 end
 function update_by_or_create!!(m::T)::T where {T<:AbstractModel}
   create_or_update!!(m)
