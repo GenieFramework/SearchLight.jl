@@ -39,14 +39,13 @@ const RELATION_HAS_ONE =    :has_one
 const RELATION_BELONGS_TO = :belongs_to
 const RELATION_HAS_MANY =   :has_many
 
-export RELATION_EAGERNESS_AUTO, RELATION_EAGERNESS_LAZY, RELATION_EAGERNESS_EAGER
+export RELATION_EAGERNESS_LAZY, RELATION_EAGERNESS_EAGER
 
 # model relations
-const RELATION_EAGERNESS_AUTO    = :auto
 const RELATION_EAGERNESS_LAZY    = :lazy
 const RELATION_EAGERNESS_EAGER   = :eager
 
-const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_AUTO
+const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_LAZY
 
 
 # internals
@@ -1052,10 +1051,22 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
                 false
               end
             else
-              value
+              try
+                convert(typeof(getfield(m, fieldname)), value)
+              catch ex
+                if isdefined(m, :on_error!)
+                  m = m.on_error!(ex, model = m, data = w, field = fieldname, value = value)::T
+                  getfield(m, fieldname)
+                else
+                  rethrow(ex)
+                end
+              end
             end
-
-    setfield!(m, fieldname, value)
+    try
+      setfield!(m, fieldname, value)
+    catch ex
+      isdefined(m, :on_error!) ? m = m.on_error!(ex, model = m, data = w, field = fieldname, value = value)::T : rethrow(ex)
+    end
   end
 
   m
@@ -1592,7 +1603,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
       Logger.log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )", :err)
       Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
-      rethrow(ex)
+      isdefined(_m, :on_error!) ? obj = _m.on_error!(ex, model = obj, data = _m, field = unq_field, value = value)::T : rethrow(ex)
     end
 
     push!(set_fields, unq_field)

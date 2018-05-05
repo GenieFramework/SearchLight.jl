@@ -588,14 +588,13 @@ mutable struct SQLRelation{T<:AbstractModel} <: SQLType
   SQLRelation{T}(model_name::Type{T}, eagerness, data, join, where) where {T<:AbstractModel} = new(model_name, eagerness, data, join, where)
 end
 SQLRelation(model_name::Type{T};
-            eagerness = RELATION_EAGERNESS_AUTO,
+            eagerness = RELATION_EAGERNESS_LAZY,
             data = Nullable{SQLRelationData}(),
             join = Nullable{SQLJoin}(),
             where = Nullable{SQLWhereEntity}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, eagerness, data, join, where)
 
 function lazy(r::SQLRelation)
-  r.eagerness == RELATION_EAGERNESS_LAZY ||
-    r.eagerness == RELATION_EAGERNESS_AUTO && MODEL_RELATION_EAGERNESS == RELATION_EAGERNESS_LAZY
+  r.eagerness == RELATION_EAGERNESS_LAZY
 end
 function is_lazy(r::SQLRelation)
   lazy(r)
