@@ -547,3 +547,5 @@ end
 const drop_sequence = remove_sequence
 
 end
+
+const Migrations = Migration

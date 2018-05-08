@@ -28,7 +28,7 @@ end
 config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
 include(joinpath(Pkg.dir("SearchLight"), "src", "file_templates.jl"))
-using Database, DataFrames, DataStructures, DateParser, Util, Logger, Millboard, Validation
+using Database, DataFrames, DataStructures, DateParser, Util, Logger, Millboard, Validation, JSON
 include(joinpath(Pkg.dir("SearchLight"), "src", "generator.jl"))
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
@@ -1055,7 +1055,15 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
               value
             end
 
-    setfield!(m, fieldname, value)
+    try
+      setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
+    catch ex
+      Logger.log(ex, :err)
+      Logger.log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )", :err)
+      Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+
+      rethrow(ex)
+    end
   end
 
   m
@@ -1263,6 +1271,7 @@ function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}, v
   end
 end
 function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+  isa(property, String) && ismatch(r"(.+)\.(.+)", property) && (property = SQLColumn(property))
   update_by_or_create!!(m, property, getfield(m, isa(property, SQLColumn) ? Symbol(property.column_name) : Symbol(property)), ignore = ignore, skip_update = skip_update)
 end
 function update_by_or_create!!(m::T)::T where {T<:AbstractModel}
@@ -3772,6 +3781,19 @@ function load_resources(dir = SearchLight.RESOURCES_PATH)::Void
 end
 const load_models = load_resources()
 
+
+"""
+"""
+function serialize(key::Symbol, field::Symbol, value::T) where {T}
+  field == key ? JSON.json(value) : value
+end
+
+
+"""
+"""
+function deserialize(key::Symbol, field::Symbol, value::T) where {T}
+  field == key ? JSON.parse(value) : value
+end
 
 SearchLight.load_resources()
 
