@@ -23,6 +23,7 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => SQLite
   :string     => :VARCHAR,
   :text       => :TEXT,
   :integer    => :INTEGER,
+  :int        => :INTEGER,
   :float      => :FLOAT,
   :decimal    => :DECIMAL,
   :datetime   => :DATETIME,

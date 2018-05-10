@@ -25,6 +25,7 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => MySQL
   :string     => :VARCHAR,
   :text       => :TEXT,
   :integer    => :INTEGER,
+  :int        => :INTEGER,
   :float      => :FLOAT,
   :decimal    => :DECIMAL,
   :datetime   => :DATETIME,
