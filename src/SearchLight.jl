@@ -2,6 +2,7 @@ module SearchLight
 
 push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
                   joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"),
+                  joinpath(Pkg.dir("SearchLight"), "src", "serializers"),
                   abspath(pwd()))
 
 include(joinpath(Pkg.dir("SearchLight"), "src", "constants.jl"))
@@ -28,7 +29,7 @@ end
 config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
 include(joinpath(Pkg.dir("SearchLight"), "src", "file_templates.jl"))
-using Database, DataFrames, DataStructures, DateParser, Util, Logger, Millboard, Validation, JSON
+using Database, DataFrames, DataStructures, Dates, DateParser, Util, Logger, Millboard, Validation
 include(joinpath(Pkg.dir("SearchLight"), "src", "generator.jl"))
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
@@ -39,14 +40,16 @@ const RELATION_HAS_ONE =    :has_one
 const RELATION_BELONGS_TO = :belongs_to
 const RELATION_HAS_MANY =   :has_many
 
-export RELATION_EAGERNESS_AUTO, RELATION_EAGERNESS_LAZY, RELATION_EAGERNESS_EAGER
+export RELATION_EAGERNESS_LAZY, RELATION_EAGERNESS_EAGER
 
 # model relations
-const RELATION_EAGERNESS_AUTO    = :auto
 const RELATION_EAGERNESS_LAZY    = :lazy
 const RELATION_EAGERNESS_EAGER   = :eager
 
-const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_AUTO
+const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_LAZY
+
+eval(:(using $(isdefined(config.db_config_settings, :serializer) ? config.db_config_settings.serializer : :JSONSerializer)))
+eval(:(const Serializer = $(isdefined(config.db_config_settings, :serializer) ? config.db_config_settings.serializer : :JSONSerializer)))
 
 
 # internals
@@ -1594,6 +1597,13 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
             else
               row[field]
             end
+
+    value = if in(:_serializable, fieldnames(typeof(_m))) && isa(_m._serializable, Vector{Symbol}) && in(unq_field, _m._serializable)
+              Serializer.deserialize(value)
+            else
+              value
+            end
+
     try
       setfield!(obj, unq_field, convert(typeof(getfield(_m, unq_field)), value))
     catch ex
@@ -2753,6 +2763,12 @@ function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractMod
             value
           end
 
+  value = if in(:_serializable, fieldnames(typeof(m))) && isa(m._serializable, Vector{Symbol}) && in(field, m._serializable)
+            Serializer.serialize(value)
+          else
+            value
+          end
+
   SQLInput(value)
 end
 
@@ -3689,7 +3705,6 @@ end
 
 
 """
-
 """
 function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
   DatabaseAdapter.column_id_sql(name, options, constraint = constraint, nextval = nextval)
@@ -3697,7 +3712,6 @@ end
 
 
 """
-
 """
 function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Void
   DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
@@ -3707,7 +3721,6 @@ end
 
 
 """
-
 """
 function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::Void
   DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
@@ -3717,7 +3730,6 @@ end
 
 
 """
-
 """
 function drop_table(name::String)::Void
   DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
@@ -3737,7 +3749,6 @@ end
 
 
 """
-
 """
 function remove_index(table_name::String, name::String)::Void
   DatabaseAdapter.remove_index_sql(table_name, name) |> SearchLight.query
@@ -3747,7 +3758,6 @@ end
 
 
 """
-
 """
 function create_sequence(name::String)::Void
   DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
@@ -3757,7 +3767,6 @@ end
 
 
 """
-
 """
 function remove_sequence(name::String, options::String = "")::Void
   DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
@@ -3780,21 +3789,6 @@ function load_resources(dir = SearchLight.RESOURCES_PATH)::Void
   nothing
 end
 const load_models = load_resources()
-
-
-"""
-"""
-function serialize(key::Symbol, field::Symbol, value::T) where {T}
-  field == key ? JSON.json(value) : value
-end
-
-
-"""
-"""
-function deserialize(key::Symbol, field::Symbol, value::T) where {T}
-  field == key ? JSON.parse(value) : value
-end
-
 SearchLight.load_resources()
 
 end

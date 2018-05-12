@@ -153,8 +153,8 @@ function up(migration_module_name::String; force::Bool = false) :: Void
     error("Migration $migration_module_name not found")
   end
 end
-function up_by_module_name(migration_module_name::String; force::Bool = false) :: Void
-  up(migration_module_name, force = force)
+function up_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Void
+  up(migration_module_name |> string, force = force)
 end
 
 
@@ -172,8 +172,8 @@ function down(migration_module_name::String; force::Bool = false) :: Void
     error("Migration $migration_module_name not found")
   end
 end
-function down_by_module_name(migration_module_name::String; force::Bool = false) :: Void
-  down(migration_module_name, force = force)
+function down_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Void
+  down(migration_module_name |> string, force = force)
 end
 
 

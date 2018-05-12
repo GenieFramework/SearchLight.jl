@@ -71,6 +71,7 @@ SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
+SQLinput(a::Any) = string(s) |> SQLInput
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
 
@@ -87,6 +88,8 @@ show(io::IO, s::SQLInput) = print(io, string(s))
 convert(::Type{SQLInput}, r::Real) = SQLInput(parse(r))
 convert(::Type{SQLInput}, s::Symbol) = SQLInput(string(s))
 convert(::Type{SQLInput}, d::DateTime) = SQLInput(string(d))
+convert(::Type{SQLInput}, d::Dates.Date) = SQLInput(string(d))
+convert(::Type{SQLInput}, d::Dates.Time) = SQLInput(string(d))
 function convert(::Type{SQLInput}, n::Nullable{T}) where {T}
   if isnull(n)
     SQLInput("NULL", escaped = true, raw = true)
@@ -598,14 +601,13 @@ mutable struct SQLRelation{T<:AbstractModel} <: SQLType
   SQLRelation{T}(model_name::Type{T}, eagerness, data, join, where) where {T<:AbstractModel} = new(model_name, eagerness, data, join, where)
 end
 SQLRelation(model_name::Type{T};
-            eagerness = RELATION_EAGERNESS_AUTO,
+            eagerness = RELATION_EAGERNESS_LAZY,
             data = Nullable{SQLRelationData}(),
             join = Nullable{SQLJoin}(),
             where = Nullable{SQLWhereEntity}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, eagerness, data, join, where)
 
 function lazy(r::SQLRelation)
-  r.eagerness == RELATION_EAGERNESS_LAZY ||
-    r.eagerness == RELATION_EAGERNESS_AUTO && MODEL_RELATION_EAGERNESS == RELATION_EAGERNESS_LAZY
+  r.eagerness == RELATION_EAGERNESS_LAZY
 end
 function is_lazy(r::SQLRelation)
   lazy(r)
