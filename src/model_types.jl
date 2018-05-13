@@ -19,8 +19,8 @@ abstract type SearchLightAbstractType end
 abstract type SQLType <: SearchLightAbstractType end
 abstract type AbstractModel <: SearchLightAbstractType end
 
-string(io::IO, t::T) where {T<:SearchLightAbstractType} = "$(typeof(t)) <: $(super(typeof(t)))"
-print(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, "$(typeof(t)) <: $(super(typeof(t)))")
+string(io::IO, t::T) where {T<:SearchLightAbstractType} = "$(typeof(t)) <: $(supertype(typeof(t)))"
+print(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, "$(typeof(t)) <: $(supertype(typeof(t)))")
 show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabstracttype_to_print(t))
 
 """

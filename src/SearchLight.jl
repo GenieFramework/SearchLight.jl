@@ -1062,7 +1062,7 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
       setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
     catch ex
       Logger.log(ex, :err)
-      Logger.log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )", :err)
+      Logger.log("obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $( typeof(getfield(m, fieldname)) )", :err)
       Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
       rethrow(ex)
