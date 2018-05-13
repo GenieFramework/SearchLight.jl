@@ -56,9 +56,9 @@ function connect(conn_data::Dict{String,Any})::DatabaseHandle
   try
     MySQL.connect(conn_data["host"],
                   conn_data["username"],
-                  conn_data["password"],
+                  (conn_data["password"] == nothing ? "" : conn_data["password"]),
                   db = conn_data["database"],
-                  port = conn_data["port"])
+                  port = (conn_data["port"] == nothing ? 3360 : parse(Int, conn_data["port"])))
   catch ex
     Logger.log("Invalid DB connection settings", :err)
     Logger.log(string(ex), :err)
@@ -484,9 +484,9 @@ end
 """
 
 """
-function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
+function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void,String} = nothing, not_null::Bool = false)::String
   "$name $(TYPE_MAPPINGS[column_type] |> string) " *
-    (isa(limit, Int) ? "($limit)" : "") *
+    (isa(limit, Int) || isa(limit, String) ? "($limit)" : "") *
     (default == nothing ? "" : " DEFAULT $default ") *
     (not_null ? " NOT NULL " : "") *
     " " * options

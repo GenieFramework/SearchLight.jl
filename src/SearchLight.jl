@@ -3663,12 +3663,16 @@ end
 
 """
     create_migrations_table()::Bool
+    db_init()
 
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `config.db_migrations_table_name`
 """
 function create_migrations_table(table_name::String = config.db_migrations_table_name)::Bool
   DatabaseAdapter.create_migrations_table(table_name)
+end
+function db_init()
+  create_migrations_table()
 end
 
 
@@ -3699,7 +3703,7 @@ end
 
 Returns the adapter-dependent SQL for defining a table column
 """
-function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
+function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void,String} = nothing, not_null::Bool = false)::String
   DatabaseAdapter.column_sql(name, column_type, options, default = default, limit = limit, not_null = not_null)
 end
 

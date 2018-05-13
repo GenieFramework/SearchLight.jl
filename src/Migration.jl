@@ -242,8 +242,11 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
 
   try
     m = include(abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))
+    if in(:disabled, names(m, true)) && m.disabled && ! force
+      Logger.log("Skipping, migration is disabled")
+      return
+    end
     Base.invokelatest(getfield(m, direction))
-    # getfield(m, direction)()
 
     store_migration_status(migration, direction, force = force)
 
@@ -408,7 +411,7 @@ end
 """
 
 """
-function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void,String} = nothing, not_null::Bool = false) :: String
   SearchLight.column_definition(string(name), column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
