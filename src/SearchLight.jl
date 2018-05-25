@@ -13,13 +13,17 @@ haskey(ENV, "GENIE_ENV") && (ENV["SEARCHLIGHT_ENV"] = ENV["GENIE_ENV"])
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
 include(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
+using .Configuration
+
 isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 
-if isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
-  isdefined(:config) || include(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
-else
-  isdefined(:config) || (const config =  SearchLight.Configuration.Settings(app_env = Configuration.DEV))
-end
+# if isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
+#   isdefined(:config) || include(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
+# else
+#   isdefined(:config) || (const config =  SearchLight.Configuration.Settings(app_env = Configuration.DEV))
+# end
+
+const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
 if is_dev()
   @eval using Revise
@@ -818,7 +822,7 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
 end
 
 function _save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::DataFrame where {T<:AbstractModel}
-  ! skip_validation && ! Validation.validate!(m) && error("SearchLight validation error(s) for $(typeof(m)) \n $(join((Validation.errors(m) |> Base.get), "\n "))")
+  has_field(m, :validator) && ! skip_validation && ! Validation.validate!(m) && error("SearchLight validation error(s) for $(typeof(m)): $(join( map(e -> "$(e.field) $(e.error_message)", Validation.errors(m) |> Base.get), ", "))")
 
   ! in(:before_save, skip_callbacks) && invoke_callback(m, :before_save)
 
@@ -3654,7 +3658,7 @@ Invokes the database adapter's create migrations table method. If invoked withou
 database name defined in `config.db_migrations_table_name`
 """
 function create_migrations_table(table_name::String = config.db_migrations_table_name)::Bool
-  DatabaseAdapter.create_migrations_table(table_name)
+  Database.DatabaseAdapter.create_migrations_table(table_name)
 end
 
 

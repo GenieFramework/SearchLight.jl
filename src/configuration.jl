@@ -76,11 +76,14 @@ Dict{Any,Any} with 6 entries:
 ```
 """
 function read_db_connection_data!!(db_settings_file::String) :: Dict{String,Any}
-  db_conn_data = YAML.load(open(db_settings_file))
+  db_conn_data =  if endswith(db_settings_file, ".yml")
+                    YAML.load(open(db_settings_file))
+                  elseif endswith(db_settings_file, ".jl")
+                    include(db_settings_file)
+                  end
 
   if haskey(db_conn_data, "env") && db_conn_data["env"] != nothing
-    SearchLight.config.app_env = db_conn_data["env"]
-    ENV["SEARCHLIGHT_ENV"] = "dev"
+    SearchLight.config.app_env = ENV["SEARCHLIGHT_ENV"] = db_conn_data["env"]
   end
 
   if haskey(db_conn_data, SearchLight.config.app_env) && haskey(db_conn_data[SearchLight.config.app_env], "config") && db_conn_data[SearchLight.config.app_env]["config"] != nothing
@@ -162,10 +165,10 @@ mutable struct Settings
             output_length   = 10_000, # where to truncate strings in console
 
             db_migrations_table_name  = "schema_migrations",
-            db_migrations_folder      = abspath(joinpath("db", "migrations")),
+            db_migrations_folder      = joinpath("db", "migrations"),
             db_config_settings        = Dict{String,Any}(),
 
-            log_folder    = abspath(joinpath("log")),
+            log_folder    = joinpath("log"),
 
             log_db        = true,
             log_queries   = true,

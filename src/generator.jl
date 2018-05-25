@@ -3,7 +3,7 @@ Generates various Genie files.
 """
 module Generator
 
-using Logger, SearchLight.FileTemplates, Inflector, SearchLight.Configuration, SearchLight, Migration, App
+using Logger, SearchLight.FileTemplates, Inflector, SearchLight.Configuration, SearchLight, Migration
 
 
 """
@@ -32,6 +32,8 @@ end
 Generates all the files associated with a new resource and persists them to the resources folder.
 """
 function new_resource(resource_name::Union{String,Symbol}) :: Void
+  resource_name = string(resource_name)
+  
   sf = Inflector.to_singular(resource_name)
   model_name = (isnull(sf) ? resource_name : Base.get(sf)) |> ucfirst
   new_model(Dict{String,Any}("model:new" => model_name))
@@ -154,6 +156,8 @@ function new_db_config(adapter::Symbol = :sqlite) :: Void
 
   reload("SearchLight")
   reload("Database")
+  reload("SearchLight")
+  reload("Migration")
 
   SearchLight.load_resources()
 
@@ -203,7 +207,7 @@ end
 Sets up the DB tables used by Genie.
 """
 function db_init() :: Bool
-  SearchLight.create_migrations_table(App.config.db_migrations_table_name)
+  SearchLight.create_migrations_table(SearchLight.config.db_migrations_table_name)
 end
 
 end

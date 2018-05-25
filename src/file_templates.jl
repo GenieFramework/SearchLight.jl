@@ -3,7 +3,7 @@ Functionality for handling the default content of the various files (migrations,
 """
 module FileTemplates
 
-using Inflector
+using Inflector, SearchLight
 
 
 """
@@ -182,12 +182,12 @@ function new_db_config(adapter::Symbol = :sqlite) :: String
   adapters[:sqlite] = """
   dev:
     adapter:  SQLite
-    filename: db/dev.sqlite3
+    filename: db/$(SearchLight.config.app_env).sqlite3
   """
 
 
   """
-  env: dev
+  env: $(SearchLight.config.app_env)
 
   $(adapters[adapter])
     config:
