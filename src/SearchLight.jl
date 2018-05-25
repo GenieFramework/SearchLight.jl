@@ -1461,7 +1461,7 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
       isnull(model_rels[1].data) ? model_rels[1] = r : push!(model_rels, r)
     end
 
-    if ! haskey(models, getfield(main_model, Symbol(__m._id)))
+    if ! haskey(models, getfield(main_model, Symbol(__m._id))) && ! isnull(getfield(main_model, Symbol(__m._id)))
       models[getfield(main_model, Symbol(__m._id)) |> Base.get] = main_model
     end
 

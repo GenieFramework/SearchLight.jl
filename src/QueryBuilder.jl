@@ -86,6 +86,9 @@ end
 function prepare(qb::QueryPart)
   (qb.model, qb.query)
 end
+function prepare(model::Type{T}, qb::QueryPart) where {T<:AbstractModel}
+  prepare(from(model) + qb)
+end
 
 function (+)(q::SQLQuery, r::SQLQuery)
   SQLQuery(
