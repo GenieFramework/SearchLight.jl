@@ -1070,7 +1070,7 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
                 end
               end
             end
-            
+
     try
       setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
     catch ex
@@ -3683,6 +3683,9 @@ database name defined in `config.db_migrations_table_name`
 """
 function create_migrations_table(table_name::String = config.db_migrations_table_name)::Bool
   Database.DatabaseAdapter.create_migrations_table(table_name)
+end
+function db_init()
+  create_migrations_table()
 end
 function db_init()
   create_migrations_table()
