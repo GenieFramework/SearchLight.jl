@@ -2,6 +2,7 @@ module SearchLight
 
 push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
                   joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"),
+                  joinpath(Pkg.dir("SearchLight"), "src", "serializers"),
                   abspath(pwd()))
 
 include(joinpath(Pkg.dir("SearchLight"), "src", "constants.jl"))
@@ -32,7 +33,7 @@ end
 config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
 include(joinpath(Pkg.dir("SearchLight"), "src", "file_templates.jl"))
-using Database, DataFrames, DataStructures, DateParser, Util, Logger, Millboard, Validation
+using Database, DataFrames, DataStructures, Dates, DateParser, Util, Logger, Millboard, Validation
 include(joinpath(Pkg.dir("SearchLight"), "src", "generator.jl"))
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
@@ -50,6 +51,9 @@ const RELATION_EAGERNESS_LAZY    = :lazy
 const RELATION_EAGERNESS_EAGER   = :eager
 
 const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_LAZY
+
+eval(:(using $(isdefined(config.db_config_settings, :serializer) ? config.db_config_settings.serializer : :JSONSerializer)))
+eval(:(const Serializer = $(isdefined(config.db_config_settings, :serializer) ? config.db_config_settings.serializer : :JSONSerializer)))
 
 
 # internals
@@ -1066,10 +1070,15 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
                 end
               end
             end
+            
     try
-      setfield!(m, fieldname, value)
+      setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
     catch ex
-      isdefined(m, :on_error!) ? m = m.on_error!(ex, model = m, data = w, field = fieldname, value = value)::T : rethrow(ex)
+      Logger.log(ex, :err)
+      Logger.log("obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $( typeof(getfield(m, fieldname)) )", :err)
+      Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+
+      rethrow(ex)
     end
   end
 
@@ -1278,6 +1287,7 @@ function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}, v
   end
 end
 function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+  isa(property, String) && ismatch(r"(.+)\.(.+)", property) && (property = SQLColumn(property))
   update_by_or_create!!(m, property, getfield(m, isa(property, SQLColumn) ? Symbol(property.column_name) : Symbol(property)), ignore = ignore, skip_update = skip_update)
 end
 function update_by_or_create!!(m::T)::T where {T<:AbstractModel}
@@ -1600,6 +1610,13 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
             else
               row[field]
             end
+
+    value = if in(:_serializable, fieldnames(typeof(_m))) && isa(_m._serializable, Vector{Symbol}) && in(unq_field, _m._serializable)
+              Serializer.deserialize(value)
+            else
+              value
+            end
+
     try
       setfield!(obj, unq_field, convert(typeof(getfield(_m, unq_field)), value))
     catch ex
@@ -2759,6 +2776,12 @@ function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractMod
             value
           end
 
+  value = if in(:_serializable, fieldnames(typeof(m))) && isa(m._serializable, Vector{Symbol}) && in(field, m._serializable)
+            Serializer.serialize(value)
+          else
+            value
+          end
+
   SQLInput(value)
 end
 
@@ -3653,12 +3676,16 @@ end
 
 """
     create_migrations_table()::Bool
+    db_init()
 
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `config.db_migrations_table_name`
 """
 function create_migrations_table(table_name::String = config.db_migrations_table_name)::Bool
   Database.DatabaseAdapter.create_migrations_table(table_name)
+end
+function db_init()
+  create_migrations_table()
 end
 
 
@@ -3689,13 +3716,12 @@ end
 
 Returns the adapter-dependent SQL for defining a table column
 """
-function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
+function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void,String} = nothing, not_null::Bool = false)::String
   DatabaseAdapter.column_sql(name, column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
 
 """
-
 """
 function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
   DatabaseAdapter.column_id_sql(name, options, constraint = constraint, nextval = nextval)
@@ -3703,7 +3729,6 @@ end
 
 
 """
-
 """
 function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Void
   DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
@@ -3713,7 +3738,6 @@ end
 
 
 """
-
 """
 function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::Void
   DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
@@ -3723,7 +3747,6 @@ end
 
 
 """
-
 """
 function drop_table(name::String)::Void
   DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
@@ -3743,7 +3766,6 @@ end
 
 
 """
-
 """
 function remove_index(table_name::String, name::String)::Void
   DatabaseAdapter.remove_index_sql(table_name, name) |> SearchLight.query
@@ -3753,7 +3775,6 @@ end
 
 
 """
-
 """
 function create_sequence(name::String)::Void
   DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
@@ -3763,7 +3784,6 @@ end
 
 
 """
-
 """
 function remove_sequence(name::String, options::String = "")::Void
   DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
@@ -3786,8 +3806,6 @@ function load_resources(dir = SearchLight.RESOURCES_PATH)::Void
   nothing
 end
 const load_models = load_resources()
-
-
 SearchLight.load_resources()
 
 end

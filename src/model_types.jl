@@ -19,8 +19,8 @@ abstract type SearchLightAbstractType end
 abstract type SQLType <: SearchLightAbstractType end
 abstract type AbstractModel <: SearchLightAbstractType end
 
-string(io::IO, t::T) where {T<:SearchLightAbstractType} = "$(typeof(t)) <: $(super(typeof(t)))"
-print(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, "$(typeof(t)) <: $(super(typeof(t)))")
+string(io::IO, t::T) where {T<:SearchLightAbstractType} = "$(typeof(t)) <: $(supertype(typeof(t)))"
+print(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, "$(typeof(t)) <: $(supertype(typeof(t)))")
 show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabstracttype_to_print(t))
 
 """
@@ -71,6 +71,7 @@ SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
+SQLinput(a::Any) = string(s) |> SQLInput
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
 
@@ -87,6 +88,8 @@ show(io::IO, s::SQLInput) = print(io, string(s))
 convert(::Type{SQLInput}, r::Real) = SQLInput(parse(r))
 convert(::Type{SQLInput}, s::Symbol) = SQLInput(string(s))
 convert(::Type{SQLInput}, d::DateTime) = SQLInput(string(d))
+convert(::Type{SQLInput}, d::Dates.Date) = SQLInput(string(d))
+convert(::Type{SQLInput}, d::Dates.Time) = SQLInput(string(d))
 function convert(::Type{SQLInput}, n::Nullable{T}) where {T}
   if isnull(n)
     SQLInput("NULL", escaped = true, raw = true)
@@ -439,7 +442,9 @@ Wrapper around the various types of SQL `join` (`left`, `right`, `inner`, etc).
 """
 struct SQLJoinType <: SQLType
   join_type::String
-  function SQLJoinType(t::String)
+
+  function SQLJoinType(t::Union{String,Symbol})
+    t = string(t)
     accepted_values = ["inner", "INNER", "left", "LEFT", "right", "RIGHT", "full", "FULL"]
     if in(t, accepted_values)
       new(uppercase(t))
@@ -450,7 +455,7 @@ struct SQLJoinType <: SQLType
   end
 end
 
-convert(::Type{SQLJoinType}, s::String) = SQLJoinType(s)
+convert(::Type{SQLJoinType}, s::Union{String,Symbol}) = SQLJoinType(s)
 
 string(jt::SQLJoinType) = jt.join_type
 
@@ -478,6 +483,14 @@ SQLJoin(model_name::Type{T},
         where = SQLWhereEntity[],
         natural = false,
         columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin{T}(model_name, on, join_type, outer, where, natural, columns)
+SQLJoin(model_name::Type{T},
+        on_column_1::Union{String,SQLColumn},
+        on_column_2::Union{String,SQLColumn};
+        join_type = SQLJoinType("INNER"),
+        outer = false,
+        where = SQLWhereEntity[],
+        natural = false,
+        columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin(model_name, SQLOn(on_column_1, on_column_2), join_type = join_type, outer = outer, where = where, natural = natural, columns = columns)
 function string(j::SQLJoin)
   _m = j.model_name()
   sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(Util.add_quotes(_m._table_name)) $(string(j.on)) """

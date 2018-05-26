@@ -153,8 +153,8 @@ function up(migration_module_name::String; force::Bool = false) :: Void
     error("Migration $migration_module_name not found")
   end
 end
-function up_by_module_name(migration_module_name::String; force::Bool = false) :: Void
-  up(migration_module_name, force = force)
+function up_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Void
+  up(migration_module_name |> string, force = force)
 end
 
 
@@ -172,8 +172,8 @@ function down(migration_module_name::String; force::Bool = false) :: Void
     error("Migration $migration_module_name not found")
   end
 end
-function down_by_module_name(migration_module_name::String; force::Bool = false) :: Void
-  down(migration_module_name, force = force)
+function down_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Void
+  down(migration_module_name |> string, force = force)
 end
 
 
@@ -242,8 +242,11 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
 
   try
     m = include(abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))
+    if in(:disabled, names(m, true)) && m.disabled && ! force
+      Logger.log("Skipping, migration is disabled")
+      return
+    end
     Base.invokelatest(getfield(m, direction))
-    # getfield(m, direction)()
 
     store_migration_status(migration, direction, force = force)
 
@@ -408,7 +411,7 @@ end
 """
 
 """
-function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: String
+function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void,String} = nothing, not_null::Bool = false) :: String
   SearchLight.column_definition(string(name), column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
@@ -547,3 +550,5 @@ end
 const drop_sequence = remove_sequence
 
 end
+
+const Migrations = Migration

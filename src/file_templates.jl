@@ -21,11 +21,11 @@ function new_table_migration(module_name::String, resource::String) :: String
     create_table(:$resource) do
       [
         column_id()
-        column(:column_name, :column_type, options)
+        column(:column_name, :column_type)
       ]
     end
 
-    add_index(:$resource, :column_name, options)
+    add_index(:$resource, :column_name)
   end
 
   function down()
@@ -102,19 +102,19 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
 
     ### constructor
     $model_name(;
-      id = Nullable{SearchLight.DbId}(),
+      id = Nullable{SearchLight.DbId}()
 
       # validator = ModelValidator([
         # ValidationRule(:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
-      # ]),
+      # ])
 
-      # belongs_to = [],
-      # has_one = [],
-      # has_many = [],
+      # belongs_to = []
+      # has_one = []
+      # has_many = []
 
-      # before_save = (m::$model_name) -> warn("Not implemented"),
-      # after_save = (m::$model_name) -> warn("Not implemented"),
-      # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> warn("Not implemented"),
+      # before_save = (m::$model_name) -> warn("Not implemented")
+      # after_save = (m::$model_name) -> warn("Not implemented")
+      # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> warn("Not implemented")
       # on_hydration = (m::$model_name, field::Symbol, value::Any) -> warn("Not implemented")
       # after_hydration = (m::$model_name) -> warn("Not implemented")
 
