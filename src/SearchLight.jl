@@ -3687,9 +3687,6 @@ end
 function db_init()
   create_migrations_table()
 end
-function db_init()
-  create_migrations_table()
-end
 
 
 """
