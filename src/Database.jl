@@ -1,6 +1,6 @@
 module Database
 
-using YAML, Memoize, SearchLight, DataFrames, Logger, SearchLight.Configuration
+using YAML, SearchLight, DataFrames, Logger, SearchLight.Configuration
 
 if is_dev()
   @eval using Revise
@@ -165,8 +165,8 @@ function escape_value(v::T)::T where {T}
 end
 
 
-@anamnesis function table_columns(table_name::AbstractString)
-  query_df(DatabaseAdapter.table_columns_sql(table_name), suppress_output = true)::DataFrames.DataFrame
+function table_columns(table_name::AbstractString) :: DataFrames.DataFrame
+  query_df(DatabaseAdapter.table_columns_sql(table_name), suppress_output = true)
 end
 
 

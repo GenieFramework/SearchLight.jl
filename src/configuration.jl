@@ -3,7 +3,7 @@ Core SearchLight configuration / settings functionality.
 """
 module Configuration
 
-using SearchLight, YAML, Memoize
+using SearchLight, YAML
 
 export is_dev, is_prod, is_test, env, cache_enabled, Settings, DEV, PROD, TEST, IN_REPL
 export LOG_LEVEL_VERBOSITY_VERBOSE, LOG_LEVEL_VERBOSITY_MINIMAL
@@ -109,7 +109,7 @@ Attempts to load the database configuration from file. Returns `true` if success
 function load_db_connection() :: Dict{String,Any}
   _load_db_connection()
 end
-@memoize function _load_db_connection() :: Dict{String,Any}
+function _load_db_connection() :: Dict{String,Any}
   load_db_connection_from_config()
 end
 
