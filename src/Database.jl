@@ -141,7 +141,7 @@ function query(sql::AbstractString; system_query::Bool = false)::ResultHandle
 end
 
 
-@memoize function escape_column_name(c::AbstractString)
+function escape_column_name(c::AbstractString)
   conn = connection()
   result =  try
               DatabaseAdapter.escape_column_name(c, conn)::String
@@ -165,7 +165,7 @@ function escape_value(v::T)::T where {T}
 end
 
 
-@memoize function table_columns(table_name::AbstractString)
+@anamnesis function table_columns(table_name::AbstractString)
   query_df(DatabaseAdapter.table_columns_sql(table_name), suppress_output = true)::DataFrames.DataFrame
 end
 

@@ -1,5 +1,6 @@
 julia 0.6
 
+Anamnesis
 DataFrames 0.11.0
 DataStructures
 DateParser
@@ -8,7 +9,6 @@ IterableTables
 JSON
 Lumberjack
 MbedTLS
-Memoize
 Millboard
 Reexport
 SHA
