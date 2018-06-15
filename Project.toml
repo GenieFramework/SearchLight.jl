@@ -1,6 +1,4 @@
 name = "SearchLight"
-uuid = "4857933c-6bdb-11e8-1f0b-cb544d3764be"
-version = "0.7.0"
 author = ["Adrian Salceanu <e@essenciary.com>"]
 
 [deps]
