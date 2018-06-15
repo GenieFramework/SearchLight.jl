@@ -15,7 +15,7 @@ function new_table_migration(module_name::String, resource::String) :: String
   """
   module $module_name
 
-  import Genie.Migrations: create_table, column, column_id, add_index, drop_table
+  import SearchLight.Migrations: create_table, column, column_id, add_index, drop_table
 
   function up()
     create_table(:$resource) do
@@ -43,7 +43,7 @@ function new_migration(module_name::String) :: String
   """
   module $module_name
 
-  import Genie.Migrations: add_column, add_index
+  import SearchLight.Migrations: add_column, add_index
 
   function up()
 
@@ -70,7 +70,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
   """
   module $pluralized_name
 
-  using SearchLight, Nullables #, Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
+  using SearchLight, Nullables #, SearchLight.Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
 
   export $model_name
 
