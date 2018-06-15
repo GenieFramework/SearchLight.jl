@@ -1,6 +1,6 @@
 module PostgreSQLDatabaseAdapter
 
-using PostgreSQL, DataFrames, Genie, Database, Logger, SearchLight, Migration
+using PostgreSQL, DataFrames, Database, Logger, SearchLight
 
 export DatabaseHandle, ResultHandle
 
@@ -74,11 +74,11 @@ end
 
 
 """
-    disconnect(conn::DatabaseHandle)::Void
+    disconnect(conn::DatabaseHandle)::Nothing
 
 Disconnects from database.
 """
-function disconnect(conn::DatabaseHandle)::Void
+function disconnect(conn::DatabaseHandle)::Nothing
   PostgreSQL.disconnect(conn)
 end
 
@@ -284,7 +284,7 @@ end
 """
 
 """
-function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void where {T<:AbstractModel}
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
   _m::T = m()
   if truncate
     sql = "TRUNCATE $(_m._table_name)"
@@ -487,7 +487,7 @@ end
 """
 
 """
-function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
+function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false)::String
   "$name $(TYPE_MAPPINGS[column_type] |> string) " *
     (isa(limit, Int) ? "($limit)" : "") *
     (default == nothing ? "" : " DEFAULT $default ") *
@@ -508,7 +508,7 @@ end
 
 """
 function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::String
-  name = isempty(name) ? Migration.index_name(table_name, column_name) : name
+  name = isempty(name) ? Database.index_name(table_name, column_name) : name
   "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
 end
 
@@ -516,7 +516,7 @@ end
 """
 
 """
-function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
+function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false)::String
   "ALTER TABLE $table_name ADD $(column_sql(name, column_type, default = default, limit = limit, not_null = not_null))"
 end
 
@@ -532,7 +532,7 @@ end
 """
 
 """
-function remove_column_sql(table_name::String, name::String, options::String = "")::Void
+function remove_column_sql(table_name::String, name::String, options::String = "")::Nothing
   "ALTER TABLE $table_name DROP COLUMN $name $options"
 end
 

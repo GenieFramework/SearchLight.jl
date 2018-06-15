@@ -1,19 +1,13 @@
 module SearchLight
 
-push!(LOAD_PATH,  joinpath(Pkg.dir("SearchLight"), "src"),
-                  joinpath(Pkg.dir("SearchLight"), "src", "database_adapters"),
-                  joinpath(Pkg.dir("SearchLight"), "src", "serializers"),
-                  abspath(pwd()))
-
-include(joinpath(Pkg.dir("SearchLight"), "src", "constants.jl"))
-include("model_types.jl")
+include(joinpath(@__DIR__, "constants.jl"))
 
 const OUTPUT_LENGTH = 256
 
 haskey(ENV, "GENIE_ENV") && (ENV["SEARCHLIGHT_ENV"] = ENV["GENIE_ENV"])
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
-include(joinpath(Pkg.dir("SearchLight"), "src", "configuration.jl"))
+include(joinpath(@__DIR__, "configuration.jl"))
 using .Configuration
 
 isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
@@ -32,9 +26,20 @@ end
 
 config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
-include(joinpath(Pkg.dir("SearchLight"), "src", "file_templates.jl"))
-using Database, DataFrames, DataStructures, Dates, DateParser, Util, Logger, Millboard, Validation
-include(joinpath(Pkg.dir("SearchLight"), "src", "generator.jl"))
+using DataFrames, DataStructures, Dates, DateParser, Millboard, Distributed
+
+include("Logger.jl")
+include("Inflector.jl")
+include("FileTemplates.jl")
+include("Macros.jl")
+include("model_types.jl")
+include("Database.jl")
+include("Migration.jl")
+include("Util.jl")
+include("Validation.jl")
+include("Generator.jl")
+
+using .Database, .Migration, .Util, .Logger, .Validation, .Inflector, .Macros
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export disposable_instance, to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
@@ -52,8 +57,15 @@ const RELATION_EAGERNESS_EAGER   = :eager
 
 const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_LAZY
 
-eval(:(using $(isdefined(config.db_config_settings, :serializer) ? config.db_config_settings.serializer : :JSONSerializer)))
-eval(:(const Serializer = $(isdefined(config.db_config_settings, :serializer) ? config.db_config_settings.serializer : :JSONSerializer)))
+if isdefined(config.db_config_settings, :serializer) && isdefined(config.db_config_settings, :serializer_path)
+  include("$(config.db_config_settings.serializer_path).jl")
+  eval("using .$(config.db_config_settings.serializer)")
+  const Serializer = eval(:(config.db_config_settings.serializer))
+else
+  include("serializers/JSONSerializer.jl")
+  using .JSONSerializer
+  const Serializer = JSONSerializer
+end
 
 
 # internals
@@ -98,7 +110,7 @@ end
 
 """
     find_df{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]])::DataFrame
-    find_df{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m().\_id))::DataFrame
+    find_df{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::DataFrame
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `DataFrame`.
 
@@ -143,8 +155,8 @@ end
 
 
 """
-    find_df{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m().\_id))::DataFrame
-    find_df{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m().\_id))::DataFrame
+    find_df{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::DataFrame
+    find_df{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::DataFrame
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `DataFrame`.
 
@@ -179,7 +191,7 @@ end
 
 """
     find{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]])::Vector{T}
-    find{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m().\_id))::Vector{T}
+    find{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::Vector{T}
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `Vector{T<:AbstractModel}`.
 
@@ -216,8 +228,8 @@ end
 
 
 """
-    find{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m().\_id))::Vector{T}
-    find{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m().\_id))::Vector{T}
+    find{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::Vector{T}
+    find{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::Vector{T}
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `Vector{T<:AbstractModel}`.
 
@@ -251,9 +263,9 @@ end
 
 
 """
-    find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m().\_id))::Vector{T}
-    find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m().\_id))::Vector{T}
-    find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m().\_id))::Vector{T}
+    find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Vector{T}
+    find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Vector{T}
+    find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T}
 
 Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using the `column_name` and the `value`.
 Returns the resultset as a `Vector{T<:AbstractModel}`.
@@ -311,9 +323,9 @@ end
 
 
 """
-    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m().\_id))::Nullable{T}
-    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m().\_id))::Nullable{T}
-    find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m().\_id))::Nullable{T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Nullable{T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Nullable{T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Nullable{T}
 
 Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using the `column_name` and the `value`
 or the `sql_expression`.
@@ -403,8 +415,8 @@ end
 
 
 """
-    find_one_by!!{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m().\_id))::T
-    find_one_by!!{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m().\_id))::T
+    find_one_by!!{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::T
+    find_one_by!!{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::T
 
 Similar to `find_one_by` but also attempts to `get` the value inside the `Nullable` by means of `Base.get`.
 Returns the value if is not `NULL`. Throws a `NullException` otherwise.
@@ -1586,7 +1598,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
     value = if isdefined(_m, :on_hydration!)
               try
                 _m, value = _m.on_hydration!(_m, unq_field, row[field])
-                (is(value, Void) || value == nothing) && (value = row[field])
+                (is(value, Nothing) || value == nothing) && (value = row[field])
                 value
               catch ex
                 Logger.log("Failed to hydrate! field $unq_field ($field)", :err)
@@ -1598,7 +1610,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
             elseif isdefined(_m, :on_hydration)
               try
                 value = _m.on_hydration(_m, unq_field, row[field])
-                (is(value, Void) || value == nothing) && (value = row[field])
+                (is(value, Nothing) || value == nothing) && (value = row[field])
                 value
               catch ex
                 Logger.log("Failed to hydrate field $unq_field ($field)", :err)
@@ -2553,7 +2565,7 @@ function get_relation_data(m::T, rel::SQLRelation{R}, relation_type::Symbol)::Nu
 
   Nullable{SQLRelationData{R}}()
 end
-function get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, relation_info::Tuple{SQLRelation{R},Symbol})::Nullable{SQLRelationData{R}}
+function get_relation_data(m::T, relation_info::Tuple{SQLRelation{R},Symbol})::Nullable{SQLRelationData{R}} where {T<:AbstractModel,R<:AbstractModel}
   get_relation_data(m, relation_info[1], relation_info[2])
 end
 
@@ -2764,7 +2776,7 @@ function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractMod
   value = if isdefined(m, :on_dehydration)
             try
               r = m.on_dehydration(m, field, value)
-              is(r, Void) || r == nothing ? value : r
+              is(r, Nothing) || r == nothing ? value : r
             catch ex
               Logger.log("Failed to dehydrate field $field", :err)
               Logger.log(string(ex), :err)
@@ -2792,7 +2804,7 @@ end
 
 
 """
-    delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void
+    delete_all{T<:AbstractModel}(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing
 
 Deletes all the rows from the database table corresponding to `m`. If `truncate` is `true`, the table will be truncated.
 If `reset_sequence` is `true`, the auto-increment counter will be reset (where supported by the underlying RDBMS).
@@ -2803,7 +2815,7 @@ If `cascade` is `true`, the delete will be cascaded to all related tables (where
 julia> SearchLight.delete_all(Article)
 ```
 """
-function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void where {T<:AbstractModel}
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
   Database.delete_all(m, truncate = truncate, reset_sequence = reset_sequence, cascade = cascade)
 end
 
@@ -3704,7 +3716,7 @@ end
 
 Creates a new DB table
 """
-function create_table(f::Function, name::String, options::String = "")::Void
+function create_table(f::Function, name::String, options::String = "")::Nothing
   DatabaseAdapter.create_table_sql(f, name, options) |> SearchLight.query
 
   nothing
@@ -3712,11 +3724,11 @@ end
 
 
 """
-    function column_definition(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::String
+    function column_definition(name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false)::String
 
 Returns the adapter-dependent SQL for defining a table column
 """
-function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void,String} = nothing, not_null::Bool = false)::String
+function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false)::String
   DatabaseAdapter.column_sql(name, column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
@@ -3730,7 +3742,7 @@ end
 
 """
 """
-function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Void
+function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Nothing
   DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
 
   nothing
@@ -3739,7 +3751,7 @@ end
 
 """
 """
-function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false)::Void
+function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false)::Nothing
   DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
 
   nothing
@@ -3748,7 +3760,7 @@ end
 
 """
 """
-function drop_table(name::String)::Void
+function drop_table(name::String)::Nothing
   DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
 
   nothing
@@ -3758,7 +3770,7 @@ end
 """
 
 """
-function remove_column(table_name::String, name::String)::Void
+function remove_column(table_name::String, name::String)::Nothing
   DatabaseAdapter.remove_column_sql(table_name, name) |> SearchLight.query
 
   nothing
@@ -3767,7 +3779,7 @@ end
 
 """
 """
-function remove_index(table_name::String, name::String)::Void
+function remove_index(table_name::String, name::String)::Nothing
   DatabaseAdapter.remove_index_sql(table_name, name) |> SearchLight.query
 
   nothing
@@ -3776,7 +3788,7 @@ end
 
 """
 """
-function create_sequence(name::String)::Void
+function create_sequence(name::String)::Nothing
   DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
 
   nothing
@@ -3785,7 +3797,7 @@ end
 
 """
 """
-function remove_sequence(name::String, options::String = "")::Void
+function remove_sequence(name::String, options::String = "")::Nothing
   DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
 
   nothing
@@ -3793,11 +3805,11 @@ end
 
 
 """
-    load_resources(dir = SearchLight.RESOURCES_PATH)::Void
+    load_resources(dir = SearchLight.RESOURCES_PATH)::Nothing
 
 Recursively adds subfolders of resources to LOAD_PATH.
 """
-function load_resources(dir = SearchLight.RESOURCES_PATH)::Void
+function load_resources(dir = SearchLight.RESOURCES_PATH)::Nothing
   ! isdir(abspath(dir)) && return nothing
 
   res_dirs = Util.walk_dir(dir, only_dirs = true)

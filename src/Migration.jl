@@ -3,7 +3,7 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using SearchLight, SearchLight.FileTemplates, Millboard, SearchLight.Configuration, Logger, Macros, Database
+using SearchLight, SearchLight.FileTemplates, Millboard, SearchLight.Configuration, SearchLight.Logger, SearchLight.Macros, SearchLight.Database
 
 import Base.showerror
 
@@ -11,7 +11,7 @@ import Base.showerror
 """
 
 """
-type DatabaseMigration # todo: rename the "migration_" prefix for the fields
+mutable struct DatabaseMigration # todo: rename the "migration_" prefix for the fields
   migration_hash::String
   migration_file_name::String
   migration_module_name::String
@@ -21,7 +21,7 @@ end
 """
 
 """
-type UnsupportedException <: Exception
+mutable struct UnsupportedException <: Exception
   method_name::Symbol
   adapter_name::Symbol
 end
@@ -31,19 +31,19 @@ Base.showerror(io::IO, e::UnsupportedException) = print(io, "Method $(e.method_n
 """
 
 """
-type IrreversibleMigration <: Exception
+mutable struct IrreversibleMigration <: Exception
   migration_name::Symbol
 end
 Base.showerror(io::IO, e::IrreversibleMigration) = print(io, "Migration $(e.migration_name) is not reversible")
 
 
 """
-    new(migration_name::String, content::String = "") :: Void
-    new(cmd_args::Dict{String,Any}, config::Configuration.Settings) :: Void
+    new(migration_name::String, content::String = "") :: Nothing
+    new(cmd_args::Dict{String,Any}, config::Configuration.Settings) :: Nothing
 
 Creates a new default migration file and persists it to disk in the configured migrations folder.
 """
-function new_table(migration_name::String, resource::String) :: Void
+function new_table(migration_name::String, resource::String) :: Nothing
   mfn = migration_file_name(migration_name)
 
   ispath(mfn) && error("Migration file already exists")
@@ -61,7 +61,7 @@ end
 
 """
 """
-function new(migration_name::String) :: Void
+function new(migration_name::String) :: Nothing
   mfn = migration_file_name(migration_name)
 
   ispath(mfn) && error("Migration file already exists")
@@ -114,38 +114,38 @@ end
 
 
 """
-    last_up(; force = false) :: Void
+    last_up(; force = false) :: Nothing
 
 Migrates up the last migration. If `force` is `true`, the migration will be executed even if it's already up.
 """
-function last_up(; force = false) :: Void
+function last_up(; force = false) :: Nothing
   run_migration(last_migration(), :up, force = force)
 end
-function up(; force = false) :: Void
+function up(; force = false) :: Nothing
   last_up(force = force)
 end
 
 
 """
-    last_down() :: Void
+    last_down() :: Nothing
 
 Migrates down the last migration. If `force` is `true`, the migration will be executed even if it's already down.
 """
-function last_down(; force = false) :: Void
+function last_down(; force = false) :: Nothing
   run_migration(last_migration(), :down, force = force)
 end
-function down(; force = false) :: Void
+function down(; force = false) :: Nothing
   last_down(force = force)
 end
 
 
 """
-    up(migration_module_name::String; force::Bool = false) :: Void
-    up_by_module_name(migration_module_name::String; force::Bool = false) :: Void
+    up(migration_module_name::String; force::Bool = false) :: Nothing
+    up_by_module_name(migration_module_name::String; force::Bool = false) :: Nothing
 
 Runs up the migration corresponding to `migration_module_name`.
 """
-function up(migration_module_name::String; force::Bool = false) :: Void
+function up(migration_module_name::String; force::Bool = false) :: Nothing
   migration = migration_by_module_name(migration_module_name)
   if ! isnull(migration)
     run_migration(Base.get(migration), :up, force = force)
@@ -153,18 +153,18 @@ function up(migration_module_name::String; force::Bool = false) :: Void
     error("Migration $migration_module_name not found")
   end
 end
-function up_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Void
+function up_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Nothing
   up(migration_module_name |> string, force = force)
 end
 
 
 """
-    down(migration_module_name::String; force::Bool = false) :: Void
-    down_by_module_name(migration_module_name::String; force::Bool = false) :: Void
+    down(migration_module_name::String; force::Bool = false) :: Nothing
+    down_by_module_name(migration_module_name::String; force::Bool = false) :: Nothing
 
 Runs down the migration corresponding to `migration_module_name`.
 """
-function down(migration_module_name::String; force::Bool = false) :: Void
+function down(migration_module_name::String; force::Bool = false) :: Nothing
   migration = migration_by_module_name(migration_module_name)
   if ! isnull(migration)
     run_migration(Base.get(migration), :down, force = force)
@@ -172,7 +172,7 @@ function down(migration_module_name::String; force::Bool = false) :: Void
     error("Migration $migration_module_name not found")
   end
 end
-function down_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Void
+function down_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Nothing
   down(migration_module_name |> string, force = force)
 end
 
@@ -227,11 +227,11 @@ end
 
 
 """
-    run_migration(migration::DatabaseMigration, direction::Symbol; force = false) :: Void
+    run_migration(migration::DatabaseMigration, direction::Symbol; force = false) :: Nothing
 
 Runs `migration` in up or down, per `directon`. If `force` is true, the migration is run regardless of its current status (already `up` or `down`).
 """
-function run_migration(migration::DatabaseMigration, direction::Symbol; force = false) :: Void
+function run_migration(migration::DatabaseMigration, direction::Symbol; force = false) :: Nothing
   if ! force
     if  ( direction == :up    && in(migration.migration_hash, upped_migrations()) ) ||
         ( direction == :down  && in(migration.migration_hash, downed_migrations()) )
@@ -264,11 +264,11 @@ end
 
 
 """
-    store_migration_status(migration::DatabaseMigration, direction::Symbol) :: Void
+    store_migration_status(migration::DatabaseMigration, direction::Symbol) :: Nothing
 
 Persists the `direction` of the `migration` into the database.
 """
-function store_migration_status(migration::DatabaseMigration, direction::Symbol; force = false) :: Void
+function store_migration_status(migration::DatabaseMigration, direction::Symbol; force = false) :: Nothing
   try
     if direction == :up
       SearchLight.query_raw("INSERT INTO $(SearchLight.config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", system_query = true)
@@ -310,11 +310,11 @@ end
 
 
 """
-    status() :: Void
+    status() :: Nothing
 
 Prints a table that displays the `direction` of each migration.
 """
-function status() :: Void
+function status() :: Nothing
   migrations, migrations_files = all_migrations()
   up_migrations = upped_migrations()
   arr_output = []
@@ -355,11 +355,11 @@ end
 
 
 """
-    all_down() :: Void
+    all_down() :: Nothing
 
 Runs all migrations `down`.
 """
-function all_down(; confirm = true) :: Void
+function all_down(; confirm = true) :: Nothing
   if confirm
     print_with_color(:yellow, "!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 5 seconds to cancel this. ")
     sleep(3)
@@ -380,11 +380,11 @@ end
 
 
 """
-    all_up() :: Void
+    all_up() :: Nothing
 
 Runs all migrations `up`.
 """
-function all_up() :: Void
+function all_up() :: Nothing
   i, m = all_with_status()
   for v_hash in i
     v = m[v_hash]
@@ -403,7 +403,7 @@ end
 
 Creates a new DB table.
 """
-function create_table(f::Function, name::Union{String,Symbol}, options::String = "") :: Void
+function create_table(f::Function, name::Union{String,Symbol}, options::String = "") :: Nothing
   SearchLight.create_table(f, string(name), options)
 end
 
@@ -411,7 +411,7 @@ end
 """
 
 """
-function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Void,String} = nothing, not_null::Bool = false) :: String
+function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false) :: String
   SearchLight.column_definition(string(name), column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
@@ -427,7 +427,7 @@ end
 """
 
 """
-function add_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}; name::Union{String,Symbol} = "", unique::Bool = false, order::Symbol = :none) :: Void
+function add_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}; name::Union{String,Symbol} = "", unique::Bool = false, order::Symbol = :none) :: Nothing
   SearchLight.add_index(string(table_name), string(column_name), name = string(name), unique = unique, order = order)
 end
 const create_index = add_index
@@ -436,7 +436,7 @@ const create_index = add_index
 """
 
 """
-function add_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}, column_type::Symbol; default::Any = nothing, limit::Union{Int,Void} = nothing, not_null::Bool = false) :: Void
+function add_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: Nothing
   SearchLight.add_column(string(table_name), string(name), column_type, default = default, limit = limit, not_null = not_null)
 end
 
@@ -444,7 +444,7 @@ end
 """
 
 """
-function drop_table(name::Union{String,Symbol}) :: Void
+function drop_table(name::Union{String,Symbol}) :: Nothing
   SearchLight.drop_table(string(name))
 end
 
@@ -452,7 +452,7 @@ end
 """
 
 """
-function remove_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Void
+function remove_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Nothing
   SearchLight.remove_column(string(table_name), string(name))
 end
 
@@ -460,7 +460,7 @@ end
 """
 
 """
-function remove_index_by_name(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Void
+function remove_index_by_name(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Nothing
   SearchLight.remove_index(string(table_name), string(name))
 end
 
@@ -468,23 +468,15 @@ end
 """
 
 """
-function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Void
-  Migration.remove_index_by_name(string(table_name), index_name(string(table_name), string(column_name)))
+function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
+  Migration.remove_index_by_name(string(table_name), Database.index_name(string(table_name), string(column_name)))
 end
 
 
 """
 
 """
-function index_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  string(table_name) * "__" * "idx_" * string(column_name)
-end
-
-
-"""
-
-"""
-function create_sequence(name::Union{String,Symbol}) :: Void
+function create_sequence(name::Union{String,Symbol}) :: Nothing
   SearchLight.create_sequence(string(name))
 end
 
@@ -492,7 +484,7 @@ end
 """
 
 """
-function create_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Void
+function create_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
   SearchLight.create_sequence(sequence_name(table_name, column_name))
 end
 
@@ -536,7 +528,7 @@ end
 """
 
 """
-function remove_sequence_by_name(name::Union{String,Symbol}, options::String = "") :: Void
+function remove_sequence_by_name(name::Union{String,Symbol}, options::String = "") :: Nothing
   SearchLight.remove_sequence(string(name), options)
 end
 
@@ -544,7 +536,7 @@ end
 """
 
 """
-function remove_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}, options::String = "") :: Void
+function remove_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}, options::String = "") :: Nothing
   Migration.remove_sequence_by_name(sequence_name(string(table_name), string(column_name)), options)
 end
 const drop_sequence = remove_sequence
