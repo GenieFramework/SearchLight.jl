@@ -1,3 +1,8 @@
+name = "SearchLight"
+uuid = "4857933c-6bdb-11e8-1f0b-cb544d3764be"
+version = "0.7.0"
+author = ["Adrian Salceanu <e@essenciary.com>"]
+
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataStreams = "9a8bc11e-79be-5b39-94d7-1ccc349a1a85"
