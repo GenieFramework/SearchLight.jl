@@ -1,6 +1,6 @@
 module Database
 
-using YAML, SearchLight, DataFrames, Logger, SearchLight.Configuration
+using YAML, SearchLight, DataFrames, SearchLight.Logger, SearchLight.Configuration
 
 if is_dev()
   @eval using Revise
@@ -9,11 +9,12 @@ end
 if haskey(SearchLight.config.db_config_settings, "adapter") && SearchLight.config.db_config_settings["adapter"] != nothing
   db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
 
-  eval(:(using $db_adapter))
+  include("database_adapters/$(db_adapter).jl")
+  eval(:(using .$db_adapter))
   eval(:(const DatabaseAdapter = $db_adapter))
   eval(:(export DatabaseAdapter))
 else
-  const DatabaseHandle = Void
+  const DatabaseHandle = Nothing
 end
 
 """
@@ -26,7 +27,7 @@ Connects to the DB and returns a database handler. If used without arguments, it
 # Examples
 ```julia
 julia> Database.connect()
-PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false)
+PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,false)
 
 julia> dict = config.db_config_settings
 Dict{String,Any} with 6 entries:
@@ -38,7 +39,7 @@ Dict{String,Any} with 6 entries:
   "adapter"  => "PostgreSQL"
 
 julia> Database.connect(dict)
-PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false)
+PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,false)
 ```
 """
 function connect()::DatabaseHandle
@@ -69,7 +70,7 @@ representing the type of the adapter.
 # Examples
 ```julia
 julia> Database.query_tools()
-(PostgreSQL.PostgresDatabaseHandle(Ptr{Void} @0x00007fbf3839f360,0x00000000,false),:PostgreSQL)
+(PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,false),:PostgreSQL)
 ```
 """
 function query_tools()::Tuple{DatabaseHandle,Symbol}
@@ -126,7 +127,7 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query
 
   0.000950 seconds (16 allocations: 576 bytes)
 
-PostgreSQL.PostgresResultHandle(Ptr{Void} @0x00007fcdaf33a450,DataType[PostgreSQL.PostgresType{:int4},PostgreSQL.PostgresType{:varchar},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:varchar}],5,7)
+PostgreSQL.PostgresResultHandle(Ptr{Nothing} @0x00007fcdaf33a450,DataType[PostgreSQL.PostgresType{:int4},PostgreSQL.PostgresType{:varchar},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:varchar}],5,7)
 ```
 """
 function query(sql::AbstractString; system_query::Bool = false)::ResultHandle
@@ -232,7 +233,7 @@ end
 """
 
 """
-function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Void where {T<:AbstractModel}
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
   DatabaseAdapter.delete_all(m, truncate = truncate, reset_sequence = reset_sequence, cascade = cascade)
 end
 
@@ -440,6 +441,14 @@ end
 """
 function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   DatabaseAdapter.rand(m, limit = limit)
+end
+
+
+"""
+
+"""
+function index_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
+  string(table_name) * "__" * "idx_" * string(column_name)
 end
 
 end

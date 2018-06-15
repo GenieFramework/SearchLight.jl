@@ -7,6 +7,9 @@ import Base.length
 import Base.next
 import Base.==
 
+using Dates, Reexport
+@reexport using Nullables
+
 export DbId, SQLType, AbstractModel, ModelValidator
 export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
 export SQLWhere, SQLWhereExpression, SQLWhereEntity, SQLLimit, SQLOrder, SQLQuery, SQLRaw
@@ -35,7 +38,7 @@ function searchlightabstracttype_to_print(m::T) :: String where {T<:SearchLightA
   output
 end
 
-const DbId = Union{Int32,Int64,String}
+const DbId = Nullable{Union{Int32,Int64,String}}
 convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
 convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
 
@@ -287,7 +290,7 @@ SearchLight.SQLWhereExpression
 +================+========================================+
 |      condition |                                    AND |
 +----------------+----------------------------------------+
-| sql_expression | question LIKE 'what is the question\?' |
+| sql_expression | question LIKE 'what is the question?'  |
 +----------------+----------------------------------------+
 |         values |                                        |
 +----------------+----------------------------------------+
@@ -340,13 +343,13 @@ convert(::Type{SQLWhereEntity}, s::String) = SQLWhereExpression(s);
 #
 
 
-"""
-Wrapper around SQL `limit` operator.
-"""
-
 const SQLLimit_ALL = "ALL"
 export SQLLimit_ALL
 
+
+"""
+Wrapper around SQL `limit` operator.
+"""
 struct SQLLimit <: SQLType
   value::Union{Int, String}
   SQLLimit(v::Int) = new(v)

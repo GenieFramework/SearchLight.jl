@@ -3,15 +3,15 @@ Generates various Genie files.
 """
 module Generator
 
-using Logger, SearchLight.FileTemplates, Inflector, SearchLight.Configuration, SearchLight, Migration
+using SearchLight.Logger, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight, SearchLight.Migration
 
 
 """
-    new_model(cmd_args::Dict{String,Any}) :: Void
+    new_model(cmd_args::Dict{String,Any}) :: Nothing
 
 Generates a new SearchLight model file and persists it to the resources folder.
 """
-function new_model(cmd_args::Dict{String,Any}) :: Void
+function new_model(cmd_args::Dict{String,Any}) :: Nothing
   resource_name = ucfirst(cmd_args["model:new"])
   if Inflector.is_singular(resource_name)
     resource_name = Inflector.to_plural(resource_name) |> Base.get
@@ -27,13 +27,13 @@ end
 
 
 """
-    new_resource(resource_name::Union{String,Symbol}) :: Void
+    new_resource(resource_name::Union{String,Symbol}) :: Nothing
 
 Generates all the files associated with a new resource and persists them to the resources folder.
 """
-function new_resource(resource_name::Union{String,Symbol}) :: Void
+function new_resource(resource_name::Union{String,Symbol}) :: Nothing
   resource_name = string(resource_name)
-  
+
   sf = Inflector.to_singular(resource_name)
   model_name = (isnull(sf) ? resource_name : Base.get(sf)) |> ucfirst
   new_model(Dict{String,Any}("model:new" => model_name))
@@ -63,7 +63,7 @@ end
 
 """
 """
-function new_table_migration(cmd_args::Dict{String,Any}) :: Void
+function new_table_migration(cmd_args::Dict{String,Any}) :: Nothing
   resource_name = ucfirst(cmd_args["migration:new"])
 
   Inflector.is_singular(resource_name) && (resource_name = Inflector.to_plural(resource_name) |> Base.get)
@@ -75,7 +75,7 @@ function new_table_migration(cmd_args::Dict{String,Any}) :: Void
 end
 
 
-function new_migration(cmd_args::Dict{String,Any}) :: Void
+function new_migration(cmd_args::Dict{String,Any}) :: Nothing
   migration_name = replace(ucfirst(cmd_args["migration:new"]) |> lowercase, " ", "_")
 
   Migration.new(migration_name)
@@ -142,7 +142,7 @@ end
 
 """
 """
-function new_db_config(adapter::Symbol = :sqlite) :: Void
+function new_db_config(adapter::Symbol = :sqlite) :: Nothing
   isdir(SearchLight.CONFIG_PATH) || mkpath(SearchLight.CONFIG_PATH)
   isdir(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
   if ! ispath(SearchLight.LOG_PATH)

@@ -9,9 +9,9 @@ using Lumberjack, Millboard, SearchLight
 const colors = Dict{String,Symbol}("info" => :gray, "warn" => :yellow, "debug" => :green, "err" => :red, "error" => :red, "critical" => :magenta)
 
 """
-    log(message, level = "info"; showst::Bool = true) :: Void
-    log(message::Any, level::Any = "info"; showst::Bool = false) :: Void
-    log(message::String, level::Symbol) :: Void
+    log(message, level = "info"; showst::Bool = true) :: Nothing
+    log(message::Any, level::Any = "info"; showst::Bool = false) :: Nothing
+    log(message::String, level::Symbol) :: Nothing
 
 Logs `message` to all configured logs (STDOUT, FILE, etc) by delegating to `Lumberjack`.
 Supported values for `level` are "info", "warn", "debug", "err" / "error", "critical".
@@ -39,7 +39,7 @@ julia> Logger.log("hello", "err")
 2016-12-21T18:38:38.403 - err: hello
 ```
 """
-function log(message, level::Any = "info"; showst = false) :: Void
+function log(message, level::Any = "info"; showst = false) :: Nothing
   message = string(message)
   level = string(level)
   level == "err" && (level = "error")
@@ -57,13 +57,13 @@ function log(message, level::Any = "info"; showst = false) :: Void
 
   nothing
 end
-function log(message::String, level::Symbol; showst::Bool = false) :: Void
+function log(message::String, level::Symbol; showst::Bool = false) :: Nothing
   log(message, level == :err ? "error" : string(level), showst = showst)
 end
 
 
 """
-    self_log(message, level::Union{String,Symbol}) :: Void
+    self_log(message, level::Union{String,Symbol}) :: Nothing
 
 Basic logging function that does not rely on external logging modules (such as `Lumberjack`).
 
@@ -85,7 +85,7 @@ debug 2016-12-21T18:49:11.123
 hello
 ```
 """
-function self_log(message, level::Union{String,Symbol}) :: Void
+function self_log(message, level::Union{String,Symbol}) :: Nothing
   println()
   print_with_color(colors[string(level)], (string(level), " ", string(Dates.now()), "\n")...)
   print_with_color(colors[string(level)], string(message))
@@ -129,7 +129,7 @@ Automatically invoked.
 """
 function setup_loggers() :: Bool
   configure(; modes=["debug", "info", "notice", "warn", "err", "critical", "alert", "emerg"])
-  add_truck(LumberjackTruck(STDOUT, nothing, Dict{Any,Any}(:is_colorized => true)), "console")
+  add_truck(LumberjackTruck(stdout, nothing, Dict{Any,Any}(:is_colorized => true)), "console")
   ispath(SearchLight.LOG_PATH) && add_truck(LumberjackTruck("$(joinpath(SearchLight.LOG_PATH, SearchLight.config.app_env)).log", nothing, Dict{Any,Any}(:is_colorized => true)), "file-logger")
 
   true

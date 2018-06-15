@@ -3,7 +3,7 @@ Functionality for handling the default content of the various files (migrations,
 """
 module FileTemplates
 
-using Inflector, SearchLight
+using SearchLight.Inflector, SearchLight
 
 
 """
@@ -15,7 +15,7 @@ function new_table_migration(module_name::String, resource::String) :: String
   """
   module $module_name
 
-  import Migration: create_table, column, column_id, add_index, drop_table
+  import SearchLight.Migrations: create_table, column, column_id, add_index, drop_table
 
   function up()
     create_table(:$resource) do
@@ -43,7 +43,7 @@ function new_migration(module_name::String) :: String
   """
   module $module_name
 
-  import Migration: add_column, add_index
+  import SearchLight.Migrations: add_column, add_index
 
   function up()
 
@@ -70,7 +70,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
   """
   module $pluralized_name
 
-  using SearchLight #, Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
+  using SearchLight, Nullables #, SearchLight.Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
 
   export $model_name
 
@@ -80,7 +80,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
     _id::String
 
     ### fields
-    id::Nullable{SearchLight.DbId}
+    id::SearchLight.DbId
 
     ### validator
     # validator::ModelValidator
@@ -102,7 +102,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
 
     ### constructor
     $model_name(;
-      id = Nullable{SearchLight.DbId}()
+      id = SearchLight.DbId()
 
       # validator = ModelValidator([
         # ValidationRule(:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
@@ -143,7 +143,7 @@ function new_validator(validator_name::String) :: String
   """
   module $(Inflector.to_plural(validator_name) |> Base.get)Validator
 
-  using SearchLight, Validation
+  using SearchLight, SearchLight.Validation
 
   function not_empty(field::Symbol, m::T, args::Vararg{Any})::ValidationResult where {T<:AbstractModel}
     isempty(getfield(m, field)) && return ValidationResult(invalid, :not_empty, "should not be empty")

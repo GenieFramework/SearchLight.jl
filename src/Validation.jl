@@ -83,11 +83,11 @@ end
 
 
 """
-    clear_errors!(m::T)::Void where {T<:AbstractModel}
+    clear_errors!(m::T)::Nothing where {T<:AbstractModel}
 
 Clears all the errors associated with the validator of `m`.
 """
-function clear_errors!(m::T)::Void where {T<:AbstractModel}
+function clear_errors!(m::T)::Nothing where {T<:AbstractModel}
   errors!!(m) |> empty!
 
   nothing
