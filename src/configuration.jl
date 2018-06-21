@@ -37,9 +37,15 @@ julia> Configuration.is_prod()
 false
 ```
 """
-is_dev()  :: Bool = (SearchLight.config.app_env == DEV)
-is_prod() :: Bool = (SearchLight.config.app_env == PROD)
-is_test() :: Bool = (SearchLight.config.app_env == TEST)
+function is_dev()::Bool
+  SearchLight.config.app_env == DEV
+end
+function is_prod()::Bool
+  SearchLight.config.app_env == PROD
+end
+function is_test()::Bool
+  SearchLight.config.app_env == TEST
+end
 
 
 """
@@ -82,11 +88,15 @@ function read_db_connection_data!!(db_settings_file::String) :: Dict{String,Any}
                     include(db_settings_file)
                   end
 
-  if haskey(db_conn_data, "env") && db_conn_data["env"] != nothing
+  if  haskey(db_conn_data, "env") &&
+      db_conn_data["env"] != nothing
     SearchLight.config.app_env = ENV["SEARCHLIGHT_ENV"] = db_conn_data["env"]
   end
 
-  if haskey(db_conn_data, SearchLight.config.app_env) && haskey(db_conn_data[SearchLight.config.app_env], "config") && db_conn_data[SearchLight.config.app_env]["config"] != nothing
+  if  haskey(db_conn_data, SearchLight.config.app_env) &&
+      haskey(db_conn_data[SearchLight.config.app_env], "config") &&
+      db_conn_data[SearchLight.config.app_env]["config"] != nothing &&
+      isa(db_conn_data[SearchLight.config.app_env]["config"], Dict)
     for (k, v) in db_conn_data[SearchLight.config.app_env]["config"]
       setfield!(SearchLight.config, Symbol(k), ((isa(v, AbstractString) && startswith(v, ":")) ? Symbol(v) : v) )
     end

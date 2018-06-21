@@ -3,7 +3,8 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using SearchLight, SearchLight.FileTemplates, Millboard, SearchLight.Configuration, SearchLight.Logger, SearchLight.Macros, SearchLight.Database
+using Millboard, Dates
+using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Logger, SearchLight.Macros, SearchLight.Database
 
 import Base.showerror
 
@@ -109,7 +110,7 @@ end
 Computes the name of the module of the migration based on the input from the user (migration name).
 """
 function migration_module_name(underscored_migration_name::String) :: String
-  mapreduce( x -> ucfirst(x), *, split(replace(underscored_migration_name, ".jl", ""), "_") )
+  mapreduce( x -> uppercasefirst(x), *, split(replace(underscored_migration_name, ".jl"=>""), "_") )
 end
 
 
@@ -204,7 +205,7 @@ function all_migrations() :: Tuple{Vector{String},Dict{String,DatabaseMigration}
   migrations = String[]
   migrations_files = Dict{String,DatabaseMigration}()
   for f in readdir(SearchLight.config.db_migrations_folder)
-    if ismatch(r"\d{16,17}_.*\.jl", f)
+    if occursin(r"\d{16,17}_.*\.jl", f)
       parts = map(x -> String(x), split(f, "_", limit = 2))
       push!(migrations, parts[1])
       migrations_files[parts[1]] = DatabaseMigration(parts[1], f, migration_module_name(parts[2]))

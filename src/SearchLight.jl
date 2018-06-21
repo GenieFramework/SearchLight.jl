@@ -1,5 +1,7 @@
 module SearchLight
 
+using Revise
+
 include(joinpath(@__DIR__, "constants.jl"))
 
 const OUTPUT_LENGTH = 256
@@ -12,17 +14,7 @@ using .Configuration
 
 isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 
-# if isfile(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
-#   isdefined(:config) || include(joinpath(ENV_PATH, ENV["SEARCHLIGHT_ENV"] * ".jl"))
-# else
-#   isdefined(:config) || (const config =  SearchLight.Configuration.Settings(app_env = Configuration.DEV))
-# end
-
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
-
-if is_dev()
-  @eval using Revise
-end
 
 config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
@@ -59,8 +51,8 @@ const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_LAZY
 
 if isdefined(config.db_config_settings, :serializer) && isdefined(config.db_config_settings, :serializer_path)
   include("$(config.db_config_settings.serializer_path).jl")
-  eval("using .$(config.db_config_settings.serializer)")
-  const Serializer = eval(:(config.db_config_settings.serializer))
+  Core.eval(@__MODULE__, Meta.parse("using .$(config.db_config_settings.serializer)"))
+  const Serializer = Core.eval(@__MODULE__, :(config.db_config_settings.serializer))
 else
   include("serializers/JSONSerializer.jl")
   using .JSONSerializer
@@ -702,13 +694,13 @@ App.Article
 |   updated_at | 2016-11-27T21:53:13.375 |
 +--------------+-------------------------+
 
-julia> a.content = join(Faker.words(), " ") |> ucfirst
+julia> a.content = join(Faker.words(), " ") |> uppercasefirst
 "Eaque nostrum nam"
 
 julia> a.slug = join(Faker.words(), "-")
 "quidem-sit-quas"
 
-julia> a.title = join(Faker.words(), " ") |> ucfirst
+julia> a.title = join(Faker.words(), " ") |> uppercasefirst
 "Sed vel qui"
 
 julia> SearchLight.save(a)
@@ -826,7 +818,7 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
   n = find_one!!(typeof(m), id)
 
   db_fields = persistable_fields(m)
-  @sync @parallel for f in fieldnames(m)
+  @sync @distributed for f in fieldnames(m)
     if in(string(f), db_fields)
       setfield!(m, f, getfield(n, f))
     end
@@ -1295,11 +1287,12 @@ function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}, v
 
     return SearchLight.save!!(existing)
   else
+    m.id = DbId()
     return SearchLight.save!!(m)
   end
 end
 function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  isa(property, String) && ismatch(r"(.+)\.(.+)", property) && (property = SQLColumn(property))
+  isa(property, String) && occursin(r"(.+)\.(.+)", property) && (property = SQLColumn(property))
   update_by_or_create!!(m, property, getfield(m, isa(property, SQLColumn) ? Symbol(property.column_name) : Symbol(property)), ignore = ignore, skip_update = skip_update)
 end
 function update_by_or_create!!(m::T)::T where {T<:AbstractModel}
@@ -1484,7 +1477,7 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
     end
 
     if ! haskey(models, getfield(main_model, Symbol(__m._id))) && ! isnull(getfield(main_model, Symbol(__m._id)))
-      models[getfield(main_model, Symbol(__m._id)) |> Base.get] = main_model
+      models[DbId(getfield(main_model, Symbol(__m._id)) |> Base.get)] = main_model
     end
 
     row_count += 1
@@ -3334,7 +3327,7 @@ function is_fully_qualified(m::T, f::Symbol)::Bool where {T<:AbstractModel}
   startswith(string(f), m._table_name) && has_field(m, strip_table_name(m, f))
 end
 function is_fully_qualified(t::T)::Bool where {T<:SQLType}
-  replace(t |> string, "\"", "") |> string |> is_fully_qualified
+  replace(t |> string, "\""=>"") |> string |> is_fully_qualified
 end
 
 
@@ -3404,7 +3397,7 @@ function from_fully_qualified(s::String)::Tuple{String,String}
   (string(x),string(y))
 end
 function from_fully_qualified(t::T)::Tuple{String,String} where {T<:SQLType}
-  replace(t |> string, "\"", "") |> string |> from_fully_qualified
+  replace(t |> string, "\""=>"") |> string |> from_fully_qualified
 end
 
 
@@ -3481,6 +3474,9 @@ julia> SearchLight.to_sql_column_names(SearchLight.rand_one!!(Article), Symbol[:
 """
 function to_sql_column_names(m::T, fields::Vector{Symbol})::Vector{Symbol} where {T<:AbstractModel}
   map(x -> (to_sql_column_name(m, string(x))) |> Symbol, fields)
+end
+function to_sql_column_names(m::T, fields::Tuple)::Vector{Symbol} where {T<:AbstractModel}
+  to_sql_column_names(m, Symbol[fields...])
 end
 
 

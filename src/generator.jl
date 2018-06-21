@@ -3,6 +3,7 @@ Generates various Genie files.
 """
 module Generator
 
+using Unicode
 using SearchLight.Logger, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight, SearchLight.Migration
 
 
@@ -12,7 +13,7 @@ using SearchLight.Logger, SearchLight.FileTemplates, SearchLight.Inflector, Sear
 Generates a new SearchLight model file and persists it to the resources folder.
 """
 function new_model(cmd_args::Dict{String,Any}) :: Nothing
-  resource_name = ucfirst(cmd_args["model:new"])
+  resource_name = uppercasefirst(cmd_args["model:new"])
   if Inflector.is_singular(resource_name)
     resource_name = Inflector.to_plural(resource_name) |> Base.get
   end
@@ -35,11 +36,11 @@ function new_resource(resource_name::Union{String,Symbol}) :: Nothing
   resource_name = string(resource_name)
 
   sf = Inflector.to_singular(resource_name)
-  model_name = (isnull(sf) ? resource_name : Base.get(sf)) |> ucfirst
+  model_name = (isnull(sf) ? resource_name : Base.get(sf)) |> uppercasefirst
   new_model(Dict{String,Any}("model:new" => model_name))
   new_table_migration(Dict{String,Any}("migration:new" => resource_name))
 
-  resource_name = ucfirst(resource_name)
+  resource_name = uppercasefirst(resource_name)
   if Inflector.is_singular(resource_name)
     resource_name = Inflector.to_plural(resource_name) |> Base.get
   end
@@ -64,7 +65,7 @@ end
 """
 """
 function new_table_migration(cmd_args::Dict{String,Any}) :: Nothing
-  resource_name = ucfirst(cmd_args["migration:new"])
+  resource_name = uppercasefirst(cmd_args["migration:new"])
 
   Inflector.is_singular(resource_name) && (resource_name = Inflector.to_plural(resource_name) |> Base.get)
 
@@ -76,7 +77,7 @@ end
 
 
 function new_migration(cmd_args::Dict{String,Any}) :: Nothing
-  migration_name = replace(ucfirst(cmd_args["migration:new"]) |> lowercase, " ", "_")
+  migration_name = replace(uppercasefirst(cmd_args["migration:new"]) |> lowercase, " "=>"_")
 
   Migration.new(migration_name)
 

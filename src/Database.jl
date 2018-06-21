@@ -3,16 +3,16 @@ module Database
 using YAML, SearchLight, DataFrames, SearchLight.Logger, SearchLight.Configuration
 
 if is_dev()
-  @eval using Revise
+  eval(@__MODULE__, :(using Revise))
 end
 
 if haskey(SearchLight.config.db_config_settings, "adapter") && SearchLight.config.db_config_settings["adapter"] != nothing
   db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
 
   include("database_adapters/$(db_adapter).jl")
-  eval(:(using .$db_adapter))
-  eval(:(const DatabaseAdapter = $db_adapter))
-  eval(:(export DatabaseAdapter))
+  Core.eval(@__MODULE__, :(using .$db_adapter))
+  Core.eval(@__MODULE__, :(const DatabaseAdapter = $db_adapter))
+  Core.eval(@__MODULE__, :(export DatabaseAdapter))
 else
   const DatabaseHandle = Nothing
 end

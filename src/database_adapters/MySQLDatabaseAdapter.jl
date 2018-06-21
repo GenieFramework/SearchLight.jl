@@ -56,7 +56,7 @@ function connect(conn_data::Dict{String,Any})::DatabaseHandle
                   conn_data["username"],
                   (conn_data["password"] == nothing ? "" : conn_data["password"]),
                   db = conn_data["database"],
-                  port = (conn_data["port"] == nothing ? 3360 : parse(Int, conn_data["port"])))
+                  port = (conn_data["port"] == nothing ? 3360 : conn_data["port"]))
   catch ex
     Logger.log("Invalid DB connection settings", :err)
     Logger.log(string(ex), :err)
@@ -127,7 +127,7 @@ julia>
 ```
 """
 function escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
-  """`$(replace(c, "`", "-"))`"""
+  """`$(replace(c, "`"=>"-"))`"""
 end
 
 
@@ -245,13 +245,13 @@ function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String
   sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(m, q.where, q.scopes)) " *
                       "$(to_group_part(q.group)) $(to_having_part(q.having)) $(to_order_part(m, q.order)) " *
                       "$(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
-  replace(sql, r"\s+", " ")
+  replace(sql, r"\s+"=>" ")
 end
 function to_find_sql(m::Type{T}, q::SQLQuery)::String where {T<:AbstractModel}
   sql::String = ( "$(to_select_part(m, q.columns)) $(to_from_part(m)) $(to_join_part(m)) $(to_where_part(m, q.where, q.scopes)) " *
                       "$(to_group_part(q.group)) $(to_having_part(q.having)) $(to_order_part(m, q.order)) " *
                       "$(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
-  replace(sql, r"\s+", " ")
+  replace(sql, r"\s+"=>" ")
 end
 const to_fetch_sql = to_find_sql
 
@@ -371,7 +371,7 @@ function to_where_part(w::Vector{SQLWhereEntity})::String
           "" :
           "WHERE " * (string(first(w).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(wx -> string(wx), w), " ")
 
-  replace(where, r"WHERE TRUE AND "i, "WHERE ")
+  replace(where, r"WHERE TRUE AND "i => "WHERE ")
 end
 
 
@@ -436,7 +436,7 @@ function to_having_part(h::Vector{SQLWhereEntity})::String
             "" :
             "HAVING " * (string(first(h).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(w -> string(w), h), " ")
 
-  replace(having, r"HAVING TRUE AND "i, "HAVING ")
+  replace(having, r"HAVING TRUE AND "i => "HAVING ")
 end
 
 

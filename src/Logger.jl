@@ -3,7 +3,8 @@ Provides logging functionality for Genie apps.
 """
 module Logger
 
-using Lumberjack, Millboard, SearchLight
+using Lumberjack, Millboard, Dates
+using SearchLight
 
 # color mappings for logging levels -- to be used in STDOUT printing
 const colors = Dict{String,Symbol}("info" => :gray, "warn" => :yellow, "debug" => :green, "err" => :red, "error" => :red, "critical" => :magenta)

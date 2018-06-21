@@ -1,5 +1,7 @@
 module Util
 
+using Revise, Nullables
+
 """
     add_quotes(str::String) :: String
 
@@ -61,6 +63,23 @@ function walk_dir(dir, paths = String[]; only_extensions = ["jl"], only_files = 
   end
 
   paths
+end
+
+
+"""
+    expand_nullable{T}(value::Nullable{T}, default::T) :: T
+
+Returns `value` if it is not `null` - otherwise `default`.
+"""
+function expand_nullable(value::T)::T where T
+  value
+end
+function expand_nullable(value::Nullable{T}, default::T)::T where T
+  if isnull(value)
+    default
+  else
+    Base.get(value)
+  end
 end
 
 end

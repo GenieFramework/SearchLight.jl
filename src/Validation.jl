@@ -255,7 +255,7 @@ end
 Concatenates the validation errors of `m.field` into a single string -- meant to be displayed easily to end users.
 """
 function errors_to_string(m::T, field::Symbol, separator = "\n"; upper_case_first = false)::String where {T<:AbstractModel}
-  join( map(x -> upper_case_first ? ucfirst(x) : x, errors_messages_for(m, field)), separator)
+  join( map(x -> upper_case_first ? uppercasefirst(x) : x, errors_messages_for(m, field)), separator)
 end
 
 end

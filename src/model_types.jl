@@ -319,14 +319,14 @@ SQLWhereExpression(sql_expression::String, values::T) where {T} = SQLWhereExpres
 function string(we::SQLWhereExpression)
   counter = 0
   string_value = we.sql_expression
-  string_value = replace(string_value, "\\?", "\\§\\")
+  string_value = replace(string_value, "\\?"=>"\\§\\")
   while search(string_value, '?') > 0
     counter += 1
     counter > size(we.values, 1) && throw("Not enough replacement values")
 
-    string_value = replace(string_value, '?', string(we.values[counter]), 1)
+    string_value = replace(string_value, "?"=>string(we.values[counter]), count = 1)
   end
-  string_value = replace(string_value, "\\§\\", '?')
+  string_value = replace(string_value, "\\§\\"=>"?")
 
   we.condition * " " * string_value
 end
