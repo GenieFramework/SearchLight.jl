@@ -112,11 +112,11 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
       # has_one = []
       # has_many = []
 
-      # before_save = (m::$model_name) -> warn("Not implemented")
-      # after_save = (m::$model_name) -> warn("Not implemented")
-      # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> warn("Not implemented")
-      # on_hydration = (m::$model_name, field::Symbol, value::Any) -> warn("Not implemented")
-      # after_hydration = (m::$model_name) -> warn("Not implemented")
+      # before_save = (m::$model_name) -> @warn "Not implemented"
+      # after_save = (m::$model_name) -> @warn "Not implemented"
+      # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> @warn "Not implemented"
+      # on_hydration = (m::$model_name, field::Symbol, value::Any) -> @warn "Not implemented"
+      # after_hydration = (m::$model_name) -> @warn "Not implemented"
 
       # scopes = Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}()
 
@@ -211,6 +211,26 @@ function new_test(plural_name::String, singular_name::String) :: String
 
   ### Your tests here
   @test 1 == 1
+  """
+end
+
+
+function new_app_loader(app_name::String)
+  """
+  module $app_name
+
+  using Revise
+  using SearchLight
+
+  Core.eval(SearchLight, :(config.db_config_settings = SearchLight.Configuration.load_db_connection()))
+
+  SearchLight.load_resources()
+
+  end
+
+  using Revise
+  using SearchLight
+  using .$app_name
   """
 end
 

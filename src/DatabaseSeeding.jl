@@ -5,7 +5,7 @@ module DatabaseSeeding
 
 using SearchLight
 
-push!(LOAD_PATH, abspath(joinpath("db", "seeds")))
+push!(LOAD_PATH, joinpath("db", "seeds"))
 
 export random_seeder
 
@@ -17,7 +17,7 @@ Generic random database seeder. `m` must expose a `random()` function which retu
 If `save` the data will be persisted to the database, as configured for the current environment.
 """
 function random_seeder(m::Module, quantity::Int = 10, save::Bool = true)
-  eval(@__MODULE__, :(using m))
+  Core.eval(parse("using $(m)"))
 
   seeds = []
   for i in 1:quantity

@@ -15,8 +15,8 @@ const DEFAULT_PORT = 5432
 
 const COLUMN_NAME_FIELD_NAME = :column_name
 
-typealias DatabaseHandle  PostgreSQL.PostgresDatabaseHandle
-typealias ResultHandle    PostgreSQL.PostgresResultHandle
+const DatabaseHandle = PostgreSQL.PostgresDatabaseHandle
+const ResultHandle   = PostgreSQL.PostgresResultHandle
 
 const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia / Postgres
   :char       => :CHARACTER,

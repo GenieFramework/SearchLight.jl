@@ -3,6 +3,7 @@ Generates various Genie files.
 """
 module Generator
 
+using Revise
 using Unicode
 using SearchLight.Logger, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight, SearchLight.Migration
 
@@ -143,8 +144,9 @@ end
 
 """
 """
-function new_db_config(adapter::Symbol = :sqlite) :: Nothing
+function new_db_config(app_name::String = "App", adapter::Symbol = :mysql) :: Nothing
   isdir(SearchLight.CONFIG_PATH) || mkpath(SearchLight.CONFIG_PATH)
+  isdir(SearchLight.APP_PATH) || mkpath(SearchLight.APP_PATH)
   isdir(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
   if ! ispath(SearchLight.LOG_PATH)
     mkpath(SearchLight.LOG_PATH)
@@ -155,12 +157,9 @@ function new_db_config(adapter::Symbol = :sqlite) :: Nothing
     write(f, SearchLight.FileTemplates.new_db_config(adapter))
   end
 
-  reload("SearchLight")
-  reload("Database")
-  reload("SearchLight")
-  reload("Migration")
-
-  SearchLight.load_resources()
+  open(app_name * ".jl", "w") do f
+    write(f, SearchLight.FileTemplates.new_app_loader(app_name))
+  end
 
   Logger.log("New app ready")
 

@@ -138,7 +138,7 @@ function load_db_connection_from_config() :: Dict{String,Any}
   db_config_file = joinpath(SearchLight.CONFIG_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME)
   isfile(db_config_file) && (return read_db_connection_data!!(db_config_file))
 
-  warn("DB configuration file not found")
+  # @warn "DB configuration file not found"
   return Dict{String,Any}()
 end
 

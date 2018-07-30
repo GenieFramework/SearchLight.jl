@@ -2,20 +2,34 @@ module Database
 
 using YAML, SearchLight, DataFrames, SearchLight.Logger, SearchLight.Configuration
 
-if is_dev()
-  eval(@__MODULE__, :(using Revise))
-end
+Core.eval(@__MODULE__, :(using Revise))
 
-if haskey(SearchLight.config.db_config_settings, "adapter") && SearchLight.config.db_config_settings["adapter"] != nothing
-  db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
+include(joinpath(@__DIR__, "database_adapters/MySQLDatabaseAdapter.jl"))
+# include(joinpath(@__DIR__, "database_adapters/PostgreSQLDatabaseAdapter.jl"))
+include(joinpath(@__DIR__, "database_adapters/SQLiteDatabaseAdapter.jl"))
 
-  include("database_adapters/$(db_adapter).jl")
-  Core.eval(@__MODULE__, :(using .$db_adapter))
+using .MySQLDatabaseAdapter, .SQLiteDatabaseAdapter #.PostgresDatabaseAdapter,
+
+const DatabaseHandle = Union{MySQLDatabaseAdapter.DatabaseHandle,
+                            #  PostgresDatabaseAdapter.DatabaseHandle,
+                             SQLiteDatabaseAdapter.DatabaseHandle}
+
+const ResultHandle = Union{MySQLDatabaseAdapter.ResultHandle,
+                          #  PostgreSQLDatabaseAdapter.ResultHandle,
+                           SQLiteDatabaseAdapter.ResultHandle}
+
+
+function setup_adapter()
+  Core.eval(@__MODULE__, :(db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")))
+
+  # Core.eval(@__MODULE__, :(include("$(@__DIR__)/database_adapters/$(db_adapter).jl")))
+  # Core.eval(@__MODULE__, :(using .$db_adapter))
   Core.eval(@__MODULE__, :(const DatabaseAdapter = $db_adapter))
   Core.eval(@__MODULE__, :(export DatabaseAdapter))
-else
-  const DatabaseHandle = Nothing
+  # Core.eval(@__MODULE__, :(DatabaseHandle = DatabaseAdapter.DatabaseHandle))
 end
+
+
 
 """
     connect()::DatabaseHandle

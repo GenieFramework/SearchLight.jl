@@ -1,6 +1,7 @@
 module MySQLDatabaseAdapter
 
-using MySQL, DataFrames, SearchLight.Database, SearchLight.Logger, SearchLight, DataStreams
+using MySQL, DataFrames, DataStreams
+using SearchLight, SearchLight.Database, SearchLight.Logger
 
 export DatabaseHandle, ResultHandle
 

@@ -1,6 +1,7 @@
 module SQLiteDatabaseAdapter
 
-using SQLite, DataFrames, Database, Logger, SearchLight, DataStreams, IterableTables, Migration
+using SQLite, DataFrames, DataStreams, IterableTables
+using SearchLight, SearchLight.Database, SearchLight.Logger
 
 export DatabaseHandle, ResultHandle
 
@@ -14,7 +15,7 @@ const DB_ADAPTER = SQLite
 const COLUMN_NAME_FIELD_NAME = :name
 
 const DatabaseHandle = SQLite.DB
-const ResultHandle   =  Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
+const ResultHandle   = Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
 
 const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => SQLite
   :char       => :CHARACTER,
@@ -524,7 +525,7 @@ end
 
 """
 function remove_column_sql(table_name::String, name::String)::Nothing
-  throw(Migration.UnsupportedException(:remove_column, Symbol(DB_ADAPTER)))
+  throw(SearchLight.UnsupportedException(:remove_column, Symbol(DB_ADAPTER)))
 end
 
 

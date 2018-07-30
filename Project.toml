@@ -1,6 +1,6 @@
-authors = ["Adrian Salceanu <e@essenciary.com>"]
 name = "SearchLight"
 uuid = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
+authors = ["Adrian Salceanu <e@essenciary.com>"]
 version = "0.1.0"
 
 [deps]
@@ -21,5 +21,6 @@ OhMyREPL = "5fb14364-9ced-5910-84b2-373655c76a03"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"

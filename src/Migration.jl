@@ -22,16 +22,6 @@ end
 """
 
 """
-mutable struct UnsupportedException <: Exception
-  method_name::Symbol
-  adapter_name::Symbol
-end
-Base.showerror(io::IO, e::UnsupportedException) = print(io, "Method $(e.method_name) is not supported by $(e.adapter_name)")
-
-
-"""
-
-"""
 mutable struct IrreversibleMigration <: Exception
   migration_name::Symbol
 end
@@ -325,7 +315,7 @@ function status() :: Nothing
     push!(arr_output, [migrations_files[m].migration_module_name * ": " * uppercase(string(sts)); migrations_files[m].migration_file_name])
   end
 
-  Millboard.table(arr_output, :colnames => ["Module name & status \nFile name "], :rownames => []) |> println
+  Millboard.table(arr_output, colnames = ["Module name & status \nFile name "], rownames = []) |> println
 
   nothing
 end

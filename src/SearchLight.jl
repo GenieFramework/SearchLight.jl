@@ -9,14 +9,12 @@ const OUTPUT_LENGTH = 256
 haskey(ENV, "GENIE_ENV") && (ENV["SEARCHLIGHT_ENV"] = ENV["GENIE_ENV"])
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
-include(joinpath(@__DIR__, "configuration.jl"))
+include(joinpath(@__DIR__, "Configuration.jl"))
 using .Configuration
 
 isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
-
-config.db_config_settings = SearchLight.Configuration.load_db_connection()
 
 using DataFrames, DataStructures, Dates, DateParser, Millboard, Distributed
 
@@ -30,8 +28,9 @@ include("Migration.jl")
 include("Util.jl")
 include("Validation.jl")
 include("Generator.jl")
+include("DatabaseSeeding.jl")
 
-using .Database, .Migration, .Util, .Logger, .Validation, .Inflector, .Macros
+using .Database, .Migration, .Util, .Logger, .Validation, .Inflector, .Macros, .DatabaseSeeding
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export disposable_instance, to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
@@ -54,13 +53,23 @@ if isdefined(config.db_config_settings, :serializer) && isdefined(config.db_conf
   Core.eval(@__MODULE__, Meta.parse("using .$(config.db_config_settings.serializer)"))
   const Serializer = Core.eval(@__MODULE__, :(config.db_config_settings.serializer))
 else
-  include("serializers/JSONSerializer.jl")
+  include(joinpath(@__DIR__, "serializers/JSONSerializer.jl"))
   using .JSONSerializer
   const Serializer = JSONSerializer
 end
 
 
 # internals
+
+
+"""
+
+"""
+mutable struct UnsupportedException <: Exception
+  method_name::Symbol
+  adapter_name::Symbol
+end
+Base.showerror(io::IO, e::UnsupportedException) = print(io, "Method $(e.method_name) is not supported by $(e.adapter_name)")
 
 
 """
@@ -3666,7 +3675,7 @@ end
 # Conversion utilities
 #
 
-if ! method_exists(convert, (Type{DateTime}, String))
+if ! hasmethod(convert, (Type{DateTime}, String))
   function convert(::Type{DateTime}, value::String)::DateTime
     DateParser.parse(DateTime, value)
   end
@@ -3806,7 +3815,7 @@ end
 Recursively adds subfolders of resources to LOAD_PATH.
 """
 function load_resources(dir = SearchLight.RESOURCES_PATH)::Nothing
-  ! isdir(abspath(dir)) && return nothing
+  ! isdir(dir) && return nothing
 
   res_dirs = Util.walk_dir(dir, only_dirs = true)
   ! isempty(res_dirs) && push!(LOAD_PATH, res_dirs...)
