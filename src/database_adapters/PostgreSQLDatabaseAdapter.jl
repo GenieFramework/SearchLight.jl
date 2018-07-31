@@ -1,6 +1,7 @@
 module PostgreSQLDatabaseAdapter
 
-using PostgreSQL, DataFrames, Database, Logger, SearchLight
+using LibPQ, DataFrames, DataStreams, NamedTuples
+using SearchLight, SearchLight.Database, SearchLight.Logger
 
 export DatabaseHandle, ResultHandle
 
@@ -10,13 +11,13 @@ export DatabaseHandle, ResultHandle
 #
 
 
-const DB_ADAPTER = PostgreSQL
+const DB_ADAPTER = LibPQ
 const DEFAULT_PORT = 5432
 
 const COLUMN_NAME_FIELD_NAME = :column_name
 
-const DatabaseHandle = PostgreSQL.PostgresDatabaseHandle
-const ResultHandle   = PostgreSQL.PostgresResultHandle
+const DatabaseHandle = DB_ADAPTER.Connection
+const ResultHandle   = DB_ADAPTER.Result
 
 const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia / Postgres
   :char       => :CHARACTER,
@@ -42,7 +43,7 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia / Postgres
 The name of the underlying database adapter (driver).
 """
 function db_adapter()::Symbol
-  :PostgreSQL
+  Symbol(DB_ADAPTER)
 end
 
 
@@ -57,13 +58,19 @@ end
 Connects to the database and returns a handle.
 """
 function connect(conn_data::Dict{String,Any})::DatabaseHandle
+  dns = String[]
+  get!(conn_data, "host", nothing) != nothing      && push!(dns, "host=" * conn_data["host"])
+  get!(conn_data, "hostaddr", nothing) != nothing  && push!(dns, "hostaddr=" * conn_data["hostaddr"])
+  get!(conn_data, "port", nothing) != nothing      && push!(dns, "port=" * conn_data["port"])
+  get!(conn_data, "database", nothing) != nothing  && push!(dns, "dbname=" * conn_data["database"])
+  get!(conn_data, "username", nothing) != nothing  && push!(dns, "user=" * conn_data["username"])
+  get!(conn_data, "password", nothing) != nothing  && push!(dns, "password=" * conn_data["password"])
+  get!(conn_data, "passfile", nothing) != nothing  && push!(dns, "passfile=" * conn_data["passfile"])
+  get!(conn_data, "connecttimeout", nothing) != nothing  && push!(dns, "connect_timeout=" * conn_data["connecttimeout"])
+  get!(conn_data, "clientencoding", nothing) != nothing  && push!(dns, "client_encoding=" * conn_data["clientencoding"])
+
   try
-    PostgreSQL.connect(Postgres,
-                      conn_data["host"],
-                      conn_data["username"],
-                      conn_data["password"],
-                      conn_data["database"],
-                      conn_data["port"])
+    DB_ADAPTER.Connection(join(dns, " "))
   catch ex
     Logger.log("Invalid DB connection settings", :err)
     Logger.log(string(ex), :err)
@@ -80,7 +87,7 @@ end
 Disconnects from database.
 """
 function disconnect(conn::DatabaseHandle)::Nothing
-  PostgreSQL.disconnect(conn)
+  DB_ADAPTER.close(conn)
 end
 
 
@@ -127,42 +134,30 @@ end
 """
     escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
 
-Escapes the column name using native features provided by the database backend.
+Escapes the column name.
 
 # Examples
 ```julia
-julia> PostgreSQLDatabaseAdapter.escape_column_name("foo\"; DROP moo;", Database.connection())
-"\"foo\"\"; DROP moo;\""
+julia>
 ```
 """
 function escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
-  strptr = DB_ADAPTER.PQescapeIdentifier(conn.ptr, c, sizeof(c))
-  str = unsafe_string(strptr)
-  DB_ADAPTER.PQfreemem(strptr)
-
-  str
+  """\"$(replace(c, "\""=>"'"))\""""
 end
 
 
 """
     escape_value{T}(v::T, conn::DatabaseHandle)::T
 
-Escapes the value `v` using native features provided by the database backend.
+Escapes the value `v` using native features provided by the database backend if available.
 
 # Examples
 ```julia
-julia> PostgreSQLDatabaseAdapter.escape_value("'; DROP moo;", Database.connection())
-"'''; DROP moo;'"
-
-julia> PostgreSQLDatabaseAdapter.escape_value(SQLInput(22), Database.connection())
-22
-
-julia> PostgreSQLDatabaseAdapter.escape_value(SQLInput("hello"), Database.connection())
-'hello'
+julia>
 ```
 """
 function escape_value(v::T, conn::DatabaseHandle)::T where {T}
-  DB_ADAPTER.escapeliteral(conn, v)
+  isa(v, Number) ? v : "E'$(replace(string(v), "'"=>"\\'"))'"
 end
 
 
@@ -189,25 +184,27 @@ julia> PostgreSQLDatabaseAdapter.query_df(SearchLight.to_fetch_sql(Article, SQLQ
 ```
 """
 function query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
-  query(sql, suppress_output, conn) |> DB_ADAPTER.fetchdf
+  DB_ADAPTER.fetch!(DataFrames.DataFrame, query(sql, suppress_output, conn))
 end
 
 
 """
 
 """
-function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::PostgreSQL.PostgresResultHandle
-  stmt = DB_ADAPTER.prepare(conn, sql)
+function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::ResultHandle
+  # stmt = DB_ADAPTER.prepare(conn, sql)
 
   result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
-    DB_ADAPTER.execute(stmt)
+    # DB_ADAPTER.execute(stmt)
+    DB_ADAPTER.execute(conn, sql)
   else
     Logger.log("SQL QUERY: $sql")
-    @time DB_ADAPTER.execute(stmt)
+    # @time DB_ADAPTER.execute(stmt)
+    @time DB_ADAPTER.execute(conn, sql)
   end
-  DB_ADAPTER.finish(stmt)
+  # DB_ADAPTER.close(conn)
 
-  if ( DB_ADAPTER.errstring(result) != "" )
+  if ( DB_ADAPTER.error_message(result) != "" )
     error("$(string(DB_ADAPTER)) error: $(DB_ADAPTER.errstring(result)) [$(DB_ADAPTER.errcode(result))]")
   end
 
@@ -395,7 +392,7 @@ end
 
 """
 function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
-  isdefined(m, :scopes) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
+  in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
 end
 
 
@@ -501,7 +498,8 @@ end
 
 """
 function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
-  "$name INTEGER $constraint PRIMARY KEY DEFAULT $nextval $options"
+  # "$name INTEGER $constraint PRIMARY KEY DEFAULT $nextval $options"
+  "$name SERIAL $constraint PRIMARY KEY $nextval $options"
 end
 
 
@@ -568,23 +566,8 @@ end
 function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("random()", raw = true)]))
 end
-
-
-"""
-
-"""
-function required_scopes(m::Type{T})::Vector{SQLWhereEntity} where {T<:AbstractModel}
-  s = scopes(m)
-  haskey(s, :required) ? s[:required] : SQLWhereEntity[]
-end
-
-
-"""
-
-"""
-function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
-  # DatabaseAdapter.scopes(m)
-  in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
+function rand(m::Type{T}, scopes::Vector{Symbol}; limit = 1)::Vector{T} where {T<:AbstractModel}
+  SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("random()", raw = true)], scopes = scopes))
 end
 
 end

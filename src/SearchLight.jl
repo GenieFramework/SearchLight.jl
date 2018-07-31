@@ -33,9 +33,14 @@ include("QueryBuilder.jl")
 
 using .Database, .Migration, .Util, .Logger, .Validation, .Inflector, .Macros, .DatabaseSeeding, .QueryBuilder
 
+import Base: find, rand, all, count
+export find_df, find, find_by, find_one_by, find_one_by!!, find_one, find_one!!, rand, rand_one, rand_one!!, all, count, find_one_by_or_create, create_with
+export save, save!, save!!, update_with!, update_with!!, create_or_update_by!!, create_or_update!!, delete_all, delete
+export validator, validator!!
+
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export disposable_instance, to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
-export relations, has_relation, find_df, is_persisted, to_sqlinput, has_field, relation_eagerness
+export relations, has_relation, is_persisted, to_sqlinput, has_field, relation_eagerness
 
 const RELATION_HAS_ONE =    :has_one
 const RELATION_BELONGS_TO = :belongs_to
@@ -58,7 +63,6 @@ else
   using .JSONSerializer
   const Serializer = JSONSerializer
 end
-
 
 # internals
 
@@ -600,6 +604,9 @@ julia> SearchLight.rand(Article, limit = 3)
 function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   Database.rand(m, limit = limit)
 end
+function rand(m::Type{T}, scopes::Vector{Symbol}; limit = 1)::Vector{T} where {T<:AbstractModel}
+  Database.rand(m, scopes, limit = limit)
+end
 
 
 """
@@ -629,6 +636,9 @@ App.Article
 function rand_one(m::Type{T})::Nullable{T} where {T<:AbstractModel}
   to_nullable(SearchLight.rand(m, limit = 1))
 end
+function rand_one(m::Type{T}, scopes::Vector{Symbol})::Nullable{T} where {T<:AbstractModel}
+  to_nullable(SearchLight.rand(m, scopes, limit = 1))
+end
 
 
 """
@@ -652,6 +662,9 @@ App.Article
 """
 function rand_one!!(m::Type{T})::T where {T<:AbstractModel}
   SearchLight.rand_one(m) |> Base.get
+end
+function rand_one!!(m::Type{T}, scopes::Vector{Symbol})::T where {T<:AbstractModel}
+  SearchLight.rand_one(m, scopes) |> Base.get
 end
 
 
@@ -3320,7 +3333,7 @@ julia> SearchLight.strip_table_name(SearchLight.rand_one!!(Article), :articles_u
 ```
 """
 function strip_table_name(m::T, f::Symbol)::Symbol where {T<:AbstractModel}
-  replace(string(f), Regex("^$(m._table_name)_"), "", 1) |> Symbol
+  replace(string(f), Regex("^$(m._table_name)_") => "", count = 1) |> Symbol
 end
 
 
@@ -3683,8 +3696,13 @@ end
 #
 
 if ! hasmethod(convert, (Type{DateTime}, String))
-  function convert(::Type{DateTime}, value::String)::DateTime
+  function convert(::Type{Date}, value::String)::Date
     DateParser.parse(DateTime, value)
+  end
+end
+if ! hasmethod(convert, (Type{Date}, String))
+  function convert(::Type{DateTime}, value::String)::DateTime
+    Dates.parse(Date, value)
   end
 end
 
@@ -3729,7 +3747,15 @@ end
 Creates a new DB table
 """
 function create_table(f::Function, name::String, options::String = "")::Nothing
-  DatabaseAdapter.create_table_sql(f, name, options) |> SearchLight.query
+  sql = DatabaseAdapter.create_table_sql(f, name, options)
+  try
+    SearchLight.query(sql)
+  catch ex
+    Logger.log("Error while attempting to run: $sql", :debug)
+    Logger.log(ex, :err)
+
+    rethrow(ex)
+  end
 
   nothing
 end

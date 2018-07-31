@@ -16,7 +16,7 @@ const DEFAULT_PORT = 3306
 
 const COLUMN_NAME_FIELD_NAME = :Field
 
-const DatabaseHandle = MySQL.MySQLHandle
+const DatabaseHandle = DB_ADAPTER.MySQLHandle
 const ResultHandle   = DataStreams.Data.Rows
 
 const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => MySQL
@@ -38,7 +38,7 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => MySQL
 
 
 function db_adapter()::Symbol
-  :MySQL
+  Symbol(DB_ADAPTER)
 end
 
 
@@ -56,9 +56,9 @@ function connect(conn_data::Dict{String,Any})::DatabaseHandle
   try
     MySQL.connect(conn_data["host"],
                   conn_data["username"],
-                  (conn_data["password"] == nothing ? "" : conn_data["password"]),
-                  db = conn_data["database"],
-                  port = (conn_data["port"] == nothing ? 3360 : conn_data["port"]))
+                  (get!(conn_data, "password", nothing) == nothing ? "" : conn_data["password"]),
+                  db    = conn_data["database"],
+                  port  = (get!(conn_data, "port", nothing) == nothing ? 3360 : conn_data["port"]))
   catch ex
     Logger.log("Invalid DB connection settings", :err)
     Logger.log(string(ex), :err)
@@ -121,7 +121,7 @@ end
 """
     escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
 
-Escapes the column name using native features provided by the database backend.
+Escapes the column name.
 
 # Examples
 ```julia
@@ -530,6 +530,9 @@ end
 """
 function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("rand()", raw = true)]))
+end
+function rand(m::Type{T}, scopes::Vector{Symbol}; limit = 1)::Vector{T} where {T<:AbstractModel}
+  SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("rand()", raw = true)], scopes = scopes))
 end
 
 

@@ -5,28 +5,24 @@ using YAML, SearchLight, DataFrames, SearchLight.Logger, SearchLight.Configurati
 Core.eval(@__MODULE__, :(using Revise))
 
 include(joinpath(@__DIR__, "database_adapters/MySQLDatabaseAdapter.jl"))
-# include(joinpath(@__DIR__, "database_adapters/PostgreSQLDatabaseAdapter.jl"))
+include(joinpath(@__DIR__, "database_adapters/PostgreSQLDatabaseAdapter.jl"))
 include(joinpath(@__DIR__, "database_adapters/SQLiteDatabaseAdapter.jl"))
 
-using .MySQLDatabaseAdapter, .SQLiteDatabaseAdapter #.PostgresDatabaseAdapter,
+using .MySQLDatabaseAdapter, .SQLiteDatabaseAdapter, .PostgreSQLDatabaseAdapter
 
 const DatabaseHandle = Union{MySQLDatabaseAdapter.DatabaseHandle,
-                            #  PostgresDatabaseAdapter.DatabaseHandle,
+                             PostgreSQLDatabaseAdapter.DatabaseHandle,
                              SQLiteDatabaseAdapter.DatabaseHandle}
 
 const ResultHandle = Union{MySQLDatabaseAdapter.ResultHandle,
-                          #  PostgreSQLDatabaseAdapter.ResultHandle,
+                           PostgreSQLDatabaseAdapter.ResultHandle,
                            SQLiteDatabaseAdapter.ResultHandle}
 
 
 function setup_adapter()
   Core.eval(@__MODULE__, :(db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")))
-
-  # Core.eval(@__MODULE__, :(include("$(@__DIR__)/database_adapters/$(db_adapter).jl")))
-  # Core.eval(@__MODULE__, :(using .$db_adapter))
   Core.eval(@__MODULE__, :(const DatabaseAdapter = $db_adapter))
   Core.eval(@__MODULE__, :(export DatabaseAdapter))
-  # Core.eval(@__MODULE__, :(DatabaseHandle = DatabaseAdapter.DatabaseHandle))
 end
 
 
@@ -457,6 +453,9 @@ end
 """
 function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   DatabaseAdapter.rand(m, limit = limit)
+end
+function rand(m::Type{T}, scopes::Vector{Symbol}; limit = 1)::Vector{T} where {T<:AbstractModel}
+  DatabaseAdapter.rand(m, scopes, limit = limit)
 end
 
 

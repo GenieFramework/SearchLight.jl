@@ -5,8 +5,6 @@ module DatabaseSeeding
 
 using SearchLight
 
-# push!(LOAD_PATH, joinpath("db", "seeds"))
-
 export random_seeder
 
 

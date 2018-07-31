@@ -78,17 +78,13 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
     ### internals
     _table_name::String
     _id::String
+    _serializable::Vector{Symbol}
 
     ### fields
     id::SearchLight.DbId
 
     ### validator
     # validator::ModelValidator
-
-    ### relations
-    # belongs_to::Vector{SearchLight.SQLRelation}
-    # has_one::Vector{SearchLight.SQLRelation}
-    # has_many::Vector{SearchLight.SQLRelation}
 
     ### callbacks
     # before_save::Function
@@ -108,10 +104,6 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
         # ValidationRule(:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
       # ])
 
-      # belongs_to = []
-      # has_one = []
-      # has_many = []
-
       # before_save = (m::$model_name) -> @warn "Not implemented"
       # after_save = (m::$model_name) -> @warn "Not implemented"
       # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> @warn "Not implemented"
@@ -120,10 +112,9 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
 
       # scopes = Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}()
 
-    ) = new("$table_name", "id",
+    ) = new("$table_name", "id", Symbol[],
             id
             # validator,
-            # belongs_to, has_one, has_many,
             # before_save, after_save, on_dehydration, on_hydration, after_hydration
             # scopes
             )

@@ -14,7 +14,7 @@ export DatabaseHandle, ResultHandle
 const DB_ADAPTER = SQLite
 const COLUMN_NAME_FIELD_NAME = :name
 
-const DatabaseHandle = SQLite.DB
+const DatabaseHandle = DB_ADAPTER.DB
 const ResultHandle   = Union{Vector{Any}, DataFrames.DataFrame, Vector{Tuple}, Vector{Tuple{Int64}}}
 
 const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => SQLite
@@ -38,7 +38,7 @@ const SELECT_LAST_ID_QUERY_START = "; SELECT CASE WHEN last_insert_rowid() = 0 T
 const SELECT_LAST_ID_QUERY_END = "ELSE last_insert_rowid() END AS id"
 
 function db_adapter()::Symbol
-  :SQLite
+  Symbol(DB_ADAPTER)
 end
 
 
@@ -543,6 +543,9 @@ end
 """
 function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("random()", raw = true)]))
+end
+function rand(m::Type{T}, scopes::Vector{Symbol}; limit = 1)::Vector{T} where {T<:AbstractModel}
+  SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("random()", raw = true)], scopes = scopes))
 end
 
 end
