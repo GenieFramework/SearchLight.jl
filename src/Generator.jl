@@ -26,6 +26,9 @@ function new_model(cmd_args::Dict{String,Any}) :: Nothing
 
   nothing
 end
+function new_model(resource_name::Union{String,Symbol}) :: Nothing
+  new_resource(resource_name)
+end
 
 
 """
@@ -57,12 +60,18 @@ function new_resource(resource_name::Union{String,Symbol}) :: Nothing
   write_resource_file(SearchLight.TEST_PATH_UNIT, test_file, resource_name, :test) &&
     Logger.log("New unit test created at $(abspath(joinpath(SearchLight.TEST_PATH_UNIT, test_file)))")
 
+  include(SearchLight.SEARCHLIGHT_INFO_FILE_NAME)
+  if isdefined(@__MODULE__, :__APP_FILE)
+    open(__APP_FILE, "a") do f
+      write(f, "using $resource_name")
+    end
+  else
+    Logger.log("Can't read app info", :err)
+  end
+
   SearchLight.load_resources()
 
   nothing
-end
-function new_model(resource_name::Union{String,Symbol}) :: Nothing
-  new_resource(resource_name)
 end
 
 
@@ -147,10 +156,10 @@ end
 
 """
 """
-function new_db_config(app_name::String = "App", adapter::Symbol = :mysql; create_folder::Bool = false) :: Nothing
+function new_db_config(app_name::String = "App", adapter::Symbol = :mysql; create_folder::Bool = true, folder_name = lowercase(app_name)) :: Nothing
   if create_folder
-    mkdir(app_name)
-    cd(app_name)
+    mkdir(folder_name)
+    cd(folder_name)
   end
 
   isdir(SearchLight.CONFIG_PATH) || mkpath(SearchLight.CONFIG_PATH)
@@ -167,6 +176,14 @@ function new_db_config(app_name::String = "App", adapter::Symbol = :mysql; creat
 
   open(app_name * ".jl", "w") do f
     write(f, SearchLight.FileTemplates.new_app_loader(app_name))
+  end
+
+  open(SearchLight.SEARCHLIGHT_BOOTSTRAP_FILE_NAME, "w") do f
+    write(f, SearchLight.FileTemplates.new_app_bootstrap(app_name))
+  end
+
+  open(SearchLight.SEARCHLIGHT_INFO_FILE_NAME, "w") do f
+    write(f, SearchLight.FileTemplates.new_app_info(app_name))
   end
 
   Logger.log("New app ready at $(pwd())")

@@ -11,6 +11,8 @@ const SEARCHLIGHT_MODEL_FILE_NAME             = "model.jl"
 const SEARCHLIGHT_VALIDATOR_FILE_NAME         = "validator.jl"
 const SEARCHLIGHT_AUTHORIZATOR_FILE_NAME      = "authorization.yml"
 const SEARCHLIGHT_DB_CONFIG_FILE_NAME         = "database.yml"
+const SEARCHLIGHT_BOOTSTRAP_FILE_NAME         = ".slbootstrap.jl"
+const SEARCHLIGHT_INFO_FILE_NAME              = ".slinfo.jl"
 
 const TEST_FILE_IDENTIFIER = "_test.jl"
 

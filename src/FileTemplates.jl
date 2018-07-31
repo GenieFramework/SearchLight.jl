@@ -75,48 +75,62 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
   export $model_name
 
   mutable struct $model_name <: AbstractModel
-    ### internals
+    ### INTERNALS
     _table_name::String
     _id::String
     _serializable::Vector{Symbol}
 
-    ### fields
+    ### FIELDS
     id::SearchLight.DbId
 
-    ### validator
+    ### VALIDATION
     # validator::ModelValidator
 
-    ### callbacks
+    ### CALLBACKS
     # before_save::Function
     # after_save::Function
     # on_dehydration::Function
     # on_hydration::Function
     # after_hydration::Function
 
-    ### scopes
+    ### SCOPES
     # scopes::Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}
 
     ### constructor
     $model_name(;
+      ### FIELDS
       id = SearchLight.DbId()
 
+      ### VALIDATION
       # validator = ModelValidator([
         # ValidationRule(:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
       # ])
 
-      # before_save = (m::$model_name) -> @warn "Not implemented"
-      # after_save = (m::$model_name) -> @warn "Not implemented"
-      # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> @warn "Not implemented"
-      # on_hydration = (m::$model_name, field::Symbol, value::Any) -> @warn "Not implemented"
-      # after_hydration = (m::$model_name) -> @warn "Not implemented"
+      ### CALLBACKS
+      # before_save = (m::$model_name) -> begin
+      #   @warn "Not implemented"
+      # end
+      # after_save = (m::$model_name) -> begin
+      #   @warn "Not implemented"
+      # end
+      # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> begin
+      #   @warn "Not implemented"
+      # end
+      # on_hydration = (m::$model_name, field::Symbol, value::Any) -> begin
+      #   @warn "Not implemented"
+      # end
+      # after_hydration = (m::$model_name) -> begin
+      #   @warn "Not implemented"
+      # end
 
+      ### SCOPES
       # scopes = Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}()
 
-    ) = new("$table_name", "id", Symbol[],
-            id
-            # validator,
-            # before_save, after_save, on_dehydration, on_hydration, after_hydration
-            # scopes
+    ) = new("$table_name", "id", Symbol[],                                                ### INTERNALS
+            id                                                                            ### FIELDS
+            # validator,                                                                  ### VALIDATION
+            # before_save, after_save, on_dehydration, on_hydration, after_hydration      ### CALLBACKS
+            # scopes                                                                      ### SCOPES
             )
   end
 
@@ -198,7 +212,8 @@ Default content for a new test file.
 """
 function new_test(plural_name::String, singular_name::String) :: String
   """
-  using SearchLight, $(plural_name)
+  include(joinpath("..", "..", "$(SearchLight.SEARCHLIGHT_BOOTSTRAP_FILE_NAME)"))
+  using Test
 
   ### Your tests here
   @test 1 == 1
@@ -223,6 +238,21 @@ function new_app_loader(app_name::String)
   using Revise
   using SearchLight
   using .$app_name
+  """
+end
+
+
+function new_app_bootstrap(app_name::String)
+  """
+  include("$app_name.jl")
+  """
+end
+
+
+function new_app_info(app_name::String)
+  """
+  const __APP_NAME = "$app_name"
+  const __APP_FILE = "$app_name.jl"
   """
 end
 

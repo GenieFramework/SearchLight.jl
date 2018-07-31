@@ -216,8 +216,10 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 [[Lumberjack]]
 deps = ["Compat", "JSON", "Mocking", "StackTraces"]
 git-tree-sha1 = "f1a2279ff2d20133958feab65ca953e75a207caf"
+repo-rev = "master"
+repo-url = "https://github.com/WestleyArgentum/Lumberjack.jl.git"
 uuid = "ff7a09a4-2bbe-5ce1-96cb-a4b0cacc22b1"
-version = "2.1.1"
+version = "2.1.1+"
 
 [[Markdown]]
 deps = ["Base64"]
@@ -258,9 +260,11 @@ version = "0.5.5"
 
 [[MySQL]]
 deps = ["BinaryProvider", "Compat", "DataStreams", "DecFP", "Missings"]
-git-tree-sha1 = "340a4fc4b1de08c1f7b21e9418e4bf459176be4f"
+git-tree-sha1 = "e8438339d21eccd88babb910934fd0b8808c6eb8"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaDatabases/MySQL.jl.git"
 uuid = "39abe10b-433b-5dbd-92d4-e302a9df00cd"
-version = "0.5.2"
+version = "0.5.2+"
 
 [[NamedTuples]]
 git-tree-sha1 = "6374851ad4b15f2a20ac20637d38c550531fa684"
@@ -329,9 +333,11 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [[SQLite]]
 deps = ["BinDeps", "DataFrames", "DataStreams", "Dates", "Homebrew", "LegacyStrings", "Libdl", "WeakRefStrings", "WinRPM"]
-git-tree-sha1 = "19eb65f96623a0ac263b378d3d6d7b5adce1eb3e"
+git-tree-sha1 = "746f7368960d994f77a92127db054cd9964e9fc7"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaDatabases/SQLite.jl.git"
 uuid = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
-version = "0.5.0"
+version = "0.5.0+"
 
 [[Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
