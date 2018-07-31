@@ -1,6 +1,6 @@
 module Validation
 
-using SearchLight, Millboard
+using SearchLight, Millboard, Nullables
 
 import Base.show
 
@@ -47,9 +47,15 @@ show(io::IO, t::T) where {T<:ValidationAbstractType} = print(io, validationabstr
 Pretty printing of SearchLight types.
 """
 function validationabstracttype_to_print(m::T) :: String where {T<:ValidationAbstractType}
-  output = "\n" * "$(typeof(m))" * "\n"
-  output *= string(Millboard.table(SearchLight.to_string_dict(m))) * "\n"
+  output = "\n" # "\n" * "$(typeof(m))" * "\n"
 
+  try
+    output *= "$(m.field) $(m.error_message)"
+  catch ex
+    output *= string(ex) * "\n"
+  end
+
+  # Millboard.table(output) |> string
   output
 end
 

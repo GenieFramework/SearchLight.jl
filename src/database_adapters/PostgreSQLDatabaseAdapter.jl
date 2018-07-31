@@ -31,7 +31,8 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia / Postgres
   :time       => :TIME,
   :date       => :DATE,
   :binary     => :BLOB,
-  :boolean    => :BOOLEAN
+  :boolean    => :BOOLEAN,
+  :bool       => :BOOLEAN
 )
 
 
@@ -566,6 +567,24 @@ end
 """
 function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("random()", raw = true)]))
+end
+
+
+"""
+
+"""
+function required_scopes(m::Type{T})::Vector{SQLWhereEntity} where {T<:AbstractModel}
+  s = scopes(m)
+  haskey(s, :required) ? s[:required] : SQLWhereEntity[]
+end
+
+
+"""
+
+"""
+function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
+  # DatabaseAdapter.scopes(m)
+  in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
 end
 
 end

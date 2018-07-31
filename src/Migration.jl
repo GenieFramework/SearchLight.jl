@@ -44,7 +44,7 @@ function new_table(migration_name::String, resource::String) :: Nothing
     write(f, SearchLight.FileTemplates.new_table_migration(migration_module_name(migration_name), resource))
   end
 
-  Logger.log("New table migration created at $mfn")
+  Logger.log("New table migration created at $(abspath(mfn))")
 
   nothing
 end
@@ -76,7 +76,7 @@ Computes a unique hash for a migration identifier.
 function migration_hash() :: String
   m = match(r"(\d*)-(\d*)-(\d*)T(\d*):(\d*):(\d*)\.(\d*)", "$(Dates.unix2datetime(time()))")
 
-  join(m.captures)
+  rpad(join(m.captures), 16, "0")[1:16]
 end
 
 
@@ -413,6 +413,7 @@ end
 function column_id(name::Union{String,Symbol} = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
   SearchLight.column_id(string(name), options, constraint = constraint, nextval = nextval)
 end
+const primary_key = column_id
 
 
 """

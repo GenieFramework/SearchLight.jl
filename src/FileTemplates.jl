@@ -15,12 +15,12 @@ function new_table_migration(module_name::String, resource::String) :: String
   """
   module $module_name
 
-  import SearchLight.Migrations: create_table, column, column_id, add_index, drop_table
+  import SearchLight.Migrations: create_table, column, primary_key, add_index, drop_table
 
   function up()
     create_table(:$resource) do
       [
-        column_id()
+        primary_key()
         column(:column_name, :column_type)
       ]
     end
@@ -224,6 +224,7 @@ function new_app_loader(app_name::String)
 
   Core.eval(SearchLight, :(config.db_config_settings = SearchLight.Configuration.load_db_connection()))
 
+  SearchLight.Database.setup_adapter()
   SearchLight.load_resources()
 
   end

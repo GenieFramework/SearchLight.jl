@@ -22,7 +22,7 @@ function new_model(cmd_args::Dict{String,Any}) :: Nothing
   resource_path = setup_resource_path(resource_name)
   mfn = model_file_name(resource_name)
   write_resource_file(resource_path, mfn, resource_name, :model) &&
-    Logger.log("New model created at $(joinpath(resource_path, mfn))")
+    Logger.log("New model created at $(abspath(joinpath(resource_path, mfn)))")
 
   nothing
 end
@@ -49,17 +49,20 @@ function new_resource(resource_name::Union{String,Symbol}) :: Nothing
   resource_path = setup_resource_path(resource_name)
   for (resource_file, resource_type) in [(validator_file_name(resource_name), :validator)]
     write_resource_file(resource_path, resource_file, resource_name, resource_type) &&
-      Logger.log("New $resource_file created at $(joinpath(resource_path, resource_file))")
+      Logger.log("New $resource_type created at $(abspath(joinpath(resource_path, resource_file)))")
   end
 
   isdir(SearchLight.TEST_PATH_UNIT) || mkpath(SearchLight.TEST_PATH_UNIT)
   test_file = resource_name * SearchLight.TEST_FILE_IDENTIFIER |> lowercase
   write_resource_file(SearchLight.TEST_PATH_UNIT, test_file, resource_name, :test) &&
-    Logger.log("New $test_file created at $(joinpath(SearchLight.TEST_PATH_UNIT, test_file))")
+    Logger.log("New unit test created at $(abspath(joinpath(SearchLight.TEST_PATH_UNIT, test_file)))")
 
   SearchLight.load_resources()
 
   nothing
+end
+function new_model(resource_name::Union{String,Symbol}) :: Nothing
+  new_resource(resource_name)
 end
 
 
@@ -144,7 +147,12 @@ end
 
 """
 """
-function new_db_config(app_name::String = "App", adapter::Symbol = :mysql) :: Nothing
+function new_db_config(app_name::String = "App", adapter::Symbol = :mysql; create_folder::Bool = false) :: Nothing
+  if create_folder
+    mkdir(app_name)
+    cd(app_name)
+  end
+
   isdir(SearchLight.CONFIG_PATH) || mkpath(SearchLight.CONFIG_PATH)
   isdir(SearchLight.APP_PATH) || mkpath(SearchLight.APP_PATH)
   isdir(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
@@ -161,7 +169,7 @@ function new_db_config(app_name::String = "App", adapter::Symbol = :mysql) :: No
     write(f, SearchLight.FileTemplates.new_app_loader(app_name))
   end
 
-  Logger.log("New app ready")
+  Logger.log("New app ready at $(pwd())")
 
   nothing
 end
@@ -209,5 +217,6 @@ Sets up the DB tables used by Genie.
 function db_init() :: Bool
   SearchLight.create_migrations_table(SearchLight.config.db_migrations_table_name)
 end
+const init = db_init
 
 end

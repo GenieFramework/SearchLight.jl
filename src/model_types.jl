@@ -69,6 +69,7 @@ mutable struct SQLInput <: SQLType
   raw::Bool
   SQLInput(v::Union{String,Real}; escaped = false, raw = false) = new(v, escaped, raw)
 end
+SQLinput(a::Date) = string(s) |> SQLInput
 SQLInput(a::Vector{T}) where {T} = map(x -> SQLInput(x), a)
 SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
@@ -402,6 +403,7 @@ SQLOrder(r::SQLRaw, direction::Any = "ASC") = SQLOrder(r.value, direction, raw =
 
 string(o::SQLOrder) = "($(o.column) $(o.direction))"
 
+convert(::Type{SQLOrder}, s::String) = SQLOrder(s)
 convert(::Type{Vector{SQLOrder}}, o::SQLOrder) = [o]
 convert(::Type{Vector{SQLOrder}}, s::Symbol) = [SQLOrder(s)]
 convert(::Type{Vector{SQLOrder}}, s::String) = [SQLOrder(s)]

@@ -30,7 +30,8 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => SQLite
   :time       => :TIME,
   :date       => :DATE,
   :binary     => :BLOB,
-  :boolean    => :BOOLEAN
+  :boolean    => :BOOLEAN,
+  :bool       => :BOOLEAN
 )
 
 const SELECT_LAST_ID_QUERY_START = "; SELECT CASE WHEN last_insert_rowid() = 0 THEN"
@@ -385,7 +386,7 @@ end
 
 """
 function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
-  isdefined(m, :scopes) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
+  in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
 end
 
 

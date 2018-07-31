@@ -83,6 +83,13 @@ end
 
 """
 """
+function scopes(scopes::Vector{Symbol})::QueryPart
+  QueryPart(MissingModel, SQLQuery(scopes = scopes))
+end
+
+
+"""
+"""
 function prepare(qb::QueryPart)
   (qb.model, qb.query)
 end
@@ -98,7 +105,8 @@ function (+)(q::SQLQuery, r::SQLQuery)
     offset  = r.offset != 0 ? r.offset : q.offset,
     order   = vcat(q.order, r.order),
     group   = vcat(q.group, r.group),
-    having  = vcat(q.having, r.having)
+    having  = vcat(q.having, r.having),
+    scopes  = vcat(q.scopes, r.scopes)
   )
 end
 

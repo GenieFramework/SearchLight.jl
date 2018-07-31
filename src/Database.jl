@@ -355,7 +355,8 @@ end
 
 """
 function required_scopes(m::Type{T})::Vector{SQLWhereEntity} where {T<:AbstractModel}
-  DatabaseAdapter.required_scopes(m)
+  s = scopes(m)
+  haskey(s, :required) ? s[:required] : SQLWhereEntity[]
 end
 
 
@@ -363,7 +364,8 @@ end
 
 """
 function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
-  DatabaseAdapter.scopes(m)
+  # DatabaseAdapter.scopes(m)
+  in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
 end
 
 

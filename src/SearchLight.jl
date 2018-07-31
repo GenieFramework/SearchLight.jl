@@ -29,8 +29,9 @@ include("Util.jl")
 include("Validation.jl")
 include("Generator.jl")
 include("DatabaseSeeding.jl")
+include("QueryBuilder.jl")
 
-using .Database, .Migration, .Util, .Logger, .Validation, .Inflector, .Macros, .DatabaseSeeding
+using .Database, .Migration, .Util, .Logger, .Validation, .Inflector, .Macros, .DatabaseSeeding, .QueryBuilder
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export disposable_instance, to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
@@ -225,6 +226,9 @@ function find(m::Type{T}, q::SQLQuery)::Vector{T} where {T<:AbstractModel}
 end
 function find(m::Type{T}; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order))
+end
+function find(m::Type{T}, scopes::Vector{Symbol})::Vector{T} where {T<:AbstractModel}
+  find(m, SQLQuery(scopes = scopes))
 end
 
 
@@ -672,6 +676,9 @@ julia> SearchLight.all(Article)
 function all(m::Type{T})::Vector{T} where {T<:AbstractModel}
   find(m)
 end
+function all(m::Type{T}, scopes::Vector{Symbol})::Vector{T} where {T<:AbstractModel}
+  find(m, SQLQuery(scopes = scopes))
+end
 
 
 """
@@ -827,7 +834,7 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
   n = find_one!!(typeof(m), id)
 
   db_fields = persistable_fields(m)
-  @sync @distributed for f in fieldnames(m)
+  @sync @distributed for f in fieldnames(typeof(m))
     if in(string(f), db_fields)
       setfield!(m, f, getfield(n, f))
     end
@@ -1644,7 +1651,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
     push!(set_fields, unq_field)
   end
 
-  for field in fieldnames(_m)
+  for field in fieldnames(typeof(_m))
     if ! in(field, set_fields)
       try
         setfield!(obj, field, getfield(_m, field))
@@ -2632,7 +2639,7 @@ function columns_names_by_table(tables_names::Vector{String}, df::DataFrame)::Di
     table_name = ""
     sdfc = string(dfc)
 
-    ! contains(sdfc, "_") && continue
+    ! occursin("_", sdfc) && continue
 
     for t in tables_names
       if startswith(sdfc, t)
@@ -3007,7 +3014,7 @@ SearchLight.SQLQuery
 """
 function clone(o::T, fieldname::Symbol, value::Any)::T where {T<:SQLType}
   content = Dict{Symbol,Any}()
-  for field in fieldnames(o)
+  for field in fieldnames(typeof(o))
     content[field] = getfield(o, field)
   end
   content[fieldname] = value
@@ -3075,7 +3082,7 @@ SearchLight.SQLQuery
 """
 function clone(o::T, changes::Dict{Symbol,Any})::T where {T<:SQLType}
   content = Dict{Symbol,Any}()
-  for field in fieldnames(o)
+  for field in fieldnames(typeof(o))
     content[field] = getfield(o, field)
   end
   content = merge(content, changes)
@@ -3171,7 +3178,7 @@ julia> SearchLight.persistable_fields(SearchLight.find_one!!(User, 1))
 ```
 """
 function persistable_fields(m::T; fully_qualified::Bool = false)::Vector{String} where {T<:AbstractModel}
-  object_fields = map(x -> string(x), fieldnames(m))
+  object_fields = map(x -> string(x), fieldnames(typeof(m)))
   db_columns = columns(typeof(m))[DatabaseAdapter.COLUMN_NAME_FIELD_NAME]
 
   isempty(db_columns) &&
@@ -3190,7 +3197,7 @@ end
 """
 function settable_fields(m::T, row::DataFrames.DataFrameRow)::Vector{Symbol} where {T<:AbstractModel}
   df_cols::Vector{Symbol} = names(row)
-  fields = is_fully_qualified(m, df_cols[1]) ? to_sql_column_names(m, fieldnames(m)) : fieldnames(m)
+  fields = is_fully_qualified(m, df_cols[1]) ? to_sql_column_names(m, fieldnames(typeof(m))) : fieldnames(typeof(m))
 
   intersect(fields, df_cols)
 end
@@ -3355,7 +3362,7 @@ false
 ```
 """
 function is_fully_qualified(s::String)::Bool
-  ! startswith(s, ".") && contains(s, ".")
+  ! startswith(s, ".") && occursin(".", s)
 end
 
 
@@ -3399,7 +3406,7 @@ julia> SearchLight.from_fully_qualified("articles_updated_at")
 ```
 """
 function from_fully_qualified(s::String)::Tuple{String,String}
-  ! contains(s, ".") && throw("$s is not a fully qualified SQL column name in the format table_name.column_name")
+  ! occursin(".", s) && throw("$s is not a fully qualified SQL column name in the format table_name.column_name")
 
   (x,y) = split(s, ".")
 
@@ -3544,7 +3551,7 @@ function from_literal_column_name(c::String)::Dict{Symbol,String}
   result[:original_string] = c
 
   # has alias?
-  if contains(c, " AS ")
+  if occursin(" AS ", c)
     parts = split(c, " AS ")
     result[:column_name] = parts[1]
     result[:alias] = parts[2]
@@ -3553,7 +3560,7 @@ function from_literal_column_name(c::String)::Dict{Symbol,String}
   end
 
   # is fully qualified?
-  if contains(result[:column_name], ".")
+  if occursin(".", result[:column_name])
     parts = split(result[:column_name], ".")
     result[:table_name] = parts[1]
     result[:column_name] = parts[2]
@@ -3570,7 +3577,7 @@ Converts a model `m` to a `Dict`. Orginal types of the fields values are kept.
 If `all_fields` is `true`, all fields are included; otherwise just the fields corresponding to database columns.
 """
 function to_dict(m::T; all_fields::Bool = false)::Dict{String,Any} where {T<:AbstractModel}
-  fields = all_fields ? fieldnames(m) : persistable_fields(m)
+  fields = all_fields ? fieldnames(typeof(m)) : persistable_fields(m)
   Dict( string(f) => Util.expand_nullable( getfield(m, Symbol(f)) ) for f in fields )
 end
 
@@ -3581,7 +3588,7 @@ end
 Creates a `Dict` using the fields and the values of `m`.
 """
 function to_dict(m::Any)::Dict{String,Any}
-  Dict(string(f) => getfield(m, Symbol(f)) for f in fieldnames(m))
+  Dict(string(f) => getfield(m, Symbol(f)) for f in fieldnames(typeof(m)))
 end
 
 
@@ -3593,7 +3600,7 @@ If `all_fields` is `true`, all fields are included; otherwise just the fields co
 If `all_output` is `false` the values are truncated if longer than `output_length`.
 """
 function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false)::Dict{String,String} where {T<:AbstractModel}
-  fields = all_fields ? fieldnames(m) : persistable_fields(m)
+  fields = all_fields ? fieldnames(typeof(m)) : persistable_fields(m)
   output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
   response = Dict{String,String}()
   for f in fields
@@ -3607,8 +3614,8 @@ function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false
 
   response
 end
-function to_string_dict(m::Any; all_output::Bool = false)::Dict{String,String}
-  to_string_dict(m, fieldnames(m), all_output = all_output)
+function to_string_dict(m::Any, ; all_output::Bool = false)::Dict{String,String}
+  to_string_dict(m, [f for f in fieldnames(typeof(m))], all_output = all_output)
 end
 function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false)::Dict{String,String}
   output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
@@ -3822,7 +3829,7 @@ function load_resources(dir = SearchLight.RESOURCES_PATH)::Nothing
 
   nothing
 end
-const load_models = load_resources()
+const load_models = load_resources
 SearchLight.load_resources()
 
 end
