@@ -6,6 +6,9 @@ module Logger
 using Lumberjack, Millboard, Dates
 using SearchLight
 
+include("Highlight.jl")
+using .Highlight
+
 # color mappings for logging levels -- to be used in STDOUT printing
 const colors = Dict{String,Symbol}("info" => :gray, "warn" => :yellow, "debug" => :green, "err" => :red, "error" => :red, "critical" => :magenta)
 
@@ -42,12 +45,19 @@ julia> Logger.log("hello", "err")
 """
 function log(message, level::Any = "info"; showst = false) :: Nothing
   message = string(message)
+
+  if startswith(message, "SQL QUERY:") && SearchLight.config.log_highlight
+     @info Highlight.highlight(message)
+
+     return nothing
+  end
+
   level = string(level)
   level == "err" && (level = "error")
 
   if ! isdefined(:SearchLight) || ! isdefined(:SearchLight, :config) || ! SearchLight.config.suppress_output
     println()
-    Lumberjack.log(string(level), string(message))
+    Lumberjack.log(level, message)
     println()
   end
 
@@ -60,39 +70,6 @@ function log(message, level::Any = "info"; showst = false) :: Nothing
 end
 function log(message::String, level::Symbol; showst::Bool = false) :: Nothing
   log(message, level == :err ? "error" : string(level), showst = showst)
-end
-
-
-"""
-    self_log(message, level::Union{String,Symbol}) :: Nothing
-
-Basic logging function that does not rely on external logging modules (such as `Lumberjack`).
-
-# Examples
-```julia
-julia> Logger.self_log("hello", :err)
-
-err 2016-12-21T18:49:00.286
-hello
-
-julia> Logger.self_log("hello", :info)
-
-info 2016-12-21T18:49:05.068
-hello
-
-julia> Logger.self_log("hello", :debug)
-
-debug 2016-12-21T18:49:11.123
-hello
-```
-"""
-function self_log(message, level::Union{String,Symbol}) :: Nothing
-  println()
-  print_with_color(colors[string(level)], (string(level), " ", string(Dates.now()), "\n")...)
-  print_with_color(colors[string(level)], string(message))
-  println()
-
-  nothing
 end
 
 
@@ -162,8 +139,5 @@ Provides a macro that injects the FILE and the LINE where the logger was invoked
 macro location()
   :(Logger.log(" in $(@__FILE__):$(@__LINE__)", :err))
 end
-
-setup_loggers()
-empty_log_queue()
 
 end

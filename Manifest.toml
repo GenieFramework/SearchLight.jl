@@ -421,10 +421,10 @@ uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.5.3"
 
 [[URIParser]]
-deps = ["Compat", "Unicode"]
-git-tree-sha1 = "0f9c5e2d14e03fbd00696f9394e288bdd5adacbc"
+deps = ["Test", "Unicode"]
+git-tree-sha1 = "6ddf8244220dfda2f17539fa8c9de20d6c575b69"
 uuid = "30578b45-9adc-5946-b283-645ec420af67"
-version = "0.3.1"
+version = "0.4.0"
 
 [[UUIDs]]
 deps = ["Random"]

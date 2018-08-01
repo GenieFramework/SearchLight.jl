@@ -165,6 +165,8 @@ mutable struct Settings
   log_level::Symbol
   log_verbosity::Symbol
   log_formatted::Bool
+  log_highlight::Bool
+
 
   model_relations_eagerness::Symbol
 
@@ -185,6 +187,7 @@ mutable struct Settings
             log_level     = :debug,
             log_verbosity = LOG_LEVEL_VERBOSITY_VERBOSE,
             log_formatted = true,
+            log_highlight = true,
 
             model_relations_eagerness = :lazy
         ) =
@@ -193,7 +196,7 @@ mutable struct Settings
                   suppress_output, output_length,
                   db_migrations_table_name, db_migrations_folder, db_config_settings,
                   log_folder,
-                  log_db, log_queries, log_level, log_verbosity, log_formatted,
+                  log_db, log_queries, log_level, log_verbosity, log_formatted, log_highlight, 
                   model_relations_eagerness
                 )
 end

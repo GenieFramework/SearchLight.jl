@@ -201,6 +201,7 @@ function new_db_config(adapter::Symbol = :sqlite) :: String
       log_db: true
       log_queries: true
       log_level: :debug
+      log_highlight: true
   """
 end
 
@@ -229,6 +230,9 @@ function new_app_loader(app_name::String)
   using SearchLight
 
   Core.eval(SearchLight, :(config.db_config_settings = SearchLight.Configuration.load_db_connection()))
+
+  SearchLight.Logger.setup_loggers()
+  SearchLight.Logger.empty_log_queue()
 
   SearchLight.Database.setup_adapter()
   SearchLight.load_resources()

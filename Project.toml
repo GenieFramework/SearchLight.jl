@@ -4,6 +4,7 @@ authors = ["Adrian Salceanu <e@essenciary.com>"]
 version = "0.1.0"
 
 [deps]
+Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataStreams = "9a8bc11e-79be-5b39-94d7-1ccc349a1a85"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
