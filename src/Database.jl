@@ -1,27 +1,19 @@
 module Database
 
-using YAML, SearchLight, DataFrames, SearchLight.Logger, SearchLight.Configuration
-
-Core.eval(@__MODULE__, :(using Revise))
-
-include(joinpath(@__DIR__, "database_adapters/MySQLDatabaseAdapter.jl"))
-include(joinpath(@__DIR__, "database_adapters/PostgreSQLDatabaseAdapter.jl"))
-include(joinpath(@__DIR__, "database_adapters/SQLiteDatabaseAdapter.jl"))
-
-using .MySQLDatabaseAdapter, .SQLiteDatabaseAdapter, .PostgreSQLDatabaseAdapter
-
-const DatabaseHandle = Union{MySQLDatabaseAdapter.DatabaseHandle,
-                             PostgreSQLDatabaseAdapter.DatabaseHandle,
-                             SQLiteDatabaseAdapter.DatabaseHandle}
-
-const ResultHandle = Union{MySQLDatabaseAdapter.ResultHandle,
-                           PostgreSQLDatabaseAdapter.ResultHandle,
-                           SQLiteDatabaseAdapter.ResultHandle}
+using Revise
+using YAML, DataFrames
+using SearchLight, SearchLight.Logger, SearchLight.Configuration
 
 
 function setup_adapter()
+  Core.eval(@__MODULE__, :(include(joinpath(@__DIR__, "database_adapters/$(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter").jl"))))
+  Core.eval(@__MODULE__, Meta.parse("using .$(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")"))
+
   Core.eval(@__MODULE__, :(db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")))
   Core.eval(@__MODULE__, :(const DatabaseAdapter = $db_adapter))
+  Core.eval(@__MODULE__, :(const DatabaseHandle = $db_adapter.DatabaseHandle))
+  Core.eval(@__MODULE__, :(const ResultHandle = $db_adapter.ResultHandle))
+
   Core.eval(@__MODULE__, :(export DatabaseAdapter))
 end
 
@@ -52,13 +44,13 @@ julia> Database.connect(dict)
 PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,false)
 ```
 """
-function connect()::DatabaseHandle
+function connect() #::DatabaseHandle
   connect(SearchLight.config.db_config_settings)
 end
 function connect(conn_settings::Dict{String,Any})
-  DatabaseAdapter.connect(conn_settings)::DatabaseHandle
+  DatabaseAdapter.connect(conn_settings) #::DatabaseHandle
 end
-function connection()::DatabaseHandle
+function connection() #::DatabaseHandle
   connect()
 end
 
@@ -66,7 +58,7 @@ end
 """
 
 """
-function disconnect(conn::DatabaseHandle)
+function disconnect(conn)
   DatabaseAdapter.disconnect(conn)
 end
 
@@ -83,7 +75,7 @@ julia> Database.query_tools()
 (PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,false),:PostgreSQL)
 ```
 """
-function query_tools()::Tuple{DatabaseHandle,Symbol}
+function query_tools() #::Tuple{DatabaseHandle,Symbol}
   (connect(), DatabaseAdapter.db_adapter())
 end
 
@@ -140,7 +132,7 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query
 PostgreSQL.PostgresResultHandle(Ptr{Nothing} @0x00007fcdaf33a450,DataType[PostgreSQL.PostgresType{:int4},PostgreSQL.PostgresType{:varchar},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:varchar}],5,7)
 ```
 """
-function query(sql::AbstractString; system_query::Bool = false)::ResultHandle
+function query(sql::AbstractString; system_query::Bool = false) #::ResultHandle
   conn = connection()
   result =  try
               DatabaseAdapter.query(sql, system_query || SearchLight.config.suppress_output, conn)

@@ -1,2 +1,3 @@
 [] eager has_many relation does not return the correct collection (ex: rand_one!!)
 [] manual fields to columns mappings
+[] turn scopes into full queries (so they can include sort, limit, etc)

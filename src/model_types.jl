@@ -318,16 +318,26 @@ SQLWhereExpression(sql_expression::String, values::Vector{T}) where {T} = SQLWhe
 SQLWhereExpression(sql_expression::String, values::T) where {T} = SQLWhereExpression(sql_expression, [SQLInput(values)])
 
 function string(we::SQLWhereExpression)
-  counter = 0
   string_value = we.sql_expression
+
+  # look for column placeholders, indicated by : -- such as :id
+  column_placeholders = matchall(r":[a-zA-Z0-9_-]*", string_value)
+  # @show column_placeholders
+
+  for pl in column_placeholders
+    string_value = replace(string_value, pl => SQLColumn(string(pl[2:end])))
+  end
+
+  # replace value placeholders, indicated by ?
+  counter = 0
   string_value = replace(string_value, "\\?"=>"\\§\\")
-  while search(string_value, '?') > 0
+  while something(findfirst(isequal('?'), string_value), 0) > 0 # search(string_value, '?') > 0
     counter += 1
     counter > size(we.values, 1) && throw("Not enough replacement values")
 
-    string_value = replace(string_value, "?"=>string(we.values[counter]), count = 1)
+    string_value = replace(string_value, "?" => string(we.values[counter]), count = 1)
   end
-  string_value = replace(string_value, "\\§\\"=>"?")
+  string_value = replace(string_value, "\\§\\" => "?")
 
   we.condition * " " * string_value
 end

@@ -1,6 +1,7 @@
 module SearchLight
 
 using Revise
+using Dates, DateParser
 
 include(joinpath(@__DIR__, "constants.jl"))
 
@@ -16,7 +17,7 @@ isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
-using DataFrames, DataStructures, Dates, DateParser, Millboard, Distributed, OhMyREPL
+using DataFrames, DataStructures, Millboard, Distributed, OhMyREPL
 
 include("Logger.jl")
 include("Inflector.jl")
