@@ -10,9 +10,9 @@ function setup_adapter()
   Core.eval(@__MODULE__, Meta.parse("using .$(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")"))
 
   Core.eval(@__MODULE__, :(db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")))
-  Core.eval(@__MODULE__, :(const DatabaseAdapter = $db_adapter))
-  Core.eval(@__MODULE__, :(const DatabaseHandle = $db_adapter.DatabaseHandle))
-  Core.eval(@__MODULE__, :(const ResultHandle = $db_adapter.ResultHandle))
+  ! Core.isdefined(@__MODULE__, :DatabaseAdapter) && Core.eval(@__MODULE__, :(const DatabaseAdapter = $db_adapter))
+  ! Core.isdefined(@__MODULE__, :DatabaseHandle) && Core.eval(@__MODULE__, :(const DatabaseHandle = $db_adapter.DatabaseHandle))
+  ! Core.isdefined(@__MODULE__, :ResultHandle) && Core.eval(@__MODULE__, :(const ResultHandle = $db_adapter.ResultHandle))
 
   Core.eval(@__MODULE__, :(export DatabaseAdapter))
 end

@@ -15,6 +15,7 @@ export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
 export SQLWhere, SQLWhereExpression, SQLWhereEntity, SQLLimit, SQLOrder, SQLQuery, SQLRaw
 export SQLRelation, SQLRelationData
 export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
+export Q, I, C, W, We, L
 
 export is_lazy
 
@@ -76,6 +77,7 @@ SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
 SQLinput(a::Any) = string(s) |> SQLInput
+const I = SQLInput
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
 
@@ -145,6 +147,7 @@ end
 SQLColumn(a::Array) = map(x -> SQLColumn(string(x)), a)
 SQLColumn(c::SQLColumn) = c
 SQLColumn(r::SQLRaw) = SQLColumn(r.value, raw = raw)
+const C = SQLColumn
 
 ==(a::SQLColumn, b::SQLColumn) = a.value == b.value
 
@@ -233,6 +236,7 @@ SQLWhere(column::SQLColumn, value::SQLInput, condition::SQLLogicOperator) = SQLW
 SQLWhere(column::Any, value::Any, operator::Any) = SQLWhere(SQLColumn(column), SQLInput(value), SQLLogicOperator("AND"), operator)
 SQLWhere(column::SQLColumn, value::SQLInput) = SQLWhere(column, value, SQLLogicOperator("AND"))
 SQLWhere(column::Any, value::Any) = SQLWhere(SQLColumn(column), SQLInput(value))
+const W = SQLWhere
 
 string(w::SQLWhere) = "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
 function string(w::SQLWhere, m::T) where {T <: AbstractModel}
@@ -314,15 +318,17 @@ struct SQLWhereExpression <: SQLType
   end
 end
 SQLWhereExpression(sql_expression::String) = SQLWhereExpression(sql_expression, SQLInput[])
+SQLWhereExpression(sql_expression::String, values::Dates.Date) = SQLWhereExpression(sql_expression, [SQLInput(string(values))])
 SQLWhereExpression(sql_expression::String, values::Vector{T}) where {T} = SQLWhereExpression(sql_expression, SQLInput(values))
 SQLWhereExpression(sql_expression::String, values::T) where {T} = SQLWhereExpression(sql_expression, [SQLInput(values)])
+const We = SQLWhereExpression
 
 function string(we::SQLWhereExpression)
   string_value = we.sql_expression
 
   # look for column placeholders, indicated by : -- such as :id
-  column_placeholders = matchall(r":[a-zA-Z0-9_-]*", string_value)
-  # @show column_placeholders
+  # column_placeholders = matchall(r":[a-zA-Z0-9_-]*", string_value)
+  column_placeholders = collect((m.match for m = eachmatch(r":[a-zA-Z0-9_-]*", string_value)))
 
   for pl in column_placeholders
     string_value = replace(string_value, pl => SQLColumn(string(pl[2:end])))
@@ -379,6 +385,7 @@ struct SQLLimit <: SQLType
   end
 end
 SQLLimit() = SQLLimit(SQLLimit_ALL)
+const L = SQLLimit
 
 string(l::SQLLimit) = string(l.value)
 
@@ -410,6 +417,7 @@ function SQLOrder(s::Union{String,Symbol}; raw::Bool = false)
   end
 end
 SQLOrder(r::SQLRaw, direction::Any = "ASC") = SQLOrder(r.value, direction, raw = true)
+const O = SQLOrder
 
 string(o::SQLOrder) = "($(o.column) $(o.direction))"
 
@@ -583,6 +591,7 @@ struct SQLQuery <: SQLType
               order = SQLOrder[], group = SQLColumn[], having = SQLWhereEntity[], scopes = Symbol[]) =
     new(columns, where, limit, offset, order, group, having, scopes)
 end
+const Q = SQLQuery
 
 string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)
 
