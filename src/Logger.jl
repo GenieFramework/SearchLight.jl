@@ -46,16 +46,15 @@ julia> Logger.log("hello", "err")
 function log(message, level::Any = "info"; showst = false) :: Nothing
   message = string(message)
 
-  if startswith(message, "SQL QUERY:") && SearchLight.config.log_highlight
-     @info Highlight.highlight(message)
-
-     return nothing
+  if startswith(message, "SQL QUERY: ") && SearchLight.config.log_highlight
+    @info Highlight.highlight(message[11:end])
+    remove_truck("console")
   end
 
   level = string(level)
   level == "err" && (level = "error")
 
-  if ! isdefined(:SearchLight) || ! isdefined(:SearchLight, :config) || ! SearchLight.config.suppress_output
+  if ! SearchLight.config.suppress_output
     println()
     Lumberjack.log(level, message)
     println()
@@ -64,6 +63,10 @@ function log(message, level::Any = "info"; showst = false) :: Nothing
   if (level == "critical" || level == "error") && showst
     println()
     stacktrace()
+  end
+
+  if startswith(message, "SQL QUERY: ") && SearchLight.config.log_highlight
+    setup_console_logger()
   end
 
   nothing
@@ -107,10 +110,17 @@ Automatically invoked.
 """
 function setup_loggers() :: Bool
   configure(; modes=["debug", "info", "notice", "warn", "err", "critical", "alert", "emerg"])
-  add_truck(LumberjackTruck(stdout, nothing, Dict{Any,Any}(:is_colorized => true)), "console")
-  ispath(SearchLight.LOG_PATH) && add_truck(LumberjackTruck("$(joinpath(SearchLight.LOG_PATH, SearchLight.config.app_env)).log", nothing, Dict{Any,Any}(:is_colorized => true)), "file-logger")
+  setup_console_logger()
+  setup_file_logger()
 
   true
+end
+function setup_console_logger()
+  add_truck(LumberjackTruck(stdout, nothing, Dict{Any,Any}(:is_colorized => true)), "console")
+end
+function setup_file_logger()
+  logger_path = "$(joinpath(SearchLight.LOG_PATH, SearchLight.config.app_env))" * (SearchLight.config.log_rotate ? "-" * string(Dates.today()) : "") * ".log"
+  ispath(SearchLight.LOG_PATH) && add_truck(LumberjackTruck(logger_path, nothing, Dict{Any,Any}(:is_colorized => true)), "file-logger")
 end
 
 

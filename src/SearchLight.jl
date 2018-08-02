@@ -2970,7 +2970,7 @@ end
     clone{T<:SQLType}(o::T, fieldname::Symbol, value::Any)::T
 
 Creates a copy of `o` changing `fieldname` with `value`.
-To be used to change instances of immutable types.
+Used to change instances of immutable types.
 
 # Examples
 ```julia
@@ -3040,7 +3040,7 @@ end
     clone{T<:SQLType}(o::T, changes::Dict{Symbol,Any})::T
 
 Creates a copy of `o` changing `fieldname` with `value`; or replacing the corresponding properties from `o` with the corresponding values from `changes`.
-To be used to change instances of immutable types.
+Used to change instances of immutable types.
 # Examples
 ```julia
 julia> q = SQLQuery()
