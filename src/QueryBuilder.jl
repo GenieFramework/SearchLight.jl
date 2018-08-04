@@ -2,7 +2,9 @@ module QueryBuilder
 
 using SearchLight
 
-import Base.(+)
+import Base: (+), select
+
+export from, select, where, limit, offset, order, group, having, scopes, prepare
 
 struct MissingModel <: SearchLight.AbstractModel
 end
@@ -11,9 +13,6 @@ struct QueryPart{T<:AbstractModel}
   model::Type{T}
   query::SQLQuery
 end
-# QueryPart{T}(model::Type{T}, query::SQLQuery) where {T<:AbstractModel} = new(model, query)
-# QueryPart{T}(model::Type{T}; query::SQLQuery = SQLQuery()) where {T<:AbstractModel} = QueryPart(model, query)
-# QueryPart(; model = MissingModel, query::SQLQuery = SQLQuery()) = QueryPart(model, query)
 
 
 """
@@ -97,6 +96,9 @@ function prepare(model::Type{T}, qb::QueryPart) where {T<:AbstractModel}
   prepare(from(model) + qb)
 end
 
+
+"""
+"""
 function (+)(q::SQLQuery, r::SQLQuery)
   SQLQuery(
     columns = vcat(q.columns, r.columns),

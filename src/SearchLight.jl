@@ -200,6 +200,16 @@ end
 
 
 """
+"""
+function find_df(m::Type{T}, qp::QueryBuilder.QueryPart, j::Vector{SQLJoin{N}})::DataFrame where {T<:AbstractModel, N<:AbstractModel}
+  find_df(m, qp.query, j)
+end
+function find_df(m::Type{T}, qb::QueryBuilder.QueryPart)::DataFrame where {T<:AbstractModel}
+  find_df(m, qb.query)
+end
+
+
+"""
     find{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]])::Vector{T}
     find{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::Vector{T}
 
@@ -276,6 +286,16 @@ end
 
 
 """
+"""
+function find(m::Type{T}, qp::QueryBuilder.QueryPart, j::Vector{SQLJoin{N}})::Vector{T} where {T<:AbstractModel, N<:AbstractModel}
+  find(m, qp.query, j)
+end
+function find(m::Type{T}, qp::QueryBuilder.QueryPart)::Vector{T} where {T<:AbstractModel}
+  find(m, qp.query)
+end
+
+
+"""
     find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Vector{T}
     find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Vector{T}
     find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T}
@@ -332,6 +352,9 @@ function find_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m().
 end
 function find_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [sql_expression], order = order))
+end
+function find_by(m::Type{T}, qp::QueryBuilder.QueryPart)::Vector{T} where {T<:AbstractModel}
+  find(m, qp.query.where)
 end
 
 
@@ -424,6 +447,11 @@ function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(
 end
 function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [sql_expression], order = order, limit = 1)) |> to_nullable
+end
+function find_one_by(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
+  qp.query.limit = 1
+
+  find(m, qp.query) |> to_nullable
 end
 
 
@@ -670,6 +698,7 @@ end
 function rand_one!!(m::Type{T}, scopes::Vector{Symbol})::T where {T<:AbstractModel}
   SearchLight.rand_one(m, scopes) |> Base.get
 end
+const rand!! = rand_one!!
 
 
 """
@@ -843,7 +872,7 @@ end
 function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
   df::DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
-  id = if !in(:id, names(df))
+  id = if ! in(:id, names(df))
     getfield(m, Symbol(m._id))
   else
     df[1, Symbol(m._id)]
@@ -857,17 +886,19 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
     end
   end
 
-  ! in(:after_save, skip_callbacks) && invoke_callback(m, :after_save)
-
   m
 end
 
 function _save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::DataFrame where {T<:AbstractModel}
   has_field(m, :validator) && ! skip_validation && ! Validation.validate!(m) && error("SearchLight validation error(s) for $(typeof(m)): $(join( map(e -> "$(e.field) $(e.error_message)", Validation.errors(m) |> Base.get), ", "))")
 
-  ! in(:before_save, skip_callbacks) && invoke_callback(m, :before_save)
+  in(:before_save, skip_callbacks) || invoke_callback(m, :before_save)
 
-  query(to_store_sql(m, conflict_strategy = conflict_strategy))
+  result = query(to_store_sql(m, conflict_strategy = conflict_strategy))
+
+  in(:after_save, skip_callbacks) || invoke_callback(m, :after_save)
+
+  result
 end
 
 
@@ -1416,7 +1447,7 @@ function find_one_by_or_create(m::Type{T}, property::Any, value::Any)::T where {
   ! isnull( lookup ) && return Base.get(lookup)
 
   _m::T = m()
-  setfield!(_m, Symbol(is_fully_qualified(property) ? from_fully_qualified(property)[end] : property), value)
+  setfield!(_m, Symbol(is_fully_qualified(string(property)) ? from_fully_qualified(string(property))[end] : property), value)
 
   _m
 end
@@ -1621,25 +1652,25 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
 
     ismissing(row[field]) && continue # if it's NA we just leave the default value of the empty obj
 
-    value = if isdefined(_m, :on_hydration!)
+    value = if isdefined(_m, :on_find!)
               try
-                _m, value = _m.on_hydration!(_m, unq_field, row[field])
+                _m, value = _m.on_find!(_m, unq_field, row[field])
                 (is(value, Nothing) || value == nothing) && (value = row[field])
                 value
               catch ex
-                Logger.log("Failed to hydrate! field $unq_field ($field)", :err)
+                Logger.log("Failed to process on_find! the field $unq_field ($field)", :err)
                 Logger.log(string(ex), :err)
                 Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
                 row[field]
               end
-            elseif isdefined(_m, :on_hydration)
+            elseif isdefined(_m, :on_find)
               try
-                value = _m.on_hydration(_m, unq_field, row[field])
-                (is(value, Nothing) || value == nothing) && (value = row[field])
+                value = _m.on_find(_m, unq_field, row[field])
+                (isa(value, Nothing) || value == nothing) && (value = row[field])
                 value
               catch ex
-                Logger.log("Failed to hydrate field $unq_field ($field)", :err)
+                Logger.log("Failed to process on_find the field $unq_field ($field)", :err)
                 Logger.log(string(ex), :err)
                 Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
@@ -1680,7 +1711,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
     end
   end
 
-  status = invoke_callback(obj, :after_hydration)
+  status = invoke_callback(obj, :after_find)
   status[1] && (obj = status[2])
 
   obj
@@ -2782,7 +2813,7 @@ end
     to_sqlinput{T<:AbstractModel}(m::T, field::Symbol, value)::SQLInput
 
 SQLInput constructor that applies various processing steps to prepare the enclosed value for database persistance (escaping, etc).
-Applies `on_dehydration` callback if defined.
+Applies `on_save` callback if defined.
 
 # Examples
 ```julia
@@ -2799,12 +2830,12 @@ julia> SearchLight.to_sqlinput(SearchLight.find_one!!(User, 1), :email, "genie@e
 ```
 """
 function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractModel}
-  value = if isdefined(m, :on_dehydration)
+  value = if isdefined(m, :on_save)
             try
-              r = m.on_dehydration(m, field, value)
-              is(r, Nothing) || r == nothing ? value : r
+              r = m.on_save(m, field, value)
+              isa(r, Nothing) || r == nothing ? value : r
             catch ex
-              Logger.log("Failed to dehydrate field $field", :err)
+              Logger.log("Failed to persist field $field", :err)
               Logger.log(string(ex), :err)
               Logger.log("$(@__FILE__):$(@__LINE__)", :err)
 
@@ -3843,6 +3874,13 @@ function remove_sequence(name::String, options::String = "")::Nothing
   DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
 
   nothing
+end
+
+
+"""
+"""
+function query_sql(m::T, q::SQLQuery) where {T<:AbstractModel}
+  @debug Logger.Highlight.highlight(to_fetch_sql(m, q))
 end
 
 

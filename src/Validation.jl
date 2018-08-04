@@ -50,7 +50,11 @@ function validationabstracttype_to_print(m::T) :: String where {T<:ValidationAbs
   output = "\n" # "\n" * "$(typeof(m))" * "\n"
 
   try
-    output *= "$(m.field) $(m.error_message)"
+    if (has_field(m, :error_message))
+      output *= "$(m.field) $(m.error_message)"
+    else
+      output *= "$(m.field) $(m.validator_function)"
+    end
   catch ex
     output *= string(ex) * "\n"
   end

@@ -70,7 +70,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
   """
   module $pluralized_name
 
-  using SearchLight, Nullables #, SearchLight.Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
+  using SearchLight, Nullables, SearchLight.Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
 
   export $model_name
 
@@ -89,9 +89,9 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
     ### CALLBACKS
     # before_save::Function
     # after_save::Function
-    # on_dehydration::Function
-    # on_hydration::Function
-    # after_hydration::Function
+    # on_save::Function
+    # on_find::Function
+    # after_find::Function
 
     ### SCOPES
     # scopes::Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}
@@ -99,37 +99,37 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
     ### constructor
     $model_name(;
       ### FIELDS
-      id = SearchLight.DbId()
+      id = SearchLight.DbId(),
 
       ### VALIDATION
       # validator = ModelValidator([
-        # ValidationRule(:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
-      # ])
+      #   ValidationRule(:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
+      # ]),
 
       ### CALLBACKS
-      # before_save = (m::$model_name) -> begin
-      #   @warn "Not implemented"
-      # end
-      # after_save = (m::$model_name) -> begin
-      #   @warn "Not implemented"
-      # end
-      # on_dehydration = (m::$model_name, field::Symbol, value::Any) -> begin
-      #   @warn "Not implemented"
-      # end
-      # on_hydration = (m::$model_name, field::Symbol, value::Any) -> begin
-      #   @warn "Not implemented"
-      # end
-      # after_hydration = (m::$model_name) -> begin
-      #   @warn "Not implemented"
-      # end
+      # before_save = (m::Todo) -> begin
+      #   @info "Before save"
+      # end,
+      # after_save = (m::Todo) -> begin
+      #   @info "After save"
+      # end,
+      # on_save = (m::Todo, field::Symbol, value::Any) -> begin
+      #   @info "On find invoking $field with $value"
+      # end,
+      # on_find = (m::Todo, field::Symbol, value::Any) -> begin
+      #   @info "On find invoking $field with $value"
+      # end,
+      # after_find = (m::Todo) -> begin
+      #   @info "After find"
+      # end,
 
       ### SCOPES
       # scopes = Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}()
 
     ) = new("$table_name", "id", Symbol[],                                                ### INTERNALS
-            id                                                                            ### FIELDS
+            id,                                                                           ### FIELDS
             # validator,                                                                  ### VALIDATION
-            # before_save, after_save, on_dehydration, on_hydration, after_hydration      ### CALLBACKS
+            # before_save, after_save, on_save, on_find, after_find                       ### CALLBACKS
             # scopes                                                                      ### SCOPES
             )
   end

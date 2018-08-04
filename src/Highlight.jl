@@ -10,7 +10,7 @@ const SYNTAX = Dict(
                   "FROM", "GROUP", "HAVING", "ORDER",
                   "ROLLBACK", "SET", "TRANSACTION",
                   "UNION", "VIEW"],
-  :OPERATORS =>   [ "AND", "BETWEEN", "IN", "XOR", "OR ", ">", "<", ">=", "<=", "/", "!=", "<>"],
+  :OPERATORS =>   [ "AND", "BETWEEN", "IN", "XOR", "OR ", "!=", "<>", ">=", "<=", ">", "<", "/"],
   :OTHER =>       [ "ASC", "AS ", "BY", "DESC", "OFFSET", "ON"],
   :CONDITIONAL => [ "CASE", "ELSE", "ELSEIF", "EXISTS", "IF", "NOT", "THEN", "WHERE"],
   :VALUES =>      [ "NULL", "TRUE", "FALSE", "VALUE"],
