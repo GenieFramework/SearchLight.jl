@@ -189,7 +189,6 @@ function escape_column_name(s::String) :: String
   join(
     map(
       x -> Database.escape_column_name(string(x))
-
       , split(s, ".")
     )
     , ".")
@@ -328,9 +327,7 @@ function string(we::SQLWhereExpression)
 
   # look for column placeholders, indicated by : -- such as :id
   # column_placeholders = matchall(r":[a-zA-Z0-9_-]*", string_value)
-  column_placeholders = collect((m.match for m = eachmatch(r":[a-zA-Z0-9_-]*", string_value)))
-
-  for pl in column_placeholders
+  for pl in collect((m.match for m = eachmatch(r":[a-zA-Z0-9_-]*", string_value)))
     string_value = replace(string_value, pl => SQLColumn(string(pl[2:end])))
   end
 

@@ -61,7 +61,7 @@ function connect(conn_data::Dict{String,Any})::DatabaseHandle
   dns = String[]
   get!(conn_data, "host", nothing) != nothing      && push!(dns, "host=" * conn_data["host"])
   get!(conn_data, "hostaddr", nothing) != nothing  && push!(dns, "hostaddr=" * conn_data["hostaddr"])
-  get!(conn_data, "port", nothing) != nothing      && push!(dns, "port=" * conn_data["port"])
+  get!(conn_data, "port", nothing) != nothing      && push!(dns, "port=" * string(conn_data["port"]))
   get!(conn_data, "database", nothing) != nothing  && push!(dns, "dbname=" * conn_data["database"])
   get!(conn_data, "username", nothing) != nothing  && push!(dns, "user=" * conn_data["username"])
   get!(conn_data, "password", nothing) != nothing  && push!(dns, "password=" * conn_data["password"])

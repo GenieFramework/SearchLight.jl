@@ -5,16 +5,15 @@ module SQL
 using Crayons
 
 const SYNTAX = Dict(
-  :ACTIONS   =>   ["DELETE", "DROP", "INSERT", "EXPLAIN", "SELECT", "TRUNCATE", "UPDATE"],
-  :KEYWORDS  =>   ["ALTER", "BEGIN",
-                  "FROM", "GROUP", "HAVING", "ORDER",
-                  "ROLLBACK", "SET", "TRANSACTION",
-                  "UNION", "VIEW"],
-  :OPERATORS =>   [ "AND", "BETWEEN", "IN", "XOR", "OR ", "!=", "<>", ">=", "<=", ">", "<", "/"],
-  :OTHER =>       [ "ASC", "AS ", "BY", "DESC", "OFFSET", "ON"],
-  :CONDITIONAL => [ "CASE", "ELSE", "ELSEIF", "EXISTS", "IF", "NOT", "THEN", "WHERE"],
-  :VALUES =>      [ "NULL", "TRUE", "FALSE", "VALUE"],
-  :JOINS =>       [ "INNER", "JOIN", "LEFT", "OUTER", "RIGHT"]
+  :ACTIONS   =>   ["ALTER", "CREATE", "DELETE", "DROP", "INSERT", "EXPLAIN", "SELECT", "TRUNCATE", "UPDATE"],
+  :KEYWORDS  =>   ["BEGIN", "CONSTRAINT", "FROM", "GROUP", "HAVING", "ORDER",
+                  "ROLLBACK", "SET", "TABLE", "TRANSACTION", "UNION", "VIEW"],
+  :OPERATORS =>   ["AND", "BETWEEN", "IN", "XOR", "OR ", "!=", "<>", ">=", "<=", ">", "<", "/"],
+  :OTHER =>       ["ASC", "AS ", "BY", "DESC", "OFFSET", "ON"],
+  :CONDITIONAL => ["CASE", "ELSE", "ELSEIF", "EXISTS", "IF", "NOT", "THEN", "WHERE"],
+  :VALUES =>      ["FALSE", "KEY", "NULL", "PRIMARY", "TRUE", "VALUE"],
+  :JOINS =>       ["INNER", "JOIN", "LEFT", "OUTER", "RIGHT"],
+  :TYPES =>       ["BOOLEAN", "DATE", "SERIAL", "TEXT", "VARCHAR"],
 )
 
 const CRAYONS = Dict(
@@ -26,6 +25,7 @@ const CRAYONS = Dict(
   :VALUES       => crayon"green",
   :JOINS        => crayon"yellow",
   :SPECIAL      => crayon"red",
+  :TYPES        => crayon"light_green",
 )
 
 end

@@ -114,10 +114,10 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
       #   @info "After save"
       # end,
       # on_save = (m::Todo, field::Symbol, value::Any) -> begin
-      #   @info "On find invoking $field with $value"
+      #   @info "On save"
       # end,
       # on_find = (m::Todo, field::Symbol, value::Any) -> begin
-      #   @info "On find invoking $field with $value"
+      #   @info "On find"
       # end,
       # after_find = (m::Todo) -> begin
       #   @info "After find"
@@ -240,7 +240,7 @@ function new_app_loader(app_name::String)
   end
 
   using Revise
-  using SearchLight
+  using SearchLight, SearchLight.QueryBuilder
   using .$app_name
   """
 end

@@ -63,7 +63,7 @@ function new_resource(resource_name::Union{String,Symbol}) :: Nothing
   include(SearchLight.SEARCHLIGHT_INFO_FILE_NAME)
   if isdefined(@__MODULE__, :__APP_FILE)
     open(__APP_FILE, "a") do f
-      write(f, "using $resource_name")
+      write(f, "\nusing $resource_name")
     end
   else
     Logger.log("Can't read app info", :err)

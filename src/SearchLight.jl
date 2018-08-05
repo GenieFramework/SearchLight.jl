@@ -44,7 +44,7 @@ export disposable_instance, to_fully_qualified_sql_column_names, persistable_fie
 export relations, has_relation, is_persisted, to_sqlinput, has_field, relation_eagerness
 
 const QB = QueryBuilder
-export QueryBuilder, QB
+export QueryBuilder, QB, Migration, Validation, Logger, Util
 
 const RELATION_HAS_ONE =    :has_one
 const RELATION_BELONGS_TO = :belongs_to
