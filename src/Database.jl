@@ -5,11 +5,12 @@ using YAML, DataFrames
 using SearchLight, SearchLight.Logger, SearchLight.Configuration
 
 
-function setup_adapter()
-  Core.eval(@__MODULE__, :(include(joinpath(@__DIR__, "database_adapters/$(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter").jl"))))
-  Core.eval(@__MODULE__, Meta.parse("using .$(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")"))
+function setup_adapter(adapter = SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
+  dir = @__DIR__
+  Core.eval(@__MODULE__, Meta.parse("""include(joinpath("$dir", "database_adapters/$adapter.jl"))"""))
+  Core.eval(@__MODULE__, Meta.parse("using .$adapter"))
 
-  Core.eval(@__MODULE__, :(db_adapter = Symbol(SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")))
+  Core.eval(@__MODULE__, :(db_adapter = Symbol($adapter)))
   ! Core.isdefined(@__MODULE__, :DatabaseAdapter) && Core.eval(@__MODULE__, :(const DatabaseAdapter = $db_adapter))
   ! Core.isdefined(@__MODULE__, :DatabaseHandle) && Core.eval(@__MODULE__, :(const DatabaseHandle = $db_adapter.DatabaseHandle))
   ! Core.isdefined(@__MODULE__, :ResultHandle) && Core.eval(@__MODULE__, :(const ResultHandle = $db_adapter.ResultHandle))
@@ -47,11 +48,25 @@ PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,fa
 function connect() #::DatabaseHandle
   connect(SearchLight.config.db_config_settings)
 end
-function connect(conn_settings::Dict{String,Any})
-  DatabaseAdapter.connect(conn_settings) #::DatabaseHandle
+function connect!(conn_settings::Dict{String,Any})
+  SearchLight.config.db_config_settings["adapter"] = conn_settings["adapter"]
+  setup_adapter()
+  Database.connect(conn_settings) #::DatabaseHandle
 end
-function connection() #::DatabaseHandle
-  connect()
+function connect(conn_settings::Dict{String,Any})
+  c = Base.invokelatest(DatabaseAdapter.connect, conn_settings) #::DatabaseHandle
+  Core.eval(@__MODULE__, :(const _connection = $c))
+
+  c
+end
+
+
+function connection()
+  try
+    _connection
+  catch ex
+    Logger.log("Connection not available", :err)
+  end
 end
 
 
@@ -136,8 +151,10 @@ function query(sql::AbstractString; system_query::Bool = false) #::ResultHandle
   conn = connection()
   result =  try
               DatabaseAdapter.query(sql, system_query || SearchLight.config.suppress_output, conn)
-            finally
-              disconnect(conn)
+            catch ex
+              Logger.log(ex, :err)
+            # finally
+            #   disconnect(conn)
             end
 
   result
@@ -148,8 +165,10 @@ function escape_column_name(c::AbstractString)
   conn = connection()
   result =  try
               DatabaseAdapter.escape_column_name(c, conn)::String
-            finally
-              disconnect(conn)
+            catch ex
+              Logger.log(ex, :err)
+            # finally
+            #   disconnect(conn)
             end
 
   result
@@ -160,8 +179,10 @@ function escape_value(v::T)::T where {T}
   conn = connection()
   result =  try
               DatabaseAdapter.escape_value(v, conn)
-            finally
-              disconnect(conn)
+            catch ex
+              Logger.log(ex, :err)
+            # finally
+            #   disconnect(conn)
             end
 
   result
@@ -195,8 +216,10 @@ function query_df(sql::AbstractString; suppress_output::Bool = false, system_que
   conn = connection()
   df::DataFrames.DataFrame =  try
                                  DatabaseAdapter.query_df(sql, (suppress_output || system_query || SearchLight.config.suppress_output), conn)
-                              finally
-                                disconnect(conn)
+                               catch ex
+                                 Logger.log(ex, :err)
+                              # finally
+                              #   disconnect(conn)
                               end
   (! suppress_output && ! system_query && SearchLight.config.log_db) && Logger.log(df)
 

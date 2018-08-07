@@ -235,6 +235,7 @@ function new_app_loader(app_name::String)
   SearchLight.Logger.empty_log_queue()
 
   SearchLight.Database.setup_adapter()
+  SearchLight.Database.connect()
   SearchLight.load_resources()
 
   end

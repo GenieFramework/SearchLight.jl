@@ -118,7 +118,7 @@ The table should contain one column, `version`, unique, as a string of maximum 3
 Returns `true` on success.
 """
 function create_migrations_table(table_name::String)::Bool
-  "CREATE TABLE $table_name (version varchar(30) CONSTRAINT firstkey PRIMARY KEY)" |> Database.query
+  "CREATE TABLE $table_name (version varchar(30))" |> Database.query
 
   Logger.log("Created table $table_name")
 
@@ -218,18 +218,18 @@ end
 function relation_to_sql(m::T, rel::Tuple{SQLRelation,Symbol})::String where {T<:AbstractModel}
   rel, rel_type = rel
   j = disposable_instance(rel.model_name)
-  join_table_name = j._table_name
+  join_table_name = table_name(j)
 
   if rel_type == RELATION_BELONGS_TO
     j, m = m, j
   end
 
   (join_table_name |> Database.escape_column_name) * " ON " *
-    (j._table_name |> Database.escape_column_name) * "." *
-    ( (lowercase(string(typeof(m))) |> SearchLight.strip_module_name) * "_" * m._id |> Database.escape_column_name) *
+    (table_name(j) |> Database.escape_column_name) * "." *
+    ( (lowercase(string(typeof(m))) |> SearchLight.strip_module_name) * "_" * primary_key_name(m) |> Database.escape_column_name) *
     " = " *
-    (m._table_name |> Database.escape_column_name) * "." *
-    (m._id |> Database.escape_column_name)
+    (table_name(m) |> Database.escape_column_name) * "." *
+    (primary_key_name(m) |> Database.escape_column_name)
 end
 
 
@@ -258,24 +258,24 @@ function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:Abstra
   uf = persistable_fields(m)
 
   sql = if ! is_persisted(m) || (is_persisted(m) && conflict_strategy == :update)
-    pos = findfirst(uf, m._id)
+    pos = findfirst(uf, primary_key_name(m))
     pos > 0 && splice!(uf, pos)
 
     fields = SQLColumn(uf)
     vals = join( map(x -> string(to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))), uf), ", ")
 
-    "INSERT INTO $(m._table_name) ( $fields ) VALUES ( $vals )" *
+    "INSERT INTO $(table_name(m)) ( $fields ) VALUES ( $vals )" *
         if ( conflict_strategy == :error ) ""
         elseif ( conflict_strategy == :ignore ) " ON CONFLICT DO NOTHING"
-        elseif ( conflict_strategy == :update && ! isnull( getfield(m, Symbol(m._id)) ) )
-           " ON CONFLICT ($(m._id)) DO UPDATE SET $(update_query_part(m))"
+        elseif ( conflict_strategy == :update && ! isnull( getfield(m, Symbol(primary_key_name(m))) ) )
+           " ON CONFLICT ($(primary_key_name(m))) DO UPDATE SET $(update_query_part(m))"
         else ""
         end
   else
-    "UPDATE $(m._table_name) SET $(update_query_part(m))"
+    "UPDATE $(table_name(m)) SET $(update_query_part(m))"
   end
 
-  return sql * " RETURNING $(m._id)"
+  return sql * " RETURNING $(primary_key_name(m))"
 end
 
 
@@ -285,11 +285,11 @@ end
 function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
   _m::T = m()
   if truncate
-    sql = "TRUNCATE $(_m._table_name)"
+    sql = "TRUNCATE $(table_name(_m))"
     reset_sequence ? sql * " RESTART IDENTITY" : ""
     cascade ? sql * " CASCADE" : ""
   else
-    sql = "DELETE FROM $(_m._table_name)"
+    sql = "DELETE FROM $(table_name(_m))"
   end
 
   SearchLight.query(sql)
@@ -302,7 +302,7 @@ end
 
 """
 function delete(m::T)::T where {T<:AbstractModel}
-  sql = "DELETE FROM $(m._table_name) WHERE $(m._id) = '$(m.id |> Base.get)'"
+  sql = "DELETE FROM $(table_name(m)) WHERE $(primary_key_name(m)) = '$(m.id |> Base.get)'"
   SearchLight.query(sql)
 
   tmp::T = T()
@@ -329,7 +329,7 @@ end
 function update_query_part(m::T)::String where {T<:AbstractModel}
   update_values = join(map(x -> "$(string(SQLColumn(x))) = $( string(to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))) )", persistable_fields(m)), ", ")
 
-  " $update_values WHERE $(m._table_name).$(m._id) = '$(Base.get(m.id))'"
+  " $update_values WHERE $(table_name(m)).$(primary_key_name(m)) = '$(Base.get(m.id))'"
 end
 
 
@@ -353,7 +353,7 @@ end
 
 """
 function to_from_part(m::Type{T})::String where {T<:AbstractModel}
-  "FROM " * Database.escape_column_name(m()._table_name)
+  "FROM " * Database.escape_column_name(table_name(disposable_instance(m)))
 end
 
 

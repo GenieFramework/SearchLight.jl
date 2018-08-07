@@ -40,8 +40,9 @@ export save, save!, save!!, update_with!, update_with!!, create_or_update_by!!, 
 export validator, validator!!
 
 export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
-export disposable_instance, to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
+export to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
 export relations, has_relation, is_persisted, to_sqlinput, has_field, relation_eagerness
+export primary_key_name, table_name, disposable_instance
 
 const QB = QueryBuilder
 export QueryBuilder, QB, Migration, Validation, Logger, Util
@@ -57,6 +58,8 @@ const RELATION_EAGERNESS_LAZY    = :lazy
 const RELATION_EAGERNESS_EAGER   = :eager
 
 const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_LAZY
+
+const PRIMARY_KEY_NAME = "id"
 
 if isdefined(config.db_config_settings, :serializer) && isdefined(config.db_config_settings, :serializer_path)
   include("$(config.db_config_settings.serializer_path).jl")
@@ -159,7 +162,7 @@ end
 function find_df(m::Type{T}, q::SQLQuery)::DataFrame where {T<:AbstractModel}
   query(to_fetch_sql(m, q))::DataFrame
 end
-function find_df(m::Type{T}; order = SQLOrder(m()._id))::DataFrame where {T<:AbstractModel}
+function find_df(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(order = order))
 end
 
@@ -191,10 +194,10 @@ julia> SearchLight.find_df(Article, SQLWhereEntity[SQLWhereExpression("id BETWEE
 ...
 ```
 """
-function find_df(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::DataFrame where {T<:AbstractModel}
+function find_df(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(where = [w], order = order))
 end
-function find_df(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::DataFrame where {T<:AbstractModel}
+function find_df(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(where = w, order = order))
 end
 
@@ -242,7 +245,7 @@ end
 function find(m::Type{T}, q::SQLQuery)::Vector{T} where {T<:AbstractModel}
   to_models(m, find_df(m, q))
 end
-function find(m::Type{T}; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
+function find(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order))
 end
 function find(m::Type{T}, scopes::Vector{Symbol})::Vector{T} where {T<:AbstractModel}
@@ -277,10 +280,10 @@ julia> SearchLight.find(Article, SQLWhereEntity[SQLWhereExpression("id BETWEEN ?
 ...
 ```
 """
-function find(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
+function find(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [w], order = order))
 end
-function find(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
+function find(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = w, order = order))
 end
 
@@ -344,13 +347,13 @@ App.Article
 +--------------+---------------------------------------------------------+
 ```
 """
-function find_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
+function find_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order))
 end
-function find_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
+function find_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find_by(m, SQLColumn(column_name), SQLInput(value), order = order)
 end
-function find_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T} where {T<:AbstractModel}
+function find_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [sql_expression], order = order))
 end
 function find_by(m::Type{T}, qp::QueryBuilder.QueryPart)::Vector{T} where {T<:AbstractModel}
@@ -439,16 +442,16 @@ App.Article
 )
 ```
 """
-function find_one_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
+function find_one_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order, limit = 1)) |> to_nullable
 end
-function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
+function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
   find_one_by(m, SQLColumn(column_name), SQLInput(value), order = order)
 end
-function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
+function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [sql_expression], order = order, limit = 1)) |> to_nullable
 end
-function find_one_by(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(m()._id))::Nullable{T} where {T<:AbstractModel}
+function find_one_by(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
   qp.query.limit = 1
 
   find(m, qp.query) |> to_nullable
@@ -512,13 +515,13 @@ julia> SearchLight.find_one_by!!(Article, SQLWhereExpression("title LIKE ?", "fo
 NullException()
 ```
 """
-function find_one_by!!(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::T where {T<:AbstractModel}
+function find_one_by!!(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
   find_one_by(m, column_name, value, order = order) |> Base.get
 end
-function find_one_by!!(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::T where {T<:AbstractModel}
+function find_one_by!!(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
   find_one_by(m, sql_expression, order = order) |> Base.get
 end
-function find_one_by!!(m::Type{T}, column::SQLColumn, value::Any; order = SQLOrder(m()._id))::T where {T<:AbstractModel}
+function find_one_by!!(m::Type{T}, column::SQLColumn, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
   find_one_by(m, column, value, order = order) |> Base.get
 end
 
@@ -550,8 +553,8 @@ App.Article
 ```
 """
 function find_one(m::Type{T}, value::Any)::Nullable{T} where {T<:AbstractModel}
-  _m::T = m()
-  find_one_by(m, SQLColumn( to_fully_qualified(_m._id, _m._table_name) ), SQLInput(value))
+  _m::T = disposable_instance(m)
+  find_one_by(m, SQLColumn(to_fully_qualified(primary_key_name(_m), table_name(_m))), SQLInput(value))
 end
 
 
@@ -873,9 +876,9 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
   df::DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
   id = if ! in(:id, names(df))
-    getfield(m, Symbol(m._id))
+    getfield(m, Symbol(primary_key_name(m)))
   else
-    df[1, Symbol(m._id)]
+    df[1, Symbol(primary_key_name(m))]
   end
   n = find_one!!(typeof(m), id)
 
@@ -1100,7 +1103,7 @@ App.Article
 """
 function update_with!(m::T, w::T)::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
-    ( startswith(string(fieldname), "_") || string(fieldname) == m._id ) && continue
+    ( startswith(string(fieldname), "_") || string(fieldname) == primary_key_name(m) ) && continue
     setfield!(m, fieldname, getfield(w, fieldname))
   end
 
@@ -1108,7 +1111,7 @@ function update_with!(m::T, w::T)::T where {T<:AbstractModel}
 end
 function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
-    ( startswith(string(fieldname), "_") || string(fieldname) == m._id ) && continue
+    ( startswith(string(fieldname), "_") || string(fieldname) == primary_key_name(m) ) && continue
 
     value = if haskey(w, fieldname)
               w[fieldname]
@@ -1345,7 +1348,7 @@ function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}, v
     skip_update && return existing
 
     for fieldname in fieldnames(typeof(m))
-      ( startswith(string(fieldname), "_") || string(fieldname) == m._id || in(fieldname, ignore) ) && continue
+      ( startswith(string(fieldname), "_") || string(fieldname) == primary_key_name(m) || in(fieldname, ignore) ) && continue
       setfield!(existing, fieldname, getfield(m, fieldname))
     end
 
@@ -1374,7 +1377,7 @@ If values are provided for `ignore`, the corresponding properties (fields) of `m
 If `skip_update` is `true` and `m` is already persisted, no update will be performed, and the originally persisted `m` will be returned.
 """
 function create_or_update!!(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  update_by_or_create!!(m, Symbol(m._id), getfield(m, Symbol(m._id)), ignore = ignore, skip_update = skip_update)
+  update_by_or_create!!(m, Symbol(primary_key_name(m)), getfield(m, Symbol(primary_key_name(m))), ignore = ignore, skip_update = skip_update)
 end
 
 
@@ -1520,10 +1523,10 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
   row_count::Int = 1
   __m::T = m()
   for row in eachrow(df)
-    main_model::T = to_model!!(m, dfs[ __m._table_name ][row_count, :])
+    main_model::T = to_model!!(m, dfs[table_name(__m)][row_count, :])
 
-    if haskey(models, getfield(main_model, Symbol(__m._id)))
-      main_model = models[ getfield(main_model, Symbol(__m._id)) |> Base.get ]
+    if haskey(models, getfield(main_model, Symbol(primary_key_name(__m))))
+      main_model = models[ getfield(main_model, Symbol(primary_key_name(__m))) |> Base.get ]
     end
 
     for relation in relations(m)
@@ -1532,7 +1535,7 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
       is_lazy(r) && continue
 
       related_model = r.model_name
-      related_model_df::DataFrame = dfs[related_model()._table_name][row_count, :]
+      related_model_df::DataFrame = dfs[table_name(related_model())][row_count, :]
 
       r = set_relation(r, related_model, related_model_df)
 
@@ -1540,8 +1543,8 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
       isnull(model_rels[1].data) ? model_rels[1] = r : push!(model_rels, r)
     end
 
-    if ! haskey(models, getfield(main_model, Symbol(__m._id))) && ! isnull(getfield(main_model, Symbol(__m._id)))
-      models[DbId(getfield(main_model, Symbol(__m._id)) |> Base.get)] = main_model
+    if ! haskey(models, getfield(main_model, Symbol(primary_key_name(__m)))) && ! isnull(getfield(main_model, Symbol(primary_key_name(__m))))
+      models[DbId(getfield(main_model, Symbol(primary_key_name(__m))) |> Base.get)] = main_model
     end
 
     row_count += 1
@@ -2597,14 +2600,14 @@ function get_relation_data(m::T, rel::SQLRelation{R}, relation_type::Symbol)::Nu
             if ! isnull(rel.where)
               Base.get(rel.where)
             else
-              SQLWhere(SQLColumn(((lowercase(string(typeof(m))) |> strip_module_name) * "_" * m._id |> escape_column_name), raw = true), m.id)
+              SQLWhere(SQLColumn(((lowercase(string(typeof(m))) |> strip_module_name) * "_" * primary_key_name(m) |> escape_column_name), raw = true), m.id)
             end
           elseif relation_type == RELATION_BELONGS_TO
             if ! isnull(rel.where)
               Base.get(rel.where)
             else
               _r = (rel.model_name)()
-              SQLWhere(SQLColumn(to_fully_qualified(_r._id, _r._table_name), raw = true), getfield(m, Symbol((lowercase(string(typeof(_r))) |> strip_module_name) * "_" * _r._id)) |> Base.get)
+              SQLWhere(SQLColumn(to_fully_qualified(primary_key_name(_r), table_name(_r)), raw = true), getfield(m, Symbol((lowercase(string(typeof(_r))) |> strip_module_name) * "_" * primary_key_name(_r))) |> Base.get)
             end
           end
 
@@ -2644,7 +2647,7 @@ function relations_tables_names(m::Type{T})::Vector{String} where {T<:AbstractMo
   for r in relations(m)
     r, r_type = r
     rmdl = disposable_instance(r.model_name)
-    push!(tables_names, rmdl._table_name)
+    push!(tables_names, table_name(rmdl))
   end
 
   tables_names
@@ -2747,7 +2750,7 @@ function dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{
   sub_dfs
 end
 function dataframes_by_table(m::Type{T}, df::DataFrame)::Dict{String,DataFrame} where {T<:AbstractModel}
-  tables_names = vcat(String[m()._table_name], relations_tables_names(m))
+  tables_names = vcat(String[table_name(disposable_instance(m))], relations_tables_names(m))
 
   dataframes_by_table(tables_names, columns_names_by_table(tables_names, df), df)
 end
@@ -3146,11 +3149,14 @@ end
 Returns a DataFrame representing schema information for the database table columns associated with `m`.
 """
 function columns(m::Type{T})::DataFrames.DataFrame where {T<:AbstractModel}
-  Database.table_columns(disposable_instance(m)._table_name)
+  Database.table_columns(table_name(disposable_instance(m)))
 end
 function columns(m::T)::DataFrames.DataFrame where {T<:AbstractModel}
-  Database.table_columns(m._table_name)
+  Database.table_columns(table_name(m))
 end
+
+
+
 
 
 """
@@ -3176,7 +3182,7 @@ true
 ```
 """
 function is_persisted(m::T)::Bool where {T<:AbstractModel}
-  ! ( isa(getfield(m, Symbol(m._id)), Nullable) && isnull( getfield(m, Symbol(m._id)) ) )
+  ! ( isa(getfield(m, Symbol(primary_key_name(m))), Nullable) && isnull( getfield(m, Symbol(primary_key_name(m))) ) )
 end
 
 
@@ -3262,7 +3268,7 @@ end
 Returns the "id" property defined on `m`.
 """
 function id(m::T)::String where {T<:AbstractModel}
-  m._id
+  primary_key_name(m)
 end
 
 
@@ -3272,7 +3278,26 @@ end
 Returns the table_name property defined on `m`.
 """
 function table_name(m::T)::String where {T<:AbstractModel}
-  m._table_name
+  if in(:_table_name, fieldnames(typeof(m)))
+    m._table_name
+  else
+    Inflector.to_plural(string(typeof(m))) |> get |> lowercase
+  end
+end
+function table_name(m::Type{T})::String where {T<:AbstractModel}
+  table_name(disposable_instance(m))
+end
+
+
+function primary_key_name(m::T)::String where {T<:AbstractModel}
+  if in(:_id, fieldnames(typeof(m)))
+    m._id
+  else
+    PRIMARY_KEY_NAME
+  end
+end
+function primary_key_name(m::Type{T})::String where {T<:AbstractModel}
+  primary_key_name(disposable_instance(m))
 end
 
 
@@ -3368,7 +3393,7 @@ julia> SearchLight.strip_table_name(SearchLight.rand_one!!(Article), :articles_u
 ```
 """
 function strip_table_name(m::T, f::Symbol)::Symbol where {T<:AbstractModel}
-  replace(string(f), Regex("^$(m._table_name)_") => "", count = 1) |> Symbol
+  replace(string(f), Regex("^$(table_name(m))_") => "", count = 1) |> Symbol
 end
 
 
@@ -3388,7 +3413,7 @@ false
 ```
 """
 function is_fully_qualified(m::T, f::Symbol)::Bool where {T<:AbstractModel}
-  startswith(string(f), m._table_name) && has_field(m, strip_table_name(m, f))
+  startswith(string(f), table_name(m)) && has_field(m, strip_table_name(m, f))
 end
 function is_fully_qualified(t::T)::Bool where {T<:SQLType}
   replace(t |> string, "\""=>"") |> string |> is_fully_qualified
@@ -3512,11 +3537,11 @@ julia> SearchLight.to_fully_qualified(SearchLight.rand_one!!(Article), "updated_
 ```
 """
 function to_fully_qualified(m::T, v::String)::String where {T<:AbstractModel}
-  to_fully_qualified(v, m._table_name)
+  to_fully_qualified(v, table_name(m))
 end
 function to_fully_qualified(m::T, c::SQLColumn)::String where {T<:AbstractModel}
   c.raw && return c.value
-  to_fully_qualified(c.value, m._table_name)
+  to_fully_qualified(c.value, table_name(m))
 end
 function to_fully_qualified(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
   to_fully_qualified(disposable_instance(m), c)
@@ -3558,10 +3583,10 @@ function to_sql_column_name(v::String, t::String)::String
   end
 end
 function to_sql_column_name(m::T, v::String)::String where {T<:AbstractModel}
-  to_sql_column_name(v, m._table_name)
+  to_sql_column_name(v, table_name(m))
 end
 function to_sql_column_name(m::T, c::SQLColumn)::String where {T<:AbstractModel}
-  to_sql_column_name(c.value, m._table_name)
+  to_sql_column_name(c.value, table_name(m))
 end
 
 

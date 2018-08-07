@@ -63,7 +63,7 @@ env() :: String = SearchLight.config.app_env
 
 
 """
-    read_db_connection_data!!(db_settings_file::String) :: Dict{Any,Any}
+    read_db_connection_data(db_settings_file::String) :: Dict{Any,Any}
 
 Attempts to read the database configuration file and returns the part corresponding to the current environment as a `Dict`.
 Does not check if `db_settings_file` actually exists so it can throw errors.
@@ -71,7 +71,7 @@ If the database connection information for the current environment does not exis
 
 # Examples
 ```julia
-julia> Configuration.read_db_connection_data!!(joinpath(Genie.CONFIG_PATH, Genie.GENIE_DB_CONFIG_FILE_NAME))
+julia> Configuration.read_db_connection_data(joinpath(Genie.CONFIG_PATH, Genie.GENIE_DB_CONFIG_FILE_NAME))
 Dict{Any,Any} with 6 entries:
   "host"     => "localhost"
   "password" => "..."
@@ -81,7 +81,7 @@ Dict{Any,Any} with 6 entries:
   "adapter"  => "PostgreSQL"
 ```
 """
-function read_db_connection_data!!(db_settings_file::String) :: Dict{String,Any}
+function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
   db_conn_data =  if endswith(db_settings_file, ".yml")
                     YAML.load(open(db_settings_file))
                   elseif endswith(db_settings_file, ".jl")
@@ -124,19 +124,9 @@ function _load_db_connection() :: Dict{String,Any}
 end
 
 
-function reload_db_connection() :: Dict{String,Any}
-  settings = load_db_connection_from_config()
-
-  reload("Database")
-  reload("SearchLight")
-
-  settings
-end
-
-
 function load_db_connection_from_config() :: Dict{String,Any}
   db_config_file = joinpath(SearchLight.CONFIG_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME)
-  isfile(db_config_file) && (return read_db_connection_data!!(db_config_file))
+  isfile(db_config_file) && (return read_db_connection_data(db_config_file))
 
   # @warn "DB configuration file not found"
   return Dict{String,Any}()
@@ -198,7 +188,7 @@ mutable struct Settings
                   suppress_output, output_length,
                   db_migrations_table_name, db_migrations_folder, db_config_settings,
                   log_folder,
-                  log_db, log_queries, log_level, log_verbosity, log_formatted, log_highlight, log_rotate, 
+                  log_db, log_queries, log_level, log_verbosity, log_formatted, log_highlight, log_rotate,
                   model_relations_eagerness
                 )
 end

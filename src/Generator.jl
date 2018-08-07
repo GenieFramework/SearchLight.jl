@@ -87,6 +87,9 @@ function new_table_migration(cmd_args::Dict{String,Any}) :: Nothing
 
   nothing
 end
+function new_table_migration(migration_name::String) :: Nothing
+  new_table_migration(Dict{String,Any}("migration:new" => migration_name))
+end
 
 
 function new_migration(cmd_args::Dict{String,Any}) :: Nothing
@@ -95,6 +98,9 @@ function new_migration(cmd_args::Dict{String,Any}) :: Nothing
   Migration.new(migration_name)
 
   nothing
+end
+function new_migration(migration_name::String) :: Nothing
+  new_migration(Dict{String,Any}("migration:new" => migration_name))
 end
 
 
