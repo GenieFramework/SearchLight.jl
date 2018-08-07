@@ -179,7 +179,7 @@ mutable struct Settings
             log_verbosity = LOG_LEVEL_VERBOSITY_VERBOSE,
             log_formatted = true,
             log_highlight = true,
-            log_rotate = true,
+            log_rotate    = true,
 
             model_relations_eagerness = :lazy
         ) =

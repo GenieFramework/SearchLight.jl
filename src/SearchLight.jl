@@ -18,6 +18,7 @@ isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
 using DataFrames, DataStructures, Millboard, Distributed, OhMyREPL
+import DataFrames.DataFrame
 
 include("Logger.jl")
 include("Inflector.jl")
@@ -157,10 +158,10 @@ julia> SearchLight.find_df(Article, SQLQuery(limit = 5))
 ```
 """
 function find_df(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::DataFrame where {T<:AbstractModel, N<:AbstractModel}
-  query(to_fetch_sql(m, q, j))::DataFrame
+  query(sql(m, q, j))::DataFrame
 end
 function find_df(m::Type{T}, q::SQLQuery)::DataFrame where {T<:AbstractModel}
-  query(to_fetch_sql(m, q))::DataFrame
+  query(sql(m, q))::DataFrame
 end
 function find_df(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(order = order))
@@ -209,6 +210,11 @@ function find_df(m::Type{T}, qp::QueryBuilder.QueryPart, j::Vector{SQLJoin{N}}):
 end
 function find_df(m::Type{T}, qb::QueryBuilder.QueryPart)::DataFrame where {T<:AbstractModel}
   find_df(m, qb.query)
+end
+
+
+function DataFrame(args...)::DataFrames.DataFrame
+  find_df(args...)
 end
 
 
@@ -3906,6 +3912,27 @@ end
 """
 function query_sql(m::T, q::SQLQuery) where {T<:AbstractModel}
   @debug Logger.Highlight.highlight(to_fetch_sql(m, q))
+end
+
+
+"""
+"""
+function sql(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
+  to_fetch_sql(m, q, j)
+end
+function sql(m::Type{T}, q::SQLQuery = SQLQuery())::String where {T<:AbstractModel}
+  to_fetch_sql(m, q)
+end
+function sql(m::Type{T}, qp::QueryBuilder.QueryPart)::String where {T<:AbstractModel}
+  sql(m, qp.query)
+end
+function sql(m::T)::String where {T<:AbstractModel}
+  to_store_sql(m)
+end
+
+
+function highlight_sql(sql::String) :: String
+  Logger.Highlight.highlight(sql)
 end
 
 
