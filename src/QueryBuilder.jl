@@ -24,7 +24,7 @@ end
 
 """
 """
-function select(columns::Vararg{Union{Symbol,String}}) :: QueryPart
+function select(columns::Vararg{Union{Symbol,String,SQLColumn,SQLRaw}}) :: QueryPart
   QueryPart(MissingModel, SQLQuery(columns = SQLColumns([columns...])))
 end
 

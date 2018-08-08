@@ -452,7 +452,7 @@ function prepare_column_name(column::SQLColumn, _m::T)::String where {T<:Abstrac
   else
     column_data::Dict{Symbol,Any} = SearchLight.from_literal_column_name(column.value)
     if ! haskey(column_data, :table_name)
-      column_data[:table_name] = _m._table_name
+      column_data[:table_name] = table_name(_m)
     end
     if ! haskey(column_data, :alias)
       column_data[:alias] = ""

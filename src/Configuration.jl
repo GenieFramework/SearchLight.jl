@@ -173,7 +173,7 @@ mutable struct Settings
 
             log_folder    = joinpath("log"),
 
-            log_db        = true,
+            log_db        = false,
             log_queries   = true,
             log_level     = :debug,
             log_verbosity = LOG_LEVEL_VERBOSITY_VERBOSE,

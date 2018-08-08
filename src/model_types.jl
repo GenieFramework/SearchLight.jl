@@ -17,7 +17,7 @@ export SQLRelation, SQLRelationData
 export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
 export Q, I, C, W, We, L
 
-export is_lazy
+export is_lazy, @sql_str
 
 abstract type SearchLightAbstractType end
 abstract type SQLType <: SearchLightAbstractType end
@@ -54,6 +54,10 @@ Wrapper around a raw SQL query part.
 """
 struct SQLRaw <: SQLType
   value::String
+end
+
+macro sql_str(q)
+  SQLRaw(q)
 end
 
 #
@@ -144,9 +148,10 @@ SQLColumn(v::Union{String,Symbol}; escaped = false, raw = false, table_name = ""
 
   SQLColumn(string(v), escaped, raw, string(table_name), string(v))
 end
-SQLColumn(a::Array) = map(x -> SQLColumn(string(x)), a)
+SQLColumn(a::Array) = map(x -> SQLColumn(x), a)
 SQLColumn(c::SQLColumn) = c
-SQLColumn(r::SQLRaw) = SQLColumn(r.value, raw = raw)
+SQLColumn(r::SQLRaw) = SQLColumn(r.value, raw = true)
+SQLColumn(a::Any) = SQLColumn(string(a))
 const C = SQLColumn
 
 ==(a::SQLColumn, b::SQLColumn) = a.value == b.value
