@@ -18,7 +18,9 @@ isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
 using DataFrames, DataStructures, Millboard, Distributed, OhMyREPL
+
 import DataFrames.DataFrame
+import Base.first, Base.last
 
 include("Logger.jl")
 include("Inflector.jl")
@@ -733,6 +735,20 @@ function all(m::Type{T})::Vector{T} where {T<:AbstractModel}
 end
 function all(m::Type{T}, scopes::Vector{Symbol})::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(scopes = scopes))
+end
+
+
+function first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
+  find(m, SQLQuery(order = order, limit = 1)) |> to_nullable
+end
+function first(m::Type{T}, qp::QueryBuilder.QueryPart)::Nullable{T} where {T<:AbstractModel}
+  find(m, qp + limit(1)) |> to_nullable
+end
+function last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Nullable{T} where {T<:AbstractModel}
+  find(m, SQLQuery(order = order, limit = 1)) |> to_nullable
+end
+function last(m::Type{T}, qp::QueryBuilder.QueryPart)::Nullable{T} where {T<:AbstractModel}
+  find(m, qp + limit(1)) |> to_nullable
 end
 
 

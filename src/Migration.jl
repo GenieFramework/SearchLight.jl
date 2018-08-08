@@ -311,7 +311,8 @@ function status() :: Nothing
   arr_output = []
 
   for m in migrations
-    sts = ( findfirst(up_migrations, m) > 0 ) ? :up : :down
+    # sts = ( findfirst(up_migrations, m) > 0 ) ? :up : :down
+    sts = something(findfirst(isequal(m), up_migrations), 0) > 0 ? :up : :down
     push!(arr_output, [migrations_files[m].migration_module_name * ": " * uppercase(string(sts)); migrations_files[m].migration_file_name])
   end
 
@@ -333,7 +334,8 @@ function all_with_status() :: Tuple{Vector{String},Dict{String,Dict{Symbol,Any}}
   result = Dict{String,Dict{Symbol,Any}}()
 
   for m in migrations
-    status = ( findfirst(up_migrations, m) > 0 ) ? :up : :down
+    # status = ( findfirst(up_migrations, m) > 0 ) ? :up : :down
+    status = something(findfirst(isequal(m), up_migrations), 0) > 0 ? :up : :down
     push!(indexes, migrations_files[m].migration_hash)
     result[migrations_files[m].migration_hash] = Dict(
       :migration => DatabaseMigration(migrations_files[m].migration_hash, migrations_files[m].migration_file_name, migrations_files[m].migration_module_name),
