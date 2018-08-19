@@ -1,13 +1,11 @@
 module SearchLight
 
 using Revise
-using Dates, DateParser
 
 include(joinpath(@__DIR__, "constants.jl"))
 
 const OUTPUT_LENGTH = 256
 
-haskey(ENV, "GENIE_ENV") && (ENV["SEARCHLIGHT_ENV"] = ENV["GENIE_ENV"])
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
 include(joinpath(@__DIR__, "Configuration.jl"))
@@ -17,12 +15,12 @@ isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
-using DataFrames, DataStructures, Millboard, Distributed, OhMyREPL
+using DataFrames, DataStructures, Millboard, Distributed, OhMyREPL, Dates
 
 import DataFrames.DataFrame
 import Base.first, Base.last
 
-include("Logger.jl")
+include("Loggers.jl")
 include("Inflector.jl")
 include("FileTemplates.jl")
 include("Macros.jl")
@@ -35,7 +33,7 @@ include("Generator.jl")
 include("DatabaseSeeding.jl")
 include("QueryBuilder.jl")
 
-using .Database, .Migration, .Util, .Logger, .Validation, .Inflector, .Macros, .DatabaseSeeding, .QueryBuilder
+using .Database, .Migration, .Util, .Loggers, .Validation, .Inflector, .Macros, .DatabaseSeeding, .QueryBuilder
 
 import Base.find, Base.rand, Base.all, Base.count
 export find_df, find, find_by, find_one_by, find_one_by!!, find_one, find_one!!, rand, rand_one, rand_one!!, all, count, find_one_by_or_create, create_with
@@ -48,7 +46,7 @@ export relations, has_relation, is_persisted, to_sqlinput, has_field, relation_e
 export primary_key_name, table_name, disposable_instance
 
 const QB = QueryBuilder
-export QueryBuilder, QB, Migration, Validation, Logger, Util
+export QueryBuilder, QB, Migration, Validation, Loggers, Util
 
 const RELATION_HAS_ONE =    :has_one
 const RELATION_BELONGS_TO = :belongs_to
@@ -812,8 +810,8 @@ function save(m::T; conflict_strategy = :error, skip_validation = false, skip_ca
 
     true
   catch ex
-    Logger.log(string(ex), :err)
-    Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+    log(string(ex), :err)
+    log("$(@__FILE__):$(@__LINE__)", :err)
 
     false
   end
@@ -1167,9 +1165,9 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
     try
       setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
     catch ex
-      Logger.log(ex, :err)
-      Logger.log("obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $( typeof(getfield(m, fieldname)) )", :err)
-      Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+      log(ex, :err)
+      log("obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $( typeof(getfield(m, fieldname)) )", :err)
+      log("$(@__FILE__):$(@__LINE__)", :err)
 
       rethrow(ex)
     end
@@ -1683,9 +1681,9 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
                 (is(value, Nothing) || value == nothing) && (value = row[field])
                 value
               catch ex
-                Logger.log("Failed to process on_find! the field $unq_field ($field)", :err)
-                Logger.log(string(ex), :err)
-                Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+                log("Failed to process on_find! the field $unq_field ($field)", :err)
+                log(string(ex), :err)
+                log("$(@__FILE__):$(@__LINE__)", :err)
 
                 row[field]
               end
@@ -1695,9 +1693,9 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
                 (isa(value, Nothing) || value == nothing) && (value = row[field])
                 value
               catch ex
-                Logger.log("Failed to process on_find the field $unq_field ($field)", :err)
-                Logger.log(string(ex), :err)
-                Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+                log("Failed to process on_find the field $unq_field ($field)", :err)
+                log(string(ex), :err)
+                log("$(@__FILE__):$(@__LINE__)", :err)
 
                 row[field]
               end
@@ -1714,9 +1712,9 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
     try
       setfield!(obj, unq_field, convert(typeof(getfield(_m, unq_field)), value))
     catch ex
-      Logger.log(ex, :err)
-      Logger.log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )", :err)
-      Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+      log(ex, :err)
+      log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )", :err)
+      log("$(@__FILE__):$(@__LINE__)", :err)
 
       isdefined(_m, :on_error!) ? obj = _m.on_error!(ex, model = obj, data = _m, field = unq_field, value = value)::T : rethrow(ex)
     end
@@ -1729,9 +1727,9 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
       try
         setfield!(obj, field, getfield(_m, field))
       catch ex
-        Logger.log(string(ex), :err)
-        Logger.log(field, :err)
-        Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+        log(string(ex), :err)
+        log(field, :err)
+        log("$(@__FILE__):$(@__LINE__)", :err)
       end
     end
   end
@@ -2322,8 +2320,8 @@ function relation(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQ
       if rel.model_name == model_name || split(string(rel.model_name), ".")[end] == string(model_name)
         return Nullable{SQLRelation}(rel)
       else
-        Logger.log("Must check this: $(rel.model_name) == $(model_name) at $(@__FILE__) $(@__LINE__)", :debug)
-        Logger.@location()
+        log("Must check this: $(rel.model_name) == $(model_name) at $(@__FILE__) $(@__LINE__)", :debug)
+        Loggers.@location()
       end
     end
   end
@@ -2860,9 +2858,9 @@ function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractMod
               r = m.on_save(m, field, value)
               isa(r, Nothing) || r == nothing ? value : r
             catch ex
-              Logger.log("Failed to persist field $field", :err)
-              Logger.log(string(ex), :err)
-              Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+              log("Failed to persist field $field", :err)
+              log(string(ex), :err)
+              log("$(@__FILE__):$(@__LINE__)", :err)
 
               value
             end
@@ -3258,12 +3256,11 @@ function persistable_fields(m::T; fully_qualified::Bool = false)::Vector{String}
   db_columns =  try
                   columns(typeof(m))[DatabaseAdapter.COLUMN_NAME_FIELD_NAME]
                 catch ex
-                  # Logger.log(ex, :err)
                   []
                 end
 
   # isempty(db_columns) &&
-  #   Logger.log("No columns retrieved for $(typeof(m)) - check if the table exists and the model is properly configured.", :err)
+  #   log("No columns retrieved for $(typeof(m)) - check if the table exists and the model is properly configured.", :err)
 
   pst_fields = intersect(object_fields, db_columns)
 
@@ -3838,8 +3835,8 @@ function create_table(f::Function, name::String, options::String = "")::Nothing
   try
     SearchLight.query(sql)
   catch ex
-    Logger.log("Error while attempting to run: $sql", :debug)
-    Logger.log(ex, :err)
+    log("Error while attempting to run: $sql", :debug)
+    log(ex, :err)
 
     rethrow(ex)
   end
@@ -3932,7 +3929,7 @@ end
 """
 """
 function query_sql(m::T, q::SQLQuery) where {T<:AbstractModel}
-  @debug Logger.Highlight.highlight(to_fetch_sql(m, q))
+  @debug Loggers.Highlight.highlight(to_fetch_sql(m, q))
 end
 
 
@@ -3953,7 +3950,7 @@ end
 
 
 function highlight_sql(sql::String) :: String
-  Logger.Highlight.highlight(sql)
+  Loggers.Highlight.highlight(sql)
 end
 
 

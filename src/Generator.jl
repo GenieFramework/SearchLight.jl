@@ -4,8 +4,8 @@ Generates various Genie files.
 module Generator
 
 using Revise
-using Unicode
-using SearchLight.Logger, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight, SearchLight.Migration
+using Unicode, Nullables
+using SearchLight.Loggers, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight, SearchLight.Migration
 
 
 """
@@ -22,7 +22,7 @@ function new_model(cmd_args::Dict{String,Any}) :: Nothing
   resource_path = setup_resource_path(resource_name)
   mfn = model_file_name(resource_name)
   write_resource_file(resource_path, mfn, resource_name, :model) &&
-    Logger.log("New model created at $(abspath(joinpath(resource_path, mfn)))")
+    log("New model created at $(abspath(joinpath(resource_path, mfn)))")
 
   nothing
 end
@@ -52,21 +52,25 @@ function new_resource(resource_name::Union{String,Symbol}) :: Nothing
   resource_path = setup_resource_path(resource_name)
   for (resource_file, resource_type) in [(validator_file_name(resource_name), :validator)]
     write_resource_file(resource_path, resource_file, resource_name, resource_type) &&
-      Logger.log("New $resource_type created at $(abspath(joinpath(resource_path, resource_file)))")
+      log("New $resource_type created at $(abspath(joinpath(resource_path, resource_file)))")
   end
 
   isdir(SearchLight.TEST_PATH_UNIT) || mkpath(SearchLight.TEST_PATH_UNIT)
   test_file = resource_name * SearchLight.TEST_FILE_IDENTIFIER |> lowercase
   write_resource_file(SearchLight.TEST_PATH_UNIT, test_file, resource_name, :test) &&
-    Logger.log("New unit test created at $(abspath(joinpath(SearchLight.TEST_PATH_UNIT, test_file)))")
+    log("New unit test created at $(abspath(joinpath(SearchLight.TEST_PATH_UNIT, test_file)))")
 
-  include(SearchLight.SEARCHLIGHT_INFO_FILE_NAME)
+  try
+    include(SearchLight.SEARCHLIGHT_INFO_FILE_NAME)
+  catch ex
+
+  end
   if isdefined(@__MODULE__, :__APP_FILE)
     open(__APP_FILE, "a") do f
       write(f, "\nusing $resource_name")
     end
   else
-    Logger.log("Can't read app info", :err)
+    log("Can't write to app info", :warn)
   end
 
   SearchLight.load_resources()
@@ -153,7 +157,7 @@ function write_resource_file(resource_path::String, file_name::String, resource_
       error("Not supported, $file_name")
     end
   catch ex
-    Logger.log(ex, :err)
+    log(ex, :err)
   end
 
   true
@@ -173,7 +177,7 @@ function new_db_config(app_name::String = "App", adapter::Symbol = :mysql; creat
   isdir(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
   if ! ispath(SearchLight.LOG_PATH)
     mkpath(SearchLight.LOG_PATH)
-    Logger.setup_loggers()
+    setup_loggers()
   end
 
   open(joinpath(SearchLight.CONFIG_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME), "w") do f
@@ -192,7 +196,7 @@ function new_db_config(app_name::String = "App", adapter::Symbol = :mysql; creat
     write(f, SearchLight.FileTemplates.new_app_info(app_name))
   end
 
-  Logger.log("New app ready at $(pwd())")
+  log("New app ready at $(pwd())")
 
   nothing
 end
@@ -203,7 +207,7 @@ const new_app = new_db_config
 """
 function resource_does_not_exist(resource_path::String, file_name::String) :: Bool
   if isfile(joinpath(resource_path, file_name))
-    Logger.log("File already exists, $(joinpath(resource_path, file_name)) - skipping", :err)
+    log("File already exists, $(joinpath(resource_path, file_name)) - skipping", :warn)
     return false
   end
 

@@ -2,7 +2,7 @@ module Database
 
 using Revise
 using YAML, DataFrames
-using SearchLight, SearchLight.Logger, SearchLight.Configuration
+using SearchLight, SearchLight.Loggers, SearchLight.Configuration
 
 
 function setup_adapter(adapter = SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
@@ -65,7 +65,7 @@ function connection()
   try
     _connection
   catch ex
-    Logger.log("Connection not available", :err)
+    log("Connection not available", :err)
   end
 end
 
@@ -152,9 +152,7 @@ function query(sql::AbstractString; system_query::Bool = false) #::ResultHandle
   result =  try
               DatabaseAdapter.query(sql, system_query || SearchLight.config.suppress_output, conn)
             catch ex
-              Logger.log(ex, :err)
-            # finally
-            #   disconnect(conn)
+              log(ex, :err)
             end
 
   result
@@ -166,9 +164,7 @@ function escape_column_name(c::AbstractString)
   result =  try
               DatabaseAdapter.escape_column_name(c, conn)::String
             catch ex
-              Logger.log(ex, :err)
-            # finally
-            #   disconnect(conn)
+              log(ex, :err)
             end
 
   result
@@ -180,9 +176,7 @@ function escape_value(v::T)::T where {T}
   result =  try
               DatabaseAdapter.escape_value(v, conn)
             catch ex
-              Logger.log(ex, :err)
-            # finally
-            #   disconnect(conn)
+              log(ex, :err)
             end
 
   result
@@ -217,11 +211,9 @@ function query_df(sql::AbstractString; suppress_output::Bool = false, system_que
   df::DataFrames.DataFrame =  try
                                  DatabaseAdapter.query_df(sql, (suppress_output || system_query || SearchLight.config.suppress_output), conn)
                                catch ex
-                                 Logger.log(ex, :err)
-                              # finally
-                              #   disconnect(conn)
+                                 log(ex, :err)
                               end
-  (! suppress_output && ! system_query && SearchLight.config.log_db) && Logger.log(df)
+  (! suppress_output && ! system_query && SearchLight.config.log_db) && log(df)
 
   df
 end

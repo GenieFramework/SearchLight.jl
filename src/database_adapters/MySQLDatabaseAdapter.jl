@@ -1,7 +1,7 @@
 module MySQLDatabaseAdapter
 
-using MySQL, DataFrames, DataStreams
-using SearchLight, SearchLight.Database, SearchLight.Logger
+using MySQL, DataFrames, DataStreams, Nullables
+using SearchLight, SearchLight.Database, SearchLight.Loggers
 
 export DatabaseHandle, ResultHandle
 
@@ -60,9 +60,9 @@ function connect(conn_data::Dict{String,Any})::DatabaseHandle
                   db    = conn_data["database"],
                   port  = (get!(conn_data, "port", nothing) == nothing ? 3360 : conn_data["port"]))
   catch ex
-    Logger.log("Invalid DB connection settings", :err)
-    Logger.log(string(ex), :err)
-    Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+    log("Invalid DB connection settings", :err)
+    log(string(ex), :err)
+    log("$(@__FILE__):$(@__LINE__)", :err)
 
     rethrow(ex)
   end
@@ -107,7 +107,7 @@ function create_migrations_table(table_name::String)::Bool
     PRIMARY KEY (`version`)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8" |> Database.query
 
-  Logger.log("Created table $table_name")
+  log("Created table $table_name")
 
   true
 end
@@ -179,7 +179,7 @@ function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHand
     result::DataFrame = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
                           DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
                         else
-                          Logger.log("SQL QUERY: $(escape_string(sql))")
+                          log("SQL QUERY: $(escape_string(sql))")
                           @time DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
                         end
 
@@ -189,8 +189,8 @@ function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHand
       result
     end
   catch ex
-    Logger.log(string(ex), :err)
-    Logger.log("MySQL error when running $(escape_string(sql))", :err)
+    log(string(ex), :err)
+    log("MySQL error when running $(escape_string(sql))", :err)
 
     rethrow(ex)
   end
@@ -205,14 +205,14 @@ function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)
     query = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
               DB_ADAPTER.Query(conn, sql)
             else
-              Logger.log("SQL QUERY: $(escape_string(sql))")
+              log("SQL QUERY: $(escape_string(sql))")
               @time DB_ADAPTER.Query(conn, sql)
             end
 
     Data.rows(query)
   catch ex
-    Logger.log(string(ex), :err)
-    Logger.log("MySQL error when running $(escape_string(sql))", :err)
+    log(string(ex), :err)
+    log("MySQL error when running $(escape_string(sql))", :err)
 
     rethrow(ex)
   end
@@ -557,7 +557,6 @@ end
 
 """
 function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
-  # DatabaseAdapter.scopes(m)
   in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
 end
 

@@ -1,7 +1,7 @@
 module PostgreSQLDatabaseAdapter
 
-using LibPQ, DataFrames, DataStreams, NamedTuples
-using SearchLight, SearchLight.Database, SearchLight.Logger
+using LibPQ, DataFrames, DataStreams, NamedTuples, Nullables
+using SearchLight, SearchLight.Database, SearchLight.Loggers
 
 export DatabaseHandle, ResultHandle
 
@@ -72,9 +72,9 @@ function connect(conn_data::Dict{String,Any})::DatabaseHandle
   try
     DB_ADAPTER.Connection(join(dns, " "))
   catch ex
-    Logger.log("Invalid DB connection settings", :err)
-    Logger.log(string(ex), :err)
-    Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+    log("Invalid DB connection settings", :err)
+    log(string(ex), :err)
+    log("$(@__FILE__):$(@__LINE__)", :err)
 
     rethrow(ex)
   end
@@ -120,7 +120,7 @@ Returns `true` on success.
 function create_migrations_table(table_name::String)::Bool
   "CREATE TABLE $table_name (version varchar(30))" |> Database.query
 
-  Logger.log("Created table $table_name")
+  log("Created table $table_name")
 
   true
 end
@@ -195,11 +195,9 @@ function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::Result
   # stmt = DB_ADAPTER.prepare(conn, sql)
 
   result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
-    # DB_ADAPTER.execute(stmt)
     DB_ADAPTER.execute(conn, sql)
   else
-    Logger.log("SQL QUERY: $sql")
-    # @time DB_ADAPTER.execute(stmt)
+    log("SQL QUERY: $sql")
     @time DB_ADAPTER.execute(conn, sql)
   end
   # DB_ADAPTER.close(conn)
@@ -498,7 +496,6 @@ end
 
 """
 function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
-  # "$name INTEGER $constraint PRIMARY KEY DEFAULT $nextval $options"
   "$name SERIAL $constraint PRIMARY KEY $nextval $options"
 end
 

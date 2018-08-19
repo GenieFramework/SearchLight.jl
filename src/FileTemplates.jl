@@ -231,8 +231,8 @@ function new_app_loader(app_name::String)
 
   Core.eval(SearchLight, :(config.db_config_settings = SearchLight.Configuration.load_db_connection()))
 
-  SearchLight.Logger.setup_loggers()
-  SearchLight.Logger.empty_log_queue()
+  SearchLight.Loggers.setup_loggers()
+  SearchLight.Loggers.empty_log_queue()
 
   SearchLight.Database.setup_adapter()
   SearchLight.Database.connect()

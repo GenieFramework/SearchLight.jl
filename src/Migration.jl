@@ -3,8 +3,8 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using Millboard, Dates
-using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Logger, SearchLight.Macros, SearchLight.Database
+using Millboard, Dates, Nullables
+using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Loggers, SearchLight.Macros, SearchLight.Database
 
 import Base.showerror
 
@@ -44,7 +44,7 @@ function new_table(migration_name::String, resource::String) :: Nothing
     write(f, SearchLight.FileTemplates.new_table_migration(migration_module_name(migration_name), resource))
   end
 
-  Logger.log("New table migration created at $(abspath(mfn))")
+  log("New table migration created at $(abspath(mfn))")
 
   nothing
 end
@@ -62,7 +62,7 @@ function new(migration_name::String) :: Nothing
     write(f, SearchLight.FileTemplates.new_migration(migration_module_name(migration_name)))
   end
 
-  Logger.log("New table migration created at $mfn")
+  log("New table migration created at $mfn")
 
   nothing
 end
@@ -226,7 +226,7 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   if ! force
     if  ( direction == :up    && in(migration.migration_hash, upped_migrations()) ) ||
         ( direction == :down  && in(migration.migration_hash, downed_migrations()) )
-      Logger.log("Skipping, migration is already $direction")
+      log("Skipping, migration is already $direction")
       return
     end
   end
@@ -234,18 +234,18 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   try
     m = include(abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))
     if in(:disabled, names(m, all = true)) && m.disabled && ! force
-      Logger.log("Skipping, migration is disabled")
+      log("Skipping, migration is disabled")
       return
     end
     Base.invokelatest(getfield(m, direction))
 
     store_migration_status(migration, direction, force = force)
 
-    ! SearchLight.config.suppress_output && Logger.log("Executed migration $(migration.migration_module_name) $(direction)")
+    ! SearchLight.config.suppress_output && log("Executed migration $(migration.migration_module_name) $(direction)")
   catch ex
-    Logger.log("Failed executing migration $(migration.migration_module_name) $(direction)", :err)
-    Logger.log(string(ex), :err)
-    Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+    log("Failed executing migration $(migration.migration_module_name) $(direction)", :err)
+    log(string(ex), :err)
+    log("$(@__FILE__):$(@__LINE__)", :err)
 
     rethrow(ex)
   end
@@ -267,8 +267,8 @@ function store_migration_status(migration::DatabaseMigration, direction::Symbol;
       SearchLight.query_raw("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", system_query = true)
     end
   catch ex
-    Logger.log(string(ex), :err)
-    Logger.log(@location_in_file, :err)
+    log(string(ex), :err)
+    log(@location_in_file, :err)
 
     force || rethrow(ex)
   end

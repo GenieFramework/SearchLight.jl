@@ -3,6 +3,7 @@ module QueryBuilder
 using SearchLight
 
 import Base: (+), select
+# TODO: Base.isequal and Base.hash
 
 export from, select, where, limit, offset, order, group, having, scopes, prepare
 

@@ -1,7 +1,7 @@
 module SQLiteDatabaseAdapter
 
-using SQLite, DataFrames, DataStreams, IterableTables
-using SearchLight, SearchLight.Database, SearchLight.Logger
+using SQLite, DataFrames, DataStreams, IterableTables, Nullables
+using SearchLight, SearchLight.Database, SearchLight.Loggers
 
 export DatabaseHandle, ResultHandle
 
@@ -66,9 +66,9 @@ function connect(conn_data::Dict{String,Any})::DatabaseHandle
   try
     SQLite.DB(conn_data["filename"])
   catch ex
-    Logger.log("Invalid DB connection settings", :err)
-    Logger.log(string(ex), :err)
-    Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+    log("Invalid DB connection settings", :err)
+    log(string(ex), :err)
+    log("$(@__FILE__):$(@__LINE__)", :err)
 
     rethrow(ex)
   end
@@ -77,9 +77,9 @@ function connect()::DatabaseHandle
   try
     SQLite.DB()
   catch ex
-    Logger.log("Invalid DB connection settings", :err)
-    Logger.log(string(ex), :err)
-    Logger.log("$(@__FILE__):$(@__LINE__)", :err)
+    log("Invalid DB connection settings", :err)
+    log(string(ex), :err)
+    log("$(@__FILE__):$(@__LINE__)", :err)
 
     rethrow(ex)
   end
@@ -124,7 +124,7 @@ function create_migrations_table(table_name::String)::Bool
     PRIMARY KEY (`version`)
   )" |> Database.query
 
-  Logger.log("Created table $table_name")
+  log("Created table $table_name")
 
   true
 end
@@ -205,13 +205,13 @@ function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)
               end
             else
               if length(parts) == 2
-                Logger.log("SQL QUERY: $(parts[1])")
+                log("SQL QUERY: $(parts[1])")
                 @time SQLite.query(conn, parts[1]) |> DataFrame
 
-                Logger.log("SQL QUERY: $(parts[2])")
+                log("SQL QUERY: $(parts[2])")
                 @time SQLite.query(conn, parts[2]) |> DataFrame
               else
-                Logger.log("SQL QUERY: $(parts[1])")
+                log("SQL QUERY: $(parts[1])")
                 @time SQLite.query(conn, parts[1]) |> DataFrame
               end
             end

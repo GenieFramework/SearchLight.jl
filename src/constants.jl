@@ -1,4 +1,4 @@
-const ROOT_PATH       = "." # pwd()
+const ROOT_PATH       = pwd()
 const CONFIG_PATH     = ROOT_PATH     * "/config"
 const ENV_PATH        = CONFIG_PATH   * "/env"
 const LOG_PATH        = ROOT_PATH     * "/log"
