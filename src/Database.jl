@@ -132,7 +132,7 @@ end
 
 
 """
-    query(sql::AbstractString; system_query::Bool = false)::ResultHandle
+    query(sql::String; system_query::Bool = false)::ResultHandle
 
 Executes the `sql` query against the database adapter. If it is a `system_query` it won't be logged.
 
@@ -147,7 +147,7 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query
 PostgreSQL.PostgresResultHandle(Ptr{Nothing} @0x00007fcdaf33a450,DataType[PostgreSQL.PostgresType{:int4},PostgreSQL.PostgresType{:varchar},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:text},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:timestamp},PostgreSQL.PostgresType{:varchar}],5,7)
 ```
 """
-function query(sql::AbstractString; system_query::Bool = false) #::ResultHandle
+function query(sql::String; system_query::Bool = false) #::ResultHandle
   conn = connection()
   result =  try
               DatabaseAdapter.query(sql, system_query || SearchLight.config.suppress_output, conn)
@@ -159,7 +159,7 @@ function query(sql::AbstractString; system_query::Bool = false) #::ResultHandle
 end
 
 
-function escape_column_name(c::AbstractString)
+function escape_column_name(c::String)
   conn = connection()
   result =  try
               DatabaseAdapter.escape_column_name(c, conn)::String
@@ -183,13 +183,13 @@ function escape_value(v::T)::T where {T}
 end
 
 
-function table_columns(table_name::AbstractString) :: DataFrames.DataFrame
+function table_columns(table_name::String) :: DataFrames.DataFrame
   query_df(DatabaseAdapter.table_columns_sql(table_name), suppress_output = true)
 end
 
 
 """
-    query_df(sql::AbstractString; suppress_output::Bool = false)::DataFrames.DataFrame
+    query_df(sql::String; suppress_output::Bool = false)::DataFrames.DataFrame
 
 Executes the `sql` query against the database adapter and returns a DataFrame result.
 Optionally logs the result DataFrame.
@@ -206,7 +206,7 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query_
 ...
 ```
 """
-function query_df(sql::AbstractString; suppress_output::Bool = false, system_query::Bool = false)::DataFrames.DataFrame
+function query_df(sql::String; suppress_output::Bool = false, system_query::Bool = false)::DataFrames.DataFrame
   conn = connection()
   df::DataFrames.DataFrame =  try
                                  DatabaseAdapter.query_df(sql, (suppress_output || system_query || SearchLight.config.suppress_output), conn)
@@ -321,7 +321,7 @@ function _to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])
     return join(table_columns, ", ")
   else
     table_columns = join(to_fully_qualified_sql_column_names(_m, persistable_fields(_m), escape_columns = true), ", ")
-    table_columns = isempty(table_columns) ? AbstractString[] : vcat(table_columns, map(x -> prepare_column_name(x, _m), columns_from_joins(joins)))
+    table_columns = isempty(table_columns) ? String[] : vcat(table_columns, map(x -> prepare_column_name(x, _m), columns_from_joins(joins)))
 
     related_table_columns = String[]
     for rels in map(x -> to_fully_qualified_sql_column_names(x, persistable_fields(x), escape_columns = true), joined_tables)

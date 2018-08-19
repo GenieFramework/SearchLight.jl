@@ -245,12 +245,12 @@ end
 
 
 """
-    errors_messages_for(m::T, field::Symbol)::Vector{AbstractString} where {T<:AbstractModel}
+    errors_messages_for(m::T, field::Symbol)::Vector{String} where {T<:AbstractModel}
 
 Vector of error messages corresponding to the validation errors of `m.field`.
 """
-function errors_messages_for(m::T, field::Symbol)::Vector{AbstractString} where {T<:AbstractModel}
-  result = AbstractString[]
+function errors_messages_for(m::T, field::Symbol)::Vector{String} where {T<:AbstractModel}
+  result = String[]
   for err in errors_for(m, field)
     push!(result, err.error_message)
   end

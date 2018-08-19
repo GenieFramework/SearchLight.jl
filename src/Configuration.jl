@@ -98,7 +98,7 @@ function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
       db_conn_data[SearchLight.config.app_env]["config"] != nothing &&
       isa(db_conn_data[SearchLight.config.app_env]["config"], Dict)
     for (k, v) in db_conn_data[SearchLight.config.app_env]["config"]
-      setfield!(SearchLight.config, Symbol(k), ((isa(v, AbstractString) && startswith(v, ":")) ? Symbol(v[2:end]) : v) )
+      setfield!(SearchLight.config, Symbol(k), ((isa(v, String) && startswith(v, ":")) ? Symbol(v[2:end]) : v) )
     end
   end
 

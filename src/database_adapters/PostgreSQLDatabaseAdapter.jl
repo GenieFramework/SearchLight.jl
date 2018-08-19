@@ -132,7 +132,7 @@ end
 
 
 """
-    escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
+    escape_column_name(c::String, conn::DatabaseHandle)::String
 
 Escapes the column name.
 
@@ -141,7 +141,7 @@ Escapes the column name.
 julia>
 ```
 """
-function escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
+function escape_column_name(c::String, conn::DatabaseHandle)::String
   """\"$(replace(c, "\""=>"'"))\""""
 end
 

@@ -2968,11 +2968,11 @@ end
 
 
 """
-    query_raw(sql::AbstractString; system_query::Bool = false)::DatabaseAdapter.ResultHandle
+    query_raw(sql::String; system_query::Bool = false)::DatabaseAdapter.ResultHandle
 
 Sends a raw query string to be executed by the database adapter.
 """
-function query_raw(sql::AbstractString; system_query::Bool = false)::DatabaseAdapter.ResultHandle
+function query_raw(sql::String; system_query::Bool = false)::DatabaseAdapter.ResultHandle
   Database.query(sql, system_query = system_query)
 end
 

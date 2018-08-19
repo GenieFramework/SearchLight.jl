@@ -102,7 +102,7 @@ end
 
 
 """
-    table_columns_sql(table_name::AbstractString)::String
+    table_columns_sql(table_name::String)::String
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
@@ -136,7 +136,7 @@ end
 
 
 """
-    escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
+    escape_column_name(c::String, conn::DatabaseHandle)::String
 
 Escapes the column name using native features provided by the database backend.
 
@@ -145,7 +145,7 @@ Escapes the column name using native features provided by the database backend.
 julia>
 ```
 """
-function escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
+function escape_column_name(c::String, conn::DatabaseHandle)::String
   DB_ADAPTER.esc_id(c)
 end
 
@@ -171,7 +171,7 @@ end
 
 
 """
-    query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
+    query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
 
 Executes the `sql` query against the database backend and returns a DataFrame result.
 
@@ -187,7 +187,7 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 ...
 ```
 """
-function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
+function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
   parts::Vector{String} = if contains(sql, SELECT_LAST_ID_QUERY_START)
                             split(sql, SELECT_LAST_ID_QUERY_START)
                           else

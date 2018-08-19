@@ -85,7 +85,7 @@ end
 
 
 """
-    table_columns_sql(table_name::AbstractString)::String
+    table_columns_sql(table_name::String)::String
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
@@ -119,7 +119,7 @@ end
 
 
 """
-    escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
+    escape_column_name(c::String, conn::DatabaseHandle)::String
 
 Escapes the column name.
 
@@ -128,7 +128,7 @@ Escapes the column name.
 julia>
 ```
 """
-function escape_column_name(c::AbstractString, conn::DatabaseHandle)::String
+function escape_column_name(c::String, conn::DatabaseHandle)::String
   """`$(replace(c, "`"=>"-"))`"""
 end
 
@@ -147,7 +147,7 @@ function escape_value(v::T, conn::DatabaseHandle)::T where {T}
   isa(v, Number) ? v : "'$(MySQL.escape(conn, string(v)))'"
 end
 
-function mysql_escape(s::AbstractString, conn::DatabaseHandle)
+function mysql_escape(s::String, conn::DatabaseHandle)
    MySQL.escape(conn, s)
 end
 
@@ -158,7 +158,7 @@ end
 
 
 """
-    query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
+    query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
 
 Executes the `sql` query against the database backend and returns a DataFrame result.
 
@@ -174,7 +174,7 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 ...
 ```
 """
-function query_df(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
+function query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
   try
     result::DataFrame = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
                           DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
@@ -200,7 +200,7 @@ end
 """
 
 """
-function query(sql::AbstractString, suppress_output::Bool, conn::DatabaseHandle)::DataStreams.Data.Rows
+function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataStreams.Data.Rows
   try
     query = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
               DB_ADAPTER.Query(conn, sql)
