@@ -47,9 +47,9 @@ version = "1.0.0"
 
 [[DataFrames]]
 deps = ["CategoricalArrays", "CodecZlib", "Compat", "DataStreams", "Dates", "InteractiveUtils", "LinearAlgebra", "Missings", "Pkg", "Printf", "Random", "Reexport", "SortingAlgorithms", "Statistics", "StatsBase", "Test", "TranscodingStreams", "Unicode", "WeakRefStrings"]
-git-tree-sha1 = "fff8b03ab91c5c0d6a26e8f9c666bdd439a092c9"
+git-tree-sha1 = "31cca86a48add8d5cdd9457c4f75ee5577ef3488"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "0.13.0"
+version = "0.13.1"
 
 [[DataStreams]]
 deps = ["Dates", "Missings", "Test", "WeakRefStrings"]
@@ -279,9 +279,9 @@ version = "0.5.2"
 
 [[Revise]]
 deps = ["Distributed", "FileWatching", "InteractiveUtils", "LibGit2", "OrderedCollections", "Pkg", "REPL", "Random", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "0a98de1780c326498d62a635ebf72654de2c4b24"
+git-tree-sha1 = "6aa02109d5ec63e6105e24b6b78f8f2cceea5518"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "0.6.9"
+version = "0.7.1"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -385,9 +385,9 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 
 [[WeakRefStrings]]
 deps = ["Missings", "Random", "Test"]
-git-tree-sha1 = "1c28233e41ef8351c86ef42ddd50604b48238ed3"
+git-tree-sha1 = "d4631352d65840254d33ab703e2de3d9768cdb77"
 uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
-version = "0.5.1"
+version = "0.5.2"
 
 [[YAML]]
 deps = ["Codecs", "Compat"]
