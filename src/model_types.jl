@@ -2,9 +2,9 @@ import Base.string
 import Base.print
 import Base.show
 import Base.convert
-import Base.endof
+# import Base.endof
 import Base.length
-import Base.next
+# import Base.next
 import Base.==
 
 using Dates, Reexport

@@ -35,7 +35,7 @@ include("QueryBuilder.jl")
 
 using .Database, .Migration, .Util, .Loggers, .Validation, .Inflector, .Macros, .DatabaseSeeding, .QueryBuilder
 
-import Base.find, Base.rand, Base.all, Base.count
+import Base.rand, Base.all, Base.count # Base.find
 export find_df, find, find_by, find_one_by, find_one_by!!, find_one, find_one!!, rand, rand_one, rand_one!!, all, count, find_one_by_or_create, create_with
 export save, save!, save!!, update_with!, update_with!!, create_or_update_by!!, create_or_update!!, delete_all, delete
 export validator, validator!!
