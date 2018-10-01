@@ -81,7 +81,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
     _serializable::Vector{Symbol}
 
     ### FIELDS
-    id::SearchLight.DbId
+    id::DbId
 
     ### VALIDATION
     # validator::ModelValidator
@@ -99,7 +99,7 @@ function new_model(model_name::String, resource_name::String = model_name) :: St
     ### constructor
     $model_name(;
       ### FIELDS
-      id = SearchLight.DbId(),
+      id = DbId(),
 
       ### VALIDATION
       # validator = ModelValidator([
