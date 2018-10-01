@@ -265,7 +265,7 @@ function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:Abstra
   uf = persistable_fields(m)
 
   sql = if ! is_persisted(m) || (is_persisted(m) && conflict_strategy == :update)
-    pos = findfirst(uf, m._id)
+    pos = findfirst(x -> x == m._id, uf)
     pos > 0 && splice!(uf, pos)
 
     fields = SQLColumn(uf)
