@@ -188,7 +188,7 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 ```
 """
 function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
-  parts::Vector{String} = if contains(sql, SELECT_LAST_ID_QUERY_START)
+  parts::Vector{String} = if occursin(SELECT_LAST_ID_QUERY_START, sql)
                             split(sql, SELECT_LAST_ID_QUERY_START)
                           else
                             String[sql]
