@@ -257,7 +257,7 @@ function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:Abstra
 
   sql = if ! is_persisted(m) || (is_persisted(m) && conflict_strategy == :update)
     pos = findfirst(x -> x == primary_key_name(m), uf)
-    pos > 0 && splice!(uf, pos)
+    pos != nothing && splice!(uf, pos)
 
     fields = SQLColumn(uf)
     vals = join( map(x -> string(to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))), uf), ", ")
