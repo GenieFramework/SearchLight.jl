@@ -118,9 +118,9 @@ uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[IterTools]]
 deps = ["Pkg", "SparseArrays", "Test"]
-git-tree-sha1 = "3eb252416e1a5215530420cdd22b46208bb9d4c7"
+git-tree-sha1 = "79246285c43602384e6f1943b3554042a3712056"
 uuid = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
-version = "1.1.0"
+version = "1.1.1"
 
 [[IterableTables]]
 deps = ["DataValues", "IteratorInterfaceExtensions", "Requires", "TableTraits", "TableTraitsUtils", "Test"]
@@ -179,9 +179,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MbedTLS]]
 deps = ["BinaryProvider", "Libdl", "Pkg", "Random", "Sockets", "Test"]
-git-tree-sha1 = "3775d205b09b624aa06d39012a8920ba99cb3b8b"
+git-tree-sha1 = "4b890362c0c2fdb14a575ce927f1f4eeac6dda9f"
 uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
-version = "0.6.3"
+version = "0.6.4"
 
 [[Memento]]
 deps = ["Compat", "JSON", "Nullables", "Syslogs", "TimeZones"]
@@ -333,9 +333,9 @@ version = "0.2.0"
 
 [[TableTraits]]
 deps = ["IteratorInterfaceExtensions", "Test"]
-git-tree-sha1 = "afee1fb3bc99c28eb4533ff0f22e33f6effcec18"
+git-tree-sha1 = "da062a2c31f16178f68190243c24140801720a43"
 uuid = "3783bdb8-4a98-5b6b-af9a-565f29a5fe9c"
-version = "0.3.1"
+version = "0.4.0"
 
 [[TableTraitsUtils]]
 deps = ["DataValues", "IteratorInterfaceExtensions", "Missings", "Pkg", "TableTraits", "Test"]
@@ -345,9 +345,9 @@ version = "0.3.1"
 
 [[Tables]]
 deps = ["Pkg", "Requires", "Test"]
-git-tree-sha1 = "7b7e95a34c2c2504f1403aa9005399e239f461b9"
+git-tree-sha1 = "be3a3a28a1e6c4fdd838bdf21e796f7a592c565c"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "0.1.9"
+version = "0.1.10"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
@@ -355,9 +355,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TimeZones]]
 deps = ["Compat", "EzXML", "Mocking", "Nullables", "Pkg"]
-git-tree-sha1 = "aa592cc6012a3452ae74a83e5cf95a04b5b032c2"
+git-tree-sha1 = "43aec3094d7f88d77e01681722dfc93ef43907c5"
 uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
-version = "0.8.0"
+version = "0.8.1"
 
 [[Tokenize]]
 deps = ["Printf", "Test"]
