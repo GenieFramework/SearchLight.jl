@@ -78,7 +78,7 @@ SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
-SQLInput(a::Any) = string(s) |> SQLInput
+SQLInput(a::Any) = string(a) |> SQLInput
 const I = SQLInput
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
