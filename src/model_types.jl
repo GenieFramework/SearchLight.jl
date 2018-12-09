@@ -72,7 +72,7 @@ mutable struct SQLInput <: SQLType
   raw::Bool
   SQLInput(v::Union{String,Real}; escaped = false, raw = false) = new(v, escaped, raw)
 end
-SQLInput(a::Date) = string(s) |> SQLInput
+SQLInput(a::Date) = string(a) |> SQLInput
 SQLInput(a::Vector{T}) where {T} = map(x -> SQLInput(x), a)
 SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
