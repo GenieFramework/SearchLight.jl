@@ -3,7 +3,7 @@ Provides logging functionality for SearchLight apps.
 """
 module Loggers
 
-using Memento, Millboard, Dates
+using Millboard, Dates
 using SearchLight
 
 import Base.log
@@ -24,6 +24,8 @@ If `level` is `error` or `critical` it will also dump the stacktrace onto STDOUT
 ```
 """
 function log(message, level::Union{String,Symbol} = "info"; showst = false) :: Nothing
+  return 
+
   message = string(message)
   level = string(level)
 
@@ -79,6 +81,8 @@ Sets up default app loggers (STDOUT and per env file loggers) defferring to the 
 Automatically invoked.
 """
 function setup_loggers() :: Bool
+  return false
+
   Memento.config!(SearchLight.config.log_level |> string, fmt="[{date}|{level}]: {msg}")
 
   try

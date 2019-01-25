@@ -15,7 +15,7 @@ isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
 
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
-using DataFrames, OrderedCollections, Millboard, Distributed, OhMyREPL, Dates
+using DataFrames, OrderedCollections, Millboard, Distributed, Dates
 
 import DataFrames.DataFrame
 import Base.first, Base.last
@@ -1798,6 +1798,9 @@ BoundsError: attempt to access 0-element BitArray{1} at index [1]
 function to_model!!(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::T where {T<:AbstractModel}
   dfr = DataFrames.DataFrameRow(df, row_index)
 
+  to_model(m, dfr)
+end
+function to_model!!(m::Type{T}, dfr::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
   to_model(m, dfr)
 end
 
