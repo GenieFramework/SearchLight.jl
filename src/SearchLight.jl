@@ -1710,7 +1710,8 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
             end
 
     try
-      setfield!(obj, unq_field, convert(typeof(getfield(_m, unq_field)), value))
+      # setfield!(obj, unq_field, convert(typeof(getfield(_m, unq_field)), value))
+      setfield!(obj, unq_field, oftype(getfield(_m, unq_field), value))
     catch ex
       log(ex, :err)
       log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )", :err)
@@ -3704,12 +3705,17 @@ function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false
   output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
   response = Dict{String,String}()
   for f in fields
-    key = string(f)
-    value = string(getfield(m, Symbol(f)))
-    if length(value) > output_length
-      value = value[1:output_length] * "..."
+    value = getfield(m, Symbol(f))
+    value_as_string = string(value)
+    value_type = typeof(value)
+    value_type_as_string = ""
+    value_type_as_string = isa(value, DbId) ? "DbId" : string(value_type)
+    
+    key = string(f) * " :: " * value_type_as_string
+    if length(value_as_string) > output_length
+      value_as_string = value_as_string[1:output_length] * "..."
     end
-    response[key] = value
+    response[key] = value_as_string
   end
 
   response
@@ -3775,26 +3781,6 @@ Wraps SQL query parts in parenthesys.
 """
 function enclosure(v::Any, o::Any)::String
   in(string(o), ["IN", "in"]) ? "($(string(v)))" : string(v)
-end
-
-
-#
-# Conversion utilities
-#
-
-if ! hasmethod(convert, (Type{DateTime}, String))
-  function convert(::Type{Date}, value::String)::Date
-    DateParser.parse(DateTime, value)
-  end
-end
-if ! hasmethod(convert, (Type{Date}, String))
-  function convert(::Type{DateTime}, value::String)::DateTime
-    Dates.parse(Date, value)
-  end
-end
-
-function convert(::Type{Nullable{DateTime}}, value::String)::Nullable{DateTime}
-  DateParser.parse(DateTime, value) |> Nullable
 end
 
 
@@ -3954,6 +3940,11 @@ end
 
 function highlight_sql(sql::String) :: String
   Loggers.Highlight.highlight(sql)
+end
+
+
+macro converter(f)
+  Base.eval(SearchLight, f)
 end
 
 

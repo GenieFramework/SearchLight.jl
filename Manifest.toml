@@ -181,9 +181,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MbedTLS]]
 deps = ["BinaryProvider", "Dates", "Libdl", "Random", "Sockets", "Test"]
-git-tree-sha1 = "c93a87da4081a3de781f34e0540175795a2ce83d"
+git-tree-sha1 = "40b4a9149f0967714991328b8155c9ff5f91e755"
 uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
-version = "0.6.6"
+version = "0.6.7"
 
 [[Memento]]
 deps = ["Compat", "JSON", "Nullables", "Syslogs", "TimeZones"]
@@ -191,12 +191,18 @@ git-tree-sha1 = "c4ade3575bcc2c180cfa14cf8b3b63eebca51629"
 repo-rev = "master"
 repo-url = "https://github.com/invenia/Memento.jl.git"
 uuid = "f28f55f0-a522-5efc-85c2-fe41dfb9b2d9"
-version = "0.10.0"
+version = "0.10.0+"
 
 [[Millboard]]
 deps = ["Compat"]
 git-tree-sha1 = "21622ffb05343e51bc5b95c3576a71b26183809d"
 uuid = "39ec1447-df44-5f4c-beaa-866f30b4d3b2"
+version = "0.2.0"
+
+[[MiniLogging]]
+deps = ["Test"]
+git-tree-sha1 = "4f2f5ca0663afa0172db23bbdd99e683dd17fb0e"
+uuid = "f59402ec-0262-5707-a561-770af94bc5a6"
 version = "0.2.0"
 
 [[Missings]]
