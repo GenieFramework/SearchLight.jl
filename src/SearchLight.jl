@@ -3710,7 +3710,7 @@ function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false
     value_type = typeof(value)
     value_type_as_string = ""
     value_type_as_string = isa(value, DbId) ? "DbId" : string(value_type)
-    
+
     key = string(f) * " :: " * value_type_as_string
     if length(value_as_string) > output_length
       value_as_string = value_as_string[1:output_length] * "..."
