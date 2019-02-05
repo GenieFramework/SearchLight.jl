@@ -1,11 +1,10 @@
-const ROOT_PATH       = "."
-const CONFIG_PATH     = ROOT_PATH     * "/config"
-const ENV_PATH        = CONFIG_PATH   * "/env"
-const LOG_PATH        = ROOT_PATH     * "/log"
-const APP_PATH        = ROOT_PATH     * "/app"
-const RESOURCES_PATH  = APP_PATH      * "/resources"
-const TEST_PATH       = ROOT_PATH     * "/test"
-const TEST_PATH_UNIT  = TEST_PATH     * "/unit"
+const CONFIG_PATH     = "config"
+const ENV_PATH        = joinpath(CONFIG_PATH, "env")
+const LOG_PATH        = "log"
+const APP_PATH        = "app"
+const RESOURCES_PATH  = joinpath(APP_PATH, "resources")
+const TEST_PATH       = "test"
+const TEST_PATH_UNIT  = joinpath(TEST_PATH, "unit")
 
 const SEARCHLIGHT_MODEL_FILE_NAME             = "model.jl"
 const SEARCHLIGHT_VALIDATOR_FILE_NAME         = "validator.jl"
