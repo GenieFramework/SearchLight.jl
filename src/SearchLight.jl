@@ -11,7 +11,7 @@ haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 include(joinpath(@__DIR__, "Configuration.jl"))
 using .Configuration
 
-isfile("env.jl") && include("env.jl")
+isfile("env.jl") && include(joinpath(pwd(), "env.jl"))
 
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
