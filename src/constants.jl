@@ -1,4 +1,3 @@
-ROOT_PATH             = "."
 const CONFIG_PATH     = "config"
 const ENV_PATH        = joinpath(CONFIG_PATH, "env")
 const LOG_PATH        = "log"
