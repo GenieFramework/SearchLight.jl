@@ -3,6 +3,8 @@ module SQLiteDatabaseAdapter
 using SQLite, DataFrames, DataStreams, IterableTables, Nullables
 using SearchLight, SearchLight.Database, SearchLight.Loggers
 
+import SearchLight.Loggers: log
+
 export DatabaseHandle, ResultHandle
 
 

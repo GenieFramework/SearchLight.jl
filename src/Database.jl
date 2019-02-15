@@ -4,6 +4,8 @@ using Revise
 using YAML, DataFrames
 using SearchLight, SearchLight.Loggers, SearchLight.Configuration
 
+import SearchLight.Loggers: log
+
 
 function setup_adapter(adapter = SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
   dir = @__DIR__

@@ -7,6 +7,8 @@ using Revise
 using Unicode, Nullables
 using SearchLight.Loggers, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight, SearchLight.Migration
 
+import SearchLight.Loggers: log
+
 
 """
     new_model(cmd_args::Dict{String,Any}) :: Nothing

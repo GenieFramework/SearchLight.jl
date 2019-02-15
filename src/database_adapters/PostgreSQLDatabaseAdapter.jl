@@ -3,6 +3,8 @@ module PostgreSQLDatabaseAdapter
 using LibPQ, DataFrames, DataStreams, Nullables
 using SearchLight, SearchLight.Database, SearchLight.Loggers
 
+import SearchLight.Loggers: log
+
 export DatabaseHandle, ResultHandle
 
 

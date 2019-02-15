@@ -7,6 +7,7 @@ using Millboard, Dates, Nullables
 using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Loggers, SearchLight.Macros, SearchLight.Database
 
 import Base.showerror
+import SearchLight.Loggers: log
 
 
 """

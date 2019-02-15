@@ -6,8 +6,8 @@ module Loggers
 using Millboard, Dates, MiniLogging
 using SearchLight
 
-import Base.log
-export log
+# import Base.log
+# export log
 
 
 """
