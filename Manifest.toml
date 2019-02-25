@@ -29,11 +29,9 @@ version = "0.5.1"
 
 [[Codecs]]
 deps = ["Test"]
-git-tree-sha1 = "22ca0f23cfe244f9d3e55d598d199e192000b917"
-repo-rev = "master"
-repo-url = "https://github.com/dcjones/Codecs.jl.git"
+git-tree-sha1 = "70885e5e038cba1c4c17a84ad6c40756e10a4fb5"
 uuid = "19ecbf4d-ef7c-5e4b-b54a-0a0ff23c5aed"
-version = "0.5.0+"
+version = "0.5.0"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
@@ -76,10 +74,10 @@ uuid = "55939f99-70c6-5e9b-8bb0-5071ed7d61fd"
 version = "0.4.8"
 
 [[Decimals]]
-deps = ["Compat"]
-git-tree-sha1 = "7f0f577c00afe5ad7afe3300d5e82a0e5d33ae0a"
+deps = ["Test"]
+git-tree-sha1 = "b374d464d64470e743c5f9172c57352e1a9404ac"
 uuid = "abce61dc-4473-55a0-ba07-351d65e31d42"
-version = "0.3.1"
+version = "0.4.0"
 
 [[DelimitedFiles]]
 deps = ["Mmap"]
@@ -152,10 +150,8 @@ version = "0.4.1"
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[LibPQ]]
-deps = ["BinaryProvider", "Compat", "DataStreams", "Dates", "Decimals", "DocStringExtensions", "IterTools", "LayerDicts", "Libdl", "Memento", "Missings", "OffsetArrays", "Tables", "TimeZones"]
+deps = ["BinaryProvider", "Compat", "DataStreams", "Decimals", "DocStringExtensions", "IterTools", "LayerDicts", "Libdl", "Memento", "Missings", "OffsetArrays", "Tables", "TimeZones"]
 git-tree-sha1 = "d330ba87e13fb8f409cdd3527b0638746d891e28"
-repo-rev = "master"
-repo-url = "https://github.com/invenia/LibPQ.jl.git"
 uuid = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"
 version = "0.7.0"
 
@@ -215,12 +211,10 @@ uuid = "78c3b35d-d492-501b-9361-3d52fe80e533"
 version = "0.5.7"
 
 [[MySQL]]
-deps = ["BinaryProvider", "Dates", "DecFP", "Tables", "Test"]
-git-tree-sha1 = "003726d1a503899900eafb9c3bc7226ca6d48d4d"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaDatabases/MySQL.jl.git"
+deps = ["BinaryProvider", "Dates", "DecFP", "Libdl", "Tables", "Test"]
+git-tree-sha1 = "4b9828e56c9c70a04740f5fc369bd5c65efdbd0a"
 uuid = "39abe10b-433b-5dbd-92d4-e302a9df00cd"
-version = "0.7.0+"
+version = "0.7.0"
 
 [[Nullables]]
 deps = ["Compat"]
@@ -278,12 +272,10 @@ version = "1.0.2"
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
 [[SQLite]]
-deps = ["BinaryProvider", "DataFrames", "DataStreams", "Dates", "LegacyStrings", "Missings", "Random", "Serialization", "Tables", "Test", "WeakRefStrings"]
-git-tree-sha1 = "dc3fe69ef878df855bbd13d77cf6c7ad8b38bd86"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaDatabases/SQLite.jl.git"
+deps = ["BinaryProvider", "DataFrames", "DataStreams", "Dates", "LegacyStrings", "Libdl", "Missings", "Random", "Serialization", "Tables", "Test", "WeakRefStrings"]
+git-tree-sha1 = "46b4c31597ccd5a7f85bd34ae0f5a8bd70e5cbbc"
 uuid = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
-version = "0.7.0+"
+version = "0.7.0"
 
 [[Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
@@ -382,8 +374,6 @@ version = "0.5.7"
 
 [[YAML]]
 deps = ["Codecs", "Compat"]
-git-tree-sha1 = "3bf6d2dd1bda57c479793d669106e20c8826ad46"
-repo-rev = "master"
-repo-url = "https://github.com/dcjones/YAML.jl.git"
+git-tree-sha1 = "3bde77cee95cce0c0b9b18813d85e18e8ed4f415"
 uuid = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
-version = "0.3.2+"
+version = "0.3.2"

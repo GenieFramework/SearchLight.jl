@@ -55,21 +55,22 @@ end
 
 
 """
-    connect(conn_data::Dict{String,Any})::DatabaseHandle
+    connect(conn_data::Dict)::DatabaseHandle
 
 Connects to the database and returns a handle.
 """
-function connect(conn_data::Dict{String,Any})::DatabaseHandle
+function connect(conn_data::Dict)::DatabaseHandle
   dns = String[]
-  get!(conn_data, "host", nothing) != nothing      && push!(dns, "host=" * conn_data["host"])
-  get!(conn_data, "hostaddr", nothing) != nothing  && push!(dns, "hostaddr=" * conn_data["hostaddr"])
-  get!(conn_data, "port", nothing) != nothing      && push!(dns, "port=" * string(conn_data["port"]))
-  get!(conn_data, "database", nothing) != nothing  && push!(dns, "dbname=" * conn_data["database"])
-  get!(conn_data, "username", nothing) != nothing  && push!(dns, "user=" * conn_data["username"])
-  get!(conn_data, "password", nothing) != nothing  && push!(dns, "password=" * conn_data["password"])
-  get!(conn_data, "passfile", nothing) != nothing  && push!(dns, "passfile=" * conn_data["passfile"])
-  get!(conn_data, "connecttimeout", nothing) != nothing  && push!(dns, "connect_timeout=" * conn_data["connecttimeout"])
-  get!(conn_data, "clientencoding", nothing) != nothing  && push!(dns, "client_encoding=" * conn_data["clientencoding"])
+
+  get(conn_data, "host", nothing) != nothing      && push!(dns, "host=" * conn_data["host"])
+  get(conn_data, "hostaddr", nothing) != nothing  && push!(dns, "hostaddr=" * conn_data["hostaddr"])
+  get(conn_data, "port", nothing) != nothing      && push!(dns, "port=" * string(conn_data["port"]))
+  get(conn_data, "database", nothing) != nothing  && push!(dns, "dbname=" * conn_data["database"])
+  get(conn_data, "username", nothing) != nothing  && push!(dns, "user=" * conn_data["username"])
+  get(conn_data, "password", nothing) != nothing  && push!(dns, "password=" * conn_data["password"])
+  get(conn_data, "passfile", nothing) != nothing  && push!(dns, "passfile=" * conn_data["passfile"])
+  get(conn_data, "connecttimeout", nothing) != nothing  && push!(dns, "connect_timeout=" * conn_data["connecttimeout"])
+  get(conn_data, "clientencoding", nothing) != nothing  && push!(dns, "client_encoding=" * conn_data["clientencoding"])
 
   try
     DB_ADAPTER.Connection(join(dns, " "))
