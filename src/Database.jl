@@ -478,3 +478,5 @@ function index_name(table_name::Union{String,Symbol}, column_name::Union{String,
 end
 
 end
+
+const Databases = Database

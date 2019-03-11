@@ -249,3 +249,5 @@ end
 const init = db_init
 
 end
+
+const Generators = Generator
