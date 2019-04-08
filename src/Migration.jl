@@ -354,9 +354,9 @@ Runs all migrations `down`.
 """
 function all_down(; confirm = true) :: Nothing
   if confirm
-    print_with_color(:yellow, "!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 5 seconds to cancel this. ")
+    printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 5 seconds to cancel this. ", color = :yellow)
     sleep(3)
-    print_with_color(:yellow, "Running down all the migrations in 2 seconds. ")
+    printstyled("Running down all the migrations in 2 seconds. ", :yellow)
     sleep(2)
   end
 
