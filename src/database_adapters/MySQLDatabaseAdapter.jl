@@ -2,6 +2,7 @@ module MySQLDatabaseAdapter
 
 using MySQL, DataFrames, DataStreams, Nullables
 using SearchLight, SearchLight.Database, SearchLight.Loggers
+import SearchLight.Loggers: log
 
 export DatabaseHandle, ResultHandle
 
@@ -48,17 +49,16 @@ end
 
 
 """
-    connect(conn_data::Dict{String,Any})::DatabaseHandle
+    connect(conn_data::Dict)::DatabaseHandle
 
 Connects to the database and returns a handle.
 """
-function connect(conn_data::Dict{String,Any})::DatabaseHandle
+function connect(conn_data::Dict)::DatabaseHandle
   try
-    MySQL.connect(conn_data["host"],
-                  conn_data["username"],
-                  (get!(conn_data, "password", nothing) == nothing ? "" : conn_data["password"]),
+    MySQL.connect(conn_data["host"], conn_data["username"], get(conn_data, "password", ""),
                   db    = conn_data["database"],
-                  port  = (get!(conn_data, "port", nothing) == nothing ? 3360 : conn_data["port"]))
+                  port  = get(conn_data, "port", 3306)
+                  )
   catch ex
     log("Invalid DB connection settings", :err)
     log(string(ex), :err)
@@ -177,10 +177,10 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 function query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
   try
     result::DataFrame = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
-                          DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
+                          DB_ADAPTER.Query(conn, sql) |> DataFrames.DataFrame
                         else
                           log("SQL QUERY: $(escape_string(sql))")
-                          @time DB_ADAPTER.query(conn, sql, DataFrames.DataFrame)
+                          @time DB_ADAPTER.Query(conn, sql) |> DataFrames.DataFrame
                         end
 
     if in(:num_rows_affected, names(result)) && DB_ADAPTER.insertid(conn) > 0

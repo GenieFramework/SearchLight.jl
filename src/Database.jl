@@ -4,6 +4,8 @@ using Revise
 using YAML, DataFrames
 using SearchLight, SearchLight.Loggers, SearchLight.Configuration
 
+import SearchLight.Loggers: log
+
 
 function setup_adapter(adapter = SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
   dir = @__DIR__
@@ -48,12 +50,14 @@ PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,fa
 function connect() #::DatabaseHandle
   connect(SearchLight.config.db_config_settings)
 end
-function connect!(conn_settings::Dict{String,Any})
+function connect!(conn_settings::Dict)
   SearchLight.config.db_config_settings["adapter"] = conn_settings["adapter"]
   setup_adapter()
   Database.connect(conn_settings) #::DatabaseHandle
 end
-function connect(conn_settings::Dict{String,Any})
+function connect(conn_settings::Dict)
+  isdefined(@__MODULE__, :DatabaseAdapter) || connect!(conn_settings)
+
   c = Base.invokelatest(DatabaseAdapter.connect, conn_settings) #::DatabaseHandle
   Core.eval(@__MODULE__, :(const _connection = $c))
 
@@ -474,3 +478,5 @@ function index_name(table_name::Union{String,Symbol}, column_name::Union{String,
 end
 
 end
+
+const Databases = Database

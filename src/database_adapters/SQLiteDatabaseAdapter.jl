@@ -3,6 +3,8 @@ module SQLiteDatabaseAdapter
 using SQLite, DataFrames, DataStreams, IterableTables, Nullables
 using SearchLight, SearchLight.Database, SearchLight.Loggers
 
+import SearchLight.Loggers: log
+
 export DatabaseHandle, ResultHandle
 
 
@@ -48,13 +50,13 @@ end
 
 
 """
-    connect(conn_data::Dict{String,Any})::DatabaseHandle
+    connect(conn_data::Dict)::DatabaseHandle
     function connect()::DatabaseHandle
 
 Connects to the database defined in conn_data["filename"] and returns a handle.
 If no conn_data is provided, a temporary, in-memory database will be used.
 """
-function connect(conn_data::Dict{String,Any})::DatabaseHandle
+function connect(conn_data::Dict)::DatabaseHandle
   if ! haskey(conn_data, "filename")
     conn_data["filename"] = if haskey(conn_data, "host") && conn_data["host"] != nothing
                               conn_data["host"]

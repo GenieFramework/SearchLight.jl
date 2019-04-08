@@ -3,11 +3,24 @@ Provides logging functionality for SearchLight apps.
 """
 module Loggers
 
-using Memento, Millboard, Dates
+using Millboard, Dates, MiniLogging
 using SearchLight
 
-import Base.log
-export log
+# import Base.log
+# export log
+
+
+"""
+Map Genie log levels to MiniLogging levels
+"""
+const LOG_LEVEL_MAPPING = Dict(
+  :debug    => MiniLogging.DEBUG,
+  :info     => MiniLogging.INFO,
+  :warn     => MiniLogging.WARN,
+  :error    => MiniLogging.ERROR,
+  :err      => MiniLogging.ERROR,
+  :critical => MiniLogging.CRITICAL
+)
 
 
 """
@@ -23,23 +36,28 @@ If `level` is `error` or `critical` it will also dump the stacktrace onto STDOUT
 ```julia
 ```
 """
-function log(message, level::Union{String,Symbol} = "info"; showst = false) :: Nothing
+function log(message::Union{String,Symbol,Number,Exception}, level::Union{String,Symbol} = :debug; showst = false) :: Nothing
   message = string(message)
   level = string(level)
 
-  if level == "err"
-    level = "error"
-  elseif level == "debug"
-    level = "info"
+  basic_config(LOG_LEVEL_MAPPING[SearchLight.config.log_level], log_path())
+  length(get_logger().handlers) == 1 && push!(get_logger().handlers, MiniLogging.Handler(stderr, "%Y-%m-%d %H:%M:%S"))
+
+  loggo = get_logger()
+
+  if level == "debug"
+    MiniLogging.@debug(loggo, message)
+  elseif level == "info"
+    MiniLogging.@info(loggo, message)
+  elseif level == "warn"
+    MiniLogging.@warn(loggo, message)
+  elseif level == "error" || level == "err"
+    MiniLogging.@error(loggo, message)
+  elseif level == "critical"
+    MiniLogging.@critical(loggo, message)
+  else
+    MiniLogging.@debug(loggo, message)
   end
-
-  file_logger = getlogger(@__MODULE__)
-  setlevel!(file_logger, SearchLight.config.log_level |> string)
-  push!(file_logger, DefaultHandler(log_path(), DefaultFormatter("[{date}|{level}]: {msg}")))
-
-  # for (logger_name, logger) in LOGGERS
-  Base.invoke(Core.eval(@__MODULE__, Meta.parse("Memento.$level")), Tuple{typeof(file_logger),typeof(message)}, file_logger, message)
-  # end
 
   if (level == "error") && showst
     println()
@@ -73,22 +91,13 @@ end
 
 
 """
-    setup_loggers() :: Bool
+    setup_loggers()
 
-Sets up default app loggers (STDOUT and per env file loggers) defferring to the `Lumberjack` module.
+Sets up default app loggers (STDOUT and per env file loggers) defferring to the logging module.
 Automatically invoked.
 """
-function setup_loggers() :: Bool
-  Memento.config!(SearchLight.config.log_level |> string, fmt="[{date}|{level}]: {msg}")
+function setup_loggers()
 
-  try
-    isdir(SearchLight.LOG_PATH) || mkpath(SearchLight.LOG_PATH)
-    isfile(log_path()) || touch(log_path())
-  catch ex
-    @warn ex
-  end
-
-  true
 end
 
 
@@ -125,7 +134,12 @@ macro location()
   :(log(" in $(@__FILE__):$(@__LINE__)", :err))
 end
 
-setup_loggers()
+function initlogfile()
+  dirname(log_path()) |> mkpath
+  touch(log_path())
+end
+
+initlogfile()
 empty_log_queue()
 
 end

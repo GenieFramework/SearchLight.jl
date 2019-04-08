@@ -11,11 +11,11 @@ haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 include(joinpath(@__DIR__, "Configuration.jl"))
 using .Configuration
 
-isfile(joinpath(ROOT_PATH, "env.jl")) && include(joinpath(ROOT_PATH, "env.jl"))
+isfile("env.jl") && include(joinpath(pwd(), "env.jl"))
 
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
-using DataFrames, OrderedCollections, Millboard, Distributed, OhMyREPL, Dates
+using DataFrames, OrderedCollections, Millboard, Distributed, Dates
 
 import DataFrames.DataFrame
 import Base.first, Base.last
@@ -35,7 +35,9 @@ include("QueryBuilder.jl")
 
 using .Database, .Migration, .Util, .Loggers, .Validation, .Inflector, .Macros, .DatabaseSeeding, .QueryBuilder
 
-import Base.rand, Base.all, Base.count # Base.find
+import Base.rand, Base.all, Base.count
+import .Loggers.log
+
 export find_df, find, find_by, find_one_by, find_one_by!!, find_one, find_one!!, rand, rand_one, rand_one!!, all, count, find_one_by_or_create, create_with
 export save, save!, save!!, update_with!, update_with!!, create_or_update_by!!, create_or_update!!, delete_all, delete
 export validator, validator!!
@@ -44,6 +46,7 @@ export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
 export relations, has_relation, is_persisted, to_sqlinput, has_field, relation_eagerness
 export primary_key_name, table_name, disposable_instance
+export ispersisted
 
 const QB = QueryBuilder
 export QueryBuilder, QB, Migration, Validation, Loggers, Util
@@ -1710,7 +1713,8 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
             end
 
     try
-      setfield!(obj, unq_field, convert(typeof(getfield(_m, unq_field)), value))
+      # setfield!(obj, unq_field, convert(typeof(getfield(_m, unq_field)), value))
+      setfield!(obj, unq_field, oftype(getfield(_m, unq_field), value))
     catch ex
       log(ex, :err)
       log("obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )", :err)
@@ -1798,6 +1802,9 @@ BoundsError: attempt to access 0-element BitArray{1} at index [1]
 function to_model!!(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::T where {T<:AbstractModel}
   dfr = DataFrames.DataFrameRow(df, row_index)
 
+  to_model(m, dfr)
+end
+function to_model!!(m::Type{T}, dfr::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
   to_model(m, dfr)
 end
 
@@ -3204,6 +3211,7 @@ true
 function is_persisted(m::T)::Bool where {T<:AbstractModel}
   ! ( isa(getfield(m, Symbol(primary_key_name(m))), Nullable) && isnull( getfield(m, Symbol(primary_key_name(m))) ) )
 end
+const ispersisted = is_persisted
 
 
 """
@@ -3701,12 +3709,17 @@ function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false
   output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
   response = Dict{String,String}()
   for f in fields
-    key = string(f)
-    value = string(getfield(m, Symbol(f)))
-    if length(value) > output_length
-      value = value[1:output_length] * "..."
+    value = getfield(m, Symbol(f))
+    value_as_string = string(value)
+    value_type = typeof(value)
+    value_type_as_string = ""
+    value_type_as_string = isa(value, DbId) ? "DbId" : string(value_type)
+
+    key = string(f) * " :: " * value_type_as_string
+    if length(value_as_string) > output_length
+      value_as_string = value_as_string[1:output_length] * "..."
     end
-    response[key] = value
+    response[key] = value_as_string
   end
 
   response
@@ -3772,26 +3785,6 @@ Wraps SQL query parts in parenthesys.
 """
 function enclosure(v::Any, o::Any)::String
   in(string(o), ["IN", "in"]) ? "($(string(v)))" : string(v)
-end
-
-
-#
-# Conversion utilities
-#
-
-if ! hasmethod(convert, (Type{DateTime}, String))
-  function convert(::Type{Date}, value::String)::Date
-    DateParser.parse(DateTime, value)
-  end
-end
-if ! hasmethod(convert, (Type{Date}, String))
-  function convert(::Type{DateTime}, value::String)::DateTime
-    Dates.parse(Date, value)
-  end
-end
-
-function convert(::Type{Nullable{DateTime}}, value::String)::Nullable{DateTime}
-  DateParser.parse(DateTime, value) |> Nullable
 end
 
 
@@ -3951,6 +3944,11 @@ end
 
 function highlight_sql(sql::String) :: String
   Loggers.Highlight.highlight(sql)
+end
+
+
+macro converter(f)
+  Base.eval(SearchLight, f)
 end
 
 
