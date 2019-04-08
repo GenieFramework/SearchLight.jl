@@ -46,6 +46,7 @@ export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
 export to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
 export relations, has_relation, is_persisted, to_sqlinput, has_field, relation_eagerness
 export primary_key_name, table_name, disposable_instance
+export ispersisted
 
 const QB = QueryBuilder
 export QueryBuilder, QB, Migration, Validation, Loggers, Util
@@ -3210,6 +3211,7 @@ true
 function is_persisted(m::T)::Bool where {T<:AbstractModel}
   ! ( isa(getfield(m, Symbol(primary_key_name(m))), Nullable) && isnull( getfield(m, Symbol(primary_key_name(m))) ) )
 end
+const ispersisted = is_persisted
 
 
 """
