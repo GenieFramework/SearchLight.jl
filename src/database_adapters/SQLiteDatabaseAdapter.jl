@@ -200,21 +200,21 @@ function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFr
 
   result =  if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
               if length(parts) == 2
-                SQLite.query(conn, parts[1]) |> DataFrame
-                SQLite.query(conn, parts[2]) |> DataFrame
+                SQLite.Query(conn, parts[1]) |> DataFrame
+                SQLite.Query(conn, parts[2]) |> DataFrame
               else
-                SQLite.query(conn, parts[1]) |> DataFrame
+                SQLite.Query(conn, parts[1]) |> DataFrame
               end
             else
               if length(parts) == 2
                 log("SQL QUERY: $(parts[1])")
-                @time SQLite.query(conn, parts[1]) |> DataFrame
+                @time SQLite.Query(conn, parts[1]) |> DataFrame
 
                 log("SQL QUERY: $(parts[2])")
-                @time SQLite.query(conn, parts[2]) |> DataFrame
+                @time SQLite.Query(conn, parts[2]) |> DataFrame
               else
                 log("SQL QUERY: $(parts[1])")
-                @time SQLite.query(conn, parts[1]) |> DataFrame
+                @time SQLite.Query(conn, parts[1]) |> DataFrame
               end
             end
 
