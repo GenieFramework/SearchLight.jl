@@ -2969,17 +2969,7 @@ julia> SearchLight.query("SELECT * FROM articles LIMIT 5")
 5×7 DataFrames.DataFrame
 ```
 """
-function query(sql::String; system_query::Bool = false)::DataFrame
-  Database.query_df(sql, system_query = system_query)
-end
-
-
-"""
-    query_raw(sql::String; system_query::Bool = false)::DatabaseAdapter.ResultHandle
-
-Sends a raw query string to be executed by the database adapter.
-"""
-function query_raw(sql::String; system_query::Bool = false)::DatabaseAdapter.ResultHandle
+function query(sql::String; system_query::Bool = false) :: DataFrame
   Database.query(sql, system_query = system_query)
 end
 

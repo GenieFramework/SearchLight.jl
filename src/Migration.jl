@@ -263,13 +263,12 @@ Persists the `direction` of the `migration` into the database.
 function store_migration_status(migration::DatabaseMigration, direction::Symbol; force = false) :: Nothing
   try
     if direction == :up
-      SearchLight.query_raw("INSERT INTO $(SearchLight.config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", system_query = true)
+      SearchLight.query("INSERT INTO $(SearchLight.config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", system_query = true)
     else
-      SearchLight.query_raw("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", system_query = true)
+      SearchLight.query("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", system_query = true)
     end
   catch ex
     log(string(ex), :err)
-    log(@location_in_file, :err)
 
     force || rethrow(ex)
   end

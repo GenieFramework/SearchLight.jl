@@ -173,13 +173,13 @@ end
 
 
 """
-    query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
+    query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
 
 Executes the `sql` query against the database backend and returns a DataFrame result.
 
 # Examples:
 ```julia
-julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Database.connection())
+julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Database.connection())
 
 2017-01-16T21:36:21.566 - info: SQL QUERY: SELECT \"articles\".\"id\" AS \"articles_id\", \"articles\".\"title\" AS \"articles_title\", \"articles\".\"summary\" AS \"articles_summary\", \"articles\".\"content\" AS \"articles_content\", \"articles\".\"updated_at\" AS \"articles_updated_at\", \"articles\".\"published_at\" AS \"articles_published_at\", \"articles\".\"slug\" AS \"articles_slug\" FROM \"articles\" LIMIT 5
 
@@ -189,7 +189,7 @@ julia> query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, D
 ...
 ```
 """
-function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
+function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
   parts::Vector{String} = if occursin(SELECT_LAST_ID_QUERY_START, sql)
                             split(sql, SELECT_LAST_ID_QUERY_START)
                           else
@@ -220,7 +220,6 @@ function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFr
 
   result
 end
-const query_df = query
 
 
 """

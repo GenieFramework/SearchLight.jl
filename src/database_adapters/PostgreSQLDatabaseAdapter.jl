@@ -170,13 +170,13 @@ end
 
 
 """
-    query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
+    query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
 
 Executes the `sql` query against the database backend and returns a DataFrame result.
 
 # Examples:
 ```julia
-julia> PostgreSQLDatabaseAdapter.query_df(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Database.connection())
+julia> PostgreSQLDatabaseAdapter.query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Database.connection())
 
 2017-01-16T21:36:21.566 - info: SQL QUERY: SELECT \"articles\".\"id\" AS \"articles_id\", \"articles\".\"title\" AS \"articles_title\", \"articles\".\"summary\" AS \"articles_summary\", \"articles\".\"content\" AS \"articles_content\", \"articles\".\"updated_at\" AS \"articles_updated_at\", \"articles\".\"published_at\" AS \"articles_published_at\", \"articles\".\"slug\" AS \"articles_slug\" FROM \"articles\" LIMIT 5
 
@@ -186,30 +186,19 @@ julia> PostgreSQLDatabaseAdapter.query_df(SearchLight.to_fetch_sql(Article, SQLQ
 ...
 ```
 """
-function query_df(sql::String, suppress_output::Bool, conn::DatabaseHandle)::DataFrames.DataFrame
-  DB_ADAPTER.fetch!(DataFrames.DataFrame, query(sql, suppress_output, conn))
-end
-
-
-"""
-
-"""
-function query(sql::String, suppress_output::Bool, conn::DatabaseHandle)::ResultHandle
-  # stmt = DB_ADAPTER.prepare(conn, sql)
-
+function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrame
   result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
     DB_ADAPTER.execute(conn, sql)
   else
     log("SQL QUERY: $sql")
     @time DB_ADAPTER.execute(conn, sql)
   end
-  # DB_ADAPTER.close(conn)
 
   if ( DB_ADAPTER.error_message(result) != "" )
     error("$(string(DB_ADAPTER)) error: $(DB_ADAPTER.errstring(result)) [$(DB_ADAPTER.errcode(result))]")
   end
 
-  result
+  DB_ADAPTER.fetch!(DataFrames.DataFrame, result)
 end
 
 
