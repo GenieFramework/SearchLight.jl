@@ -11,7 +11,7 @@ using SearchLight
 
 
 """
-Map Genie log levels to MiniLogging levels
+Map SearchLight log levels to MiniLogging levels
 """
 const LOG_LEVEL_MAPPING = Dict(
   :debug    => MiniLogging.DEBUG,

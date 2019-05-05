@@ -71,7 +71,7 @@ If the database connection information for the current environment does not exis
 
 # Examples
 ```julia
-julia> Configuration.read_db_connection_data(joinpath(Genie.CONFIG_PATH, Genie.GENIE_DB_CONFIG_FILE_NAME))
+julia> Configuration.read_db_connection_data(...)
 Dict{Any,Any} with 6 entries:
   "host"     => "localhost"
   "password" => "..."

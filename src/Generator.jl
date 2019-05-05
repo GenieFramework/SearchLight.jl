@@ -1,5 +1,5 @@
 """
-Generates various Genie files.
+Generates various SearchLight files.
 """
 module Generator
 
@@ -241,7 +241,7 @@ end
 """
     db_init() :: Bool
 
-Sets up the DB tables used by Genie.
+Sets up the DB tables used by SearchLight.
 """
 function db_init() :: Bool
   SearchLight.create_migrations_table(SearchLight.config.db_migrations_table_name)

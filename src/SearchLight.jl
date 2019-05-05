@@ -2358,7 +2358,7 @@ App.User
 +============+==================================================================+
 |        key |                                                            value |
 +============+==================================================================+
-|      email |                                                genie@example.com |
+|      email |                                               adrian@example.com |
 +------------+------------------------------------------------------------------+
 |         id |                                               Nullable{Int32}(1) |
 +------------+------------------------------------------------------------------+
@@ -2416,7 +2416,7 @@ App.User
 +============+==================================================================+
 |        key |                                                            value |
 +============+==================================================================+
-|      email |                                                genie@example.com |
+|      email |                                               adrian@example.com |
 +------------+------------------------------------------------------------------+
 |         id |                                               Nullable{Int32}(1) |
 +------------+------------------------------------------------------------------+
@@ -2847,7 +2847,7 @@ Applies `on_save` callback if defined.
 
 # Examples
 ```julia
-julia> SearchLight.to_sqlinput(SearchLight.find_one!!(User, 1), :email, "genie@example.com'; DROP users;")
+julia> SearchLight.to_sqlinput(SearchLight.find_one!!(User, 1), :email, "adrian@example.com'; DROP users;")
 
 2016-12-23T15:09:27.166 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id" WHERE ("users"."id" = 1) ORDER BY users.id ASC LIMIT 1
 
@@ -2856,7 +2856,7 @@ julia> SearchLight.to_sqlinput(SearchLight.find_one!!(User, 1), :email, "genie@e
 2016-12-23T15:09:27.173 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
 
   0.000470 seconds (13 allocations: 432 bytes)
-'genie@example.com''; DROP users;'
+'adrian@example.com''; DROP users;'
 ```
 """
 function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractModel}
