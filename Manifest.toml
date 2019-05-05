@@ -135,10 +135,10 @@ uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.20.0"
 
 [[JuliaInterpreter]]
-deps = ["CodeTracking", "Dates", "Distributed", "InteractiveUtils", "Mmap", "Random", "SHA", "Test", "UUIDs"]
-git-tree-sha1 = "3446fc94431daec86574672a748696485d3c0487"
+deps = ["CodeTracking", "InteractiveUtils", "Random", "UUIDs"]
+git-tree-sha1 = "553281260578bb50d6d550977f438754e7e93397"
 uuid = "aa1ae85d-cabe-5617-a682-6adf51b2e16a"
-version = "0.5.0"
+version = "0.5.1"
 
 [[LayerDicts]]
 deps = ["Compat"]
@@ -229,10 +229,10 @@ uuid = "4d1e1d77-625e-5b40-9113-a560ec7a8ecd"
 version = "0.0.8"
 
 [[OffsetArrays]]
-deps = ["DelimitedFiles", "Test"]
-git-tree-sha1 = "e6893807f09c1d5517861ded8b203cb96cb7d44a"
+deps = ["DelimitedFiles"]
+git-tree-sha1 = "49a6d9b5b3dedec18035e4d97ce77e2b2a182c05"
 uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "0.10.0"
+version = "0.11.0"
 
 [[OrderedCollections]]
 deps = ["Random", "Serialization", "Test"]
@@ -276,9 +276,9 @@ version = "0.5.2"
 
 [[Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "UUIDs", "Unicode"]
-git-tree-sha1 = "84f29e1b3670ade5c1b4f6fc80eac166bd37bb59"
+git-tree-sha1 = "f4cd86477685d5095f8cbce2a47f69ae9cf5c963"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "2.1.3"
+version = "2.1.4"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -345,9 +345,9 @@ version = "0.4.0"
 
 [[Tables]]
 deps = ["IteratorInterfaceExtensions", "LinearAlgebra", "Requires", "TableTraits", "Test"]
-git-tree-sha1 = "e2abd466ca2f00a1bb8cb80024d59745cc8f91a6"
+git-tree-sha1 = "9e748316f5aa7b7753c90de612ef98fe8b0ea297"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "0.2.0"
+version = "0.2.1"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
