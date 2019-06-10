@@ -7,9 +7,11 @@ using SearchLight, SearchLight.Loggers, SearchLight.Configuration
 import SearchLight.Loggers: log
 
 
+const ADAPTERS_FOLDER = joinpath(@__DIR__, "database_adapters")
+
+
 function setup_adapter(adapter = SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter") :: Union{Bool,Nothing}
-  dir = @__DIR__
-  Core.eval(@__MODULE__, Meta.parse("""include(joinpath("$dir", joinpath("database_adapters", "$adapter.jl")))"""))
+  Core.eval(@__MODULE__, Meta.parse("""include(joinpath(ADAPTERS_FOLDER, "$adapter.jl"))"""))
   Core.eval(@__MODULE__, Meta.parse("using .$adapter"))
 
   Core.eval(@__MODULE__, :(db_adapter = Symbol($adapter)))
