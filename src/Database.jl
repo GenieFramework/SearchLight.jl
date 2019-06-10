@@ -7,7 +7,7 @@ using SearchLight, SearchLight.Loggers, SearchLight.Configuration
 import SearchLight.Loggers: log
 
 
-function setup_adapter(adapter = SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter")
+function setup_adapter(adapter = SearchLight.config.db_config_settings["adapter"] * "DatabaseAdapter") :: Union{Bool,Nothing}
   dir = @__DIR__
   Core.eval(@__MODULE__, Meta.parse("""include(joinpath("$dir", "database_adapters/$adapter.jl"))"""))
   Core.eval(@__MODULE__, Meta.parse("using .$adapter"))
@@ -18,6 +18,8 @@ function setup_adapter(adapter = SearchLight.config.db_config_settings["adapter"
   ! Core.isdefined(@__MODULE__, :ResultHandle) && Core.eval(@__MODULE__, :(const ResultHandle = $db_adapter.ResultHandle))
 
   Core.eval(@__MODULE__, :(export DatabaseAdapter))
+
+  true
 end
 
 
