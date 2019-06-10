@@ -133,6 +133,11 @@ function load_db_connection_from_config() :: Dict{String,Any}
 end
 
 
+function load() :: Dict{String,Any}
+  SearchLight.config.db_config_settings = load_db_connection()
+end
+
+
 """
     mutable struct Settings
 
