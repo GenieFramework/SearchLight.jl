@@ -1,7 +1,7 @@
 name = "SearchLight"
 uuid = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
 authors = ["Adrian Salceanu <e@essenciary.com>"]
-version = "0.8.3"
+version = "0.8.4"
 
 [deps]
 Codecs = "19ecbf4d-ef7c-5e4b-b54a-0a0ff23c5aed"

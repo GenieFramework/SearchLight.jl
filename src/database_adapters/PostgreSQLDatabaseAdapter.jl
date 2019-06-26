@@ -198,7 +198,7 @@ function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: Data
     error("$(string(DB_ADAPTER)) error: $(DB_ADAPTER.errstring(result)) [$(DB_ADAPTER.errcode(result))]")
   end
 
-  DB_ADAPTER.fetch!(DataFrames.DataFrame, result)
+  result |> DataFrame
 end
 
 

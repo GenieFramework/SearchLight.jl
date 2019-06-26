@@ -58,10 +58,10 @@ uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 version = "0.15.0"
 
 [[DataValues]]
-deps = ["Dates", "InteractiveUtils", "LinearAlgebra", "Random", "Test"]
-git-tree-sha1 = "05e4a87fe52a2af1b4a1ffd3ab2fc996c038b192"
+deps = ["Dates"]
+git-tree-sha1 = "5e4ce6e8381171bcff7d31e898fc67f98dc91930"
 uuid = "e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5"
-version = "0.4.7"
+version = "0.4.8"
 
 [[Dates]]
 deps = ["Printf"]
@@ -89,9 +89,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DocStringExtensions]]
 deps = ["LibGit2", "Markdown", "Pkg", "Test"]
-git-tree-sha1 = "4d30e889c9f106a51ffa4791a88ffd4765bf20c3"
+git-tree-sha1 = "0513f1a8991e9d83255e0140aace0d0fc4486600"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.7.0"
+version = "0.8.0"
 
 [[EzXML]]
 deps = ["BinaryProvider", "Libdl", "Pkg", "Printf", "Test"]
@@ -148,10 +148,10 @@ version = "1.0.0"
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[LibPQ]]
-deps = ["BinaryProvider", "Dates", "Decimals", "DocStringExtensions", "IterTools", "LayerDicts", "Libdl", "Memento", "OffsetArrays", "Tables", "TimeZones"]
-git-tree-sha1 = "a07f51f8e86091ac3093cbd71eb16f84403614c6"
+deps = ["BinaryProvider", "Dates", "Decimals", "DocStringExtensions", "FileWatching", "IterTools", "LayerDicts", "Libdl", "Memento", "OffsetArrays", "Tables", "TimeZones"]
+git-tree-sha1 = "067803f230e89a235ce9589b861a49cb2320a4a3"
 uuid = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"
-version = "0.9.1"
+version = "0.10.0"
 
 [[Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -227,10 +227,9 @@ uuid = "4d1e1d77-625e-5b40-9113-a560ec7a8ecd"
 version = "0.0.8"
 
 [[OffsetArrays]]
-deps = ["DelimitedFiles"]
-git-tree-sha1 = "49a6d9b5b3dedec18035e4d97ce77e2b2a182c05"
+git-tree-sha1 = "1af2f79c7eaac3e019a0de41ef63335ff26a0a57"
 uuid = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
-version = "0.11.0"
+version = "0.11.1"
 
 [[OrderedCollections]]
 deps = ["Random", "Serialization", "Test"]
@@ -342,9 +341,9 @@ version = "0.4.0"
 
 [[Tables]]
 deps = ["IteratorInterfaceExtensions", "LinearAlgebra", "Requires", "TableTraits", "Test"]
-git-tree-sha1 = "351a4b894122e1553c6ed05fda54086ab036adef"
+git-tree-sha1 = "c328ce4519e2c1ec7368e6ce98a5f916ecf230a8"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-version = "0.2.5"
+version = "0.2.6"
 
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
