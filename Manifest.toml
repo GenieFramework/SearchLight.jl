@@ -57,11 +57,16 @@ git-tree-sha1 = "ca971f03e146cf144a9e2f2ce59674f5bf0e8038"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 version = "0.15.0"
 
+[[DataValueInterfaces]]
+git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
+uuid = "e2d170a0-9d28-54be-80f0-106bbe20a464"
+version = "1.0.0"
+
 [[DataValues]]
-deps = ["Dates"]
-git-tree-sha1 = "5e4ce6e8381171bcff7d31e898fc67f98dc91930"
+deps = ["DataValueInterfaces", "Dates"]
+git-tree-sha1 = "b23285b1ebe5c9febc8a2146395f4177c1282a39"
 uuid = "e7dc6d0d-1eca-5fa6-8ad6-5aecde8b7ea5"
-version = "0.4.8"
+version = "0.4.9"
 
 [[Dates]]
 deps = ["Printf"]
