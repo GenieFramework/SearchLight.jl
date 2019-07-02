@@ -90,8 +90,8 @@ end
 
 """
 """
-function prepare(qb::QueryPart)
-  (qb.model, qb.query)
+function prepare(qb::QueryPart{T}) where {T<:AbstractModel}
+  (qb.model::Type{T}, qb)
 end
 function prepare(model::Type{T}, qb::QueryPart) where {T<:AbstractModel}
   prepare(from(model) + qb)

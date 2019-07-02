@@ -579,7 +579,7 @@ SearchLight.SQLQuery
 +---------+--------------------------------------------------------------+
 ```
 """
-struct SQLQuery <: SQLType
+mutable struct SQLQuery <: SQLType
   columns::Vector{SQLColumn}
   where::Vector{SQLWhereEntity}
   limit::SQLLimit

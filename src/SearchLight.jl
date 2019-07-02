@@ -533,6 +533,9 @@ end
 function find_one_by!!(m::Type{T}, column::SQLColumn, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
   find_one_by(m, column, value, order = order) |> Base.get
 end
+function find_one_by!!(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
+  find_one_by(m, qp, order = order) |> Base.get
+end
 
 
 """
@@ -3003,6 +3006,9 @@ julia> SearchLight.count(Article, SQLQuery(where = SQLWhereEntity[SQLWhereExpres
 """
 function count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
   Database.count(m, q)
+end
+function count(m::Type{T}, qp::QueryBuilder.QueryPart)::Int where {T<:AbstractModel}
+  count(m, qp.query)
 end
 
 
