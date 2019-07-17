@@ -18,7 +18,7 @@ const LOG_LEVEL_VERBOSITY_VERBOSE = :verbose
 const LOG_LEVEL_VERBOSITY_MINIMAL = :minimal
 
 # defaults
-const SEARCHLIGHT_VERSION = v"0.8.4"
+const SEARCHLIGHT_VERSION = v"0.8.5"
 
 
 """

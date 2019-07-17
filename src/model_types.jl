@@ -58,6 +58,8 @@ macro sql_str(q)
   SQLRaw(q)
 end
 
+string(io::IO, t::SQLRaw) = t.value
+
 #
 # SQLInput
 #

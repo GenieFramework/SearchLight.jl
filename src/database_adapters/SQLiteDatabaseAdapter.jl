@@ -1,6 +1,6 @@
 module SQLiteDatabaseAdapter
 
-using SQLite, DataFrames, DataStreams, IterableTables, Nullables
+using SQLite, DataFrames, DataStreams, Nullables
 using SearchLight, SearchLight.Database, SearchLight.Loggers
 
 import SearchLight.Loggers: log
