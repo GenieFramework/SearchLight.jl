@@ -11,11 +11,11 @@ import SearchLight.Loggers: log
 
 
 """
-    new_model(cmd_args::Dict{String,Any}) :: Nothing
+    newmodel(cmd_args::Dict{String,Any}) :: Nothing
 
 Generates a new SearchLight model file and persists it to the resources folder.
 """
-function new_model(cmd_args::Dict{String,Any}) :: Nothing
+function newmodel(cmd_args::Dict{String,Any}) :: Nothing
   resource_name = uppercasefirst(cmd_args["model:new"])
   if Inflector.is_singular(resource_name)
     resource_name = Inflector.to_plural(resource_name) |> Base.get
@@ -28,22 +28,22 @@ function new_model(cmd_args::Dict{String,Any}) :: Nothing
 
   nothing
 end
-function new_model(resource_name::Union{String,Symbol}) :: Nothing
-  new_resource(resource_name)
+function newmodel(resource_name::Union{String,Symbol}) :: Nothing
+  newresource(resource_name)
 end
 
 
 """
-    new_resource(resource_name::Union{String,Symbol}) :: Nothing
+    newresource(resource_name::Union{String,Symbol}) :: Nothing
 
 Generates all the files associated with a new resource and persists them to the resources folder.
 """
-function new_resource(resource_name::Union{String,Symbol}) :: Nothing
+function newresource(resource_name::Union{String,Symbol}) :: Nothing
   resource_name = string(resource_name)
 
   sf = Inflector.to_singular(resource_name)
   model_name = (isnull(sf) ? resource_name : Base.get(sf)) |> uppercasefirst
-  new_model(Dict{String,Any}("model:new" => model_name))
+  newmodel(Dict{String,Any}("model:new" => model_name))
   new_table_migration(Dict{String,Any}("migration:new" => resource_name))
 
   resource_name = uppercasefirst(resource_name)
@@ -67,6 +67,7 @@ function new_resource(resource_name::Union{String,Symbol}) :: Nothing
   catch ex
 
   end
+
   if isdefined(@__MODULE__, :__APP_FILE)
     open(__APP_FILE, "a") do f
       write(f, "\nusing $resource_name")
@@ -140,7 +141,7 @@ function write_resource_file(resource_path::String, file_name::String, resource_
     if resource_type == :model
       resource_does_not_exist(resource_path, file_name) || return true
       open(joinpath(resource_path, file_name), "w") do f
-        write(f, SearchLight.FileTemplates.new_model(resource_name))
+        write(f, SearchLight.FileTemplates.newmodel(resource_name))
       end
 
     elseif resource_type == :validator
@@ -152,7 +153,7 @@ function write_resource_file(resource_path::String, file_name::String, resource_
     elseif resource_type == :test
       resource_does_not_exist(resource_path, file_name) || return true
       open(joinpath(resource_path, file_name), "w") do f
-        write(f, SearchLight.FileTemplates.new_test(Base.get(Inflector.to_plural( Inflector.from_underscores(resource_name) )), resource_name))
+        write(f, SearchLight.FileTemplates.newtest(Base.get(Inflector.to_plural( Inflector.from_underscores(resource_name) )), resource_name))
       end
 
     else
@@ -179,10 +180,9 @@ function new_db_config(app_name::String = "App", adapter::Symbol = :mysql; creat
   isdir(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
   if ! ispath(SearchLight.LOG_PATH)
     mkpath(SearchLight.LOG_PATH)
-    setup_loggers()
   end
 
-  open(joinpath(SearchLight.CONFIG_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME), "w") do f
+  open(joinpath(SearchLight.DB_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME), "w") do f
     write(f, SearchLight.FileTemplates.new_db_config(adapter))
   end
 

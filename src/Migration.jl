@@ -4,7 +4,7 @@ Provides functionality for working with database migrations.
 module Migration
 
 using Millboard, Dates, Nullables
-using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Loggers, SearchLight.Macros, SearchLight.Database
+using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Loggers, SearchLight.Database
 
 import Base.showerror
 import SearchLight.Loggers: log
@@ -242,7 +242,7 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
 
     store_migration_status(migration, direction, force = force)
 
-    ! SearchLight.config.suppress_output && log("Executed migration $(migration.migration_module_name) $(direction)")
+    log("Executed migration $(migration.migration_module_name) $(direction)")
   catch ex
     log("Failed executing migration $(migration.migration_module_name) $(direction)", :err)
     log(string(ex), :err)

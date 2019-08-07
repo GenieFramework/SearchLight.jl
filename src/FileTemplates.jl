@@ -59,11 +59,11 @@ end
 
 
 """
-    new_model(model_name::String, resource_name::String = model_name) :: String
+    newmodel(model_name::String, resource_name::String = model_name) :: String
 
 Default content for a new SearchLight model.
 """
-function new_model(model_name::String, resource_name::String = model_name) :: String
+function newmodel(model_name::String, resource_name::String = model_name) :: String
   pluralized_name = Inflector.to_plural(model_name) |> Base.get
   table_name = Inflector.to_plural(resource_name) |> Base.get |> lowercase
 
@@ -196,8 +196,6 @@ function new_db_config(adapter::Symbol = :sqlite) :: String
 
   $(adapters[adapter])
     config:
-      suppress_output: false
-      output_length: 10000
       log_db: true
       log_queries: true
       log_level: :debug
@@ -207,11 +205,11 @@ end
 
 
 """
-    new_test(plural_name::String, singular_name::String) :: String
+    newtest(plural_name::String, singular_name::String) :: String
 
 Default content for a new test file.
 """
-function new_test(plural_name::String, singular_name::String) :: String
+function newtest(plural_name::String, singular_name::String) :: String
   """
   include(joinpath("..", "..", "$(SearchLight.SEARCHLIGHT_BOOTSTRAP_FILE_NAME)"))
   using Test
@@ -230,9 +228,6 @@ function new_app_loader(app_name::String)
   using SearchLight
 
   Core.eval(SearchLight, :(config.db_config_settings = SearchLight.Configuration.load_db_connection()))
-
-  SearchLight.Loggers.setup_loggers()
-  SearchLight.Loggers.empty_log_queue()
 
   SearchLight.Database.setup_adapter()
   SearchLight.Database.connect()

@@ -5,45 +5,40 @@ module Configuration
 
 using SearchLight, YAML
 
-export is_dev, is_prod, is_test, env, cache_enabled, Settings, DEV, PROD, TEST, IN_REPL
-export LOG_LEVEL_VERBOSITY_VERBOSE, LOG_LEVEL_VERBOSITY_MINIMAL
+export isdev, isprod, istest, env, Settings, DEV, PROD, TEST
 
 # app environments
 const DEV   = "dev"
 const PROD  = "prod"
 const TEST  = "test"
 
-# log levels
-const LOG_LEVEL_VERBOSITY_VERBOSE = :verbose
-const LOG_LEVEL_VERBOSITY_MINIMAL = :minimal
-
 # defaults
-const SEARCHLIGHT_VERSION = v"0.8.5"
+const SEARCHLIGHT_VERSION = v"0.10.0"
 
 
 """
-    is_dev()  :: Bool
-    is_prod() :: Bool
-    is_test() :: Bool
+    isdev()  :: Bool
+    isprod() :: Bool
+    istest() :: Bool
 
 Set of utility functions that return whether or not the current environment is development, production or testing.
 
 # Examples
 ```julia
-julia> Configuration.is_dev()
+julia> Configuration.isdev()
 true
 
-julia> Configuration.is_prod()
+julia> Configuration.isprod()
 false
 ```
 """
-function is_dev()::Bool
+function isdev()::Bool
   SearchLight.config.app_env == DEV
 end
-function is_prod()::Bool
+function isprod()::Bool
   SearchLight.config.app_env == PROD
 end
-function is_test()::Bool
+function istest()::Bool
   SearchLight.config.app_env == TEST
 end
 
@@ -125,7 +120,7 @@ end
 
 
 function load_db_connection_from_config() :: Dict{String,Any}
-  db_config_file = joinpath(SearchLight.CONFIG_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME)
+  db_config_file = joinpath(SearchLight.DB_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME)
   isfile(db_config_file) && (return read_db_connection_data(db_config_file))
 
   # @warn "DB configuration file not found"
@@ -146,42 +141,29 @@ App configuration - sets up the app's defaults. Individual options are overwritt
 mutable struct Settings
   app_env::String
 
-  suppress_output::Bool
-  output_length::Int
-
   db_migrations_table_name::String
   db_migrations_folder::String
   db_config_settings::Dict{String,Any}
 
-  log_folder::String
-
   log_db::Bool
   log_queries::Bool
   log_level::Symbol
-  log_verbosity::Symbol
   log_formatted::Bool
   log_highlight::Bool
   log_rotate::Bool
-
 
   model_relations_eagerness::Symbol
 
   Settings(;
             app_env       = ENV["SEARCHLIGHT_ENV"],
 
-            suppress_output = false,
-            output_length   = 10_000, # where to truncate strings in console
-
             db_migrations_table_name  = "schema_migrations",
             db_migrations_folder      = joinpath("db", "migrations"),
             db_config_settings        = Dict{String,Any}(),
 
-            log_folder    = joinpath("log"),
-
             log_db        = false,
             log_queries   = true,
             log_level     = :debug,
-            log_verbosity = LOG_LEVEL_VERBOSITY_VERBOSE,
             log_formatted = true,
             log_highlight = true,
             log_rotate    = true,
@@ -190,10 +172,8 @@ mutable struct Settings
         ) =
               new(
                   app_env,
-                  suppress_output, output_length,
                   db_migrations_table_name, db_migrations_folder, db_config_settings,
-                  log_folder,
-                  log_db, log_queries, log_level, log_verbosity, log_formatted, log_highlight, log_rotate,
+                  log_db, log_queries, log_level, log_formatted, log_highlight, log_rotate,
                   model_relations_eagerness
                 )
 end

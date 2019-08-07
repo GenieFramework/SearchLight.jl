@@ -4,8 +4,6 @@ using Revise
 
 include(joinpath(@__DIR__, "constants.jl"))
 
-const OUTPUT_LENGTH = 256
-
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
 include(joinpath(@__DIR__, "Configuration.jl"))
@@ -23,7 +21,6 @@ import Base.first, Base.last
 include("Loggers.jl")
 include("Inflector.jl")
 include("FileTemplates.jl")
-include("Macros.jl")
 include("model_types.jl")
 include("Database.jl")
 include("Migration.jl")
@@ -33,7 +30,7 @@ include("Generator.jl")
 include("DatabaseSeeding.jl")
 include("QueryBuilder.jl")
 
-using .Database, .Migration, .Util, .Loggers, .Validation, .Inflector, .Macros, .DatabaseSeeding, .QueryBuilder
+using .Database, .Migration, .Util, .Loggers, .Validation, .Inflector, .DatabaseSeeding, .QueryBuilder
 
 import Base.rand, Base.all, Base.count
 import .Loggers.log
@@ -2331,7 +2328,6 @@ function relation(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQ
         return Nullable{SQLRelation}(rel)
       else
         log("Must check this: $(rel.model_name) == $(model_name) at $(@__FILE__) $(@__LINE__)", :debug)
-        Loggers.@location()
       end
     end
   end
@@ -3695,24 +3691,13 @@ end
 
 Converts a model `m` to a `Dict{String,String}`. Orginal types of the fields values are converted to strings.
 If `all_fields` is `true`, all fields are included; otherwise just the fields corresponding to database columns.
-If `all_output` is `false` the values are truncated if longer than `output_length`.
 """
 function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false)::Dict{String,String} where {T<:AbstractModel}
   fields = all_fields ? fieldnames(typeof(m)) : persistable_fields(m)
-  output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
   response = Dict{String,String}()
   for f in fields
     value = getfield(m, Symbol(f))
-    value_as_string = string(value)
-    value_type = typeof(value)
-    value_type_as_string = ""
-    value_type_as_string = isa(value, DbId) ? "DbId" : string(value_type)
-
-    key = string(f) * " :: " * value_type_as_string
-    if length(value_as_string) > output_length
-      value_as_string = value_as_string[1:output_length] * "..."
-    end
-    response[key] = value_as_string
+    response[string(f) * " :: " * (isa(value, DbId) ? "DbId" : string(typeof(value)))] = string(value)
   end
 
   response
@@ -3721,15 +3706,9 @@ function to_string_dict(m::Any, ; all_output::Bool = false)::Dict{String,String}
   to_string_dict(m, [f for f in fieldnames(typeof(m))], all_output = all_output)
 end
 function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false)::Dict{String,String}
-  output_length = all_output ? 100_000_000 : OUTPUT_LENGTH
   response = Dict{String,String}()
   for f in fields
-    key = string(f)
-    value = string(getfield(m, Symbol(f)))
-    if length(value) > output_length
-      value = value[1:output_length] * "..."
-    end
-    response[key] = string(value)
+    response[string(f)] = string(string(getfield(m, Symbol(f))))
   end
 
   response
