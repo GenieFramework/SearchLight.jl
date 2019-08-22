@@ -70,7 +70,7 @@ function newmodel(model_name::String, resource_name::String = model_name) :: Str
   """
   module $pluralized_name
 
-  using SearchLight, Nullables, SearchLight.Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
+  using SearchLight #, Nullables, SearchLight.Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
 
   export $model_name
 
@@ -199,7 +199,6 @@ function new_db_config(adapter::Symbol = :sqlite) :: String
       log_db: true
       log_queries: true
       log_level: :debug
-      log_highlight: true
   """
 end
 

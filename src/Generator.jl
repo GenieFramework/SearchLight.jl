@@ -239,14 +239,13 @@ end
 
 
 """
-    db_init() :: Bool
+    init() :: Bool
 
 Sets up the DB tables used by SearchLight.
 """
-function db_init() :: Bool
+function init() :: Bool
   SearchLight.create_migrations_table(SearchLight.config.db_migrations_table_name)
 end
-const init = db_init
 
 end
 

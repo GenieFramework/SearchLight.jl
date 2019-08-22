@@ -13,7 +13,7 @@ const PROD  = "prod"
 const TEST  = "test"
 
 # defaults
-const SEARCHLIGHT_VERSION = v"0.10.0"
+const SEARCHLIGHT_VERSION = v"0.11.0"
 
 
 """
@@ -111,25 +111,19 @@ end
 
 Attempts to load the database configuration from file. Returns `true` if successful, otherwise `false`.
 """
-function load_db_connection() :: Dict{String,Any}
-  _load_db_connection()
-end
-function _load_db_connection() :: Dict{String,Any}
-  load_db_connection_from_config()
+function load_db_connection(path::Union{String,Nothing} = nothing) :: Dict{String,Any}
+  load_db_connection_from_config(path)
 end
 
 
-function load_db_connection_from_config() :: Dict{String,Any}
-  db_config_file = joinpath(SearchLight.DB_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME)
-  isfile(db_config_file) && (return read_db_connection_data(db_config_file))
-
-  # @warn "DB configuration file not found"
-  return Dict{String,Any}()
+function load_db_connection_from_config(path::Union{String,Nothing} = nothing) :: Dict{String,Any}
+  db_config_file = path === nothing ? joinpath(SearchLight.DB_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME) : path
+  read_db_connection_data(db_config_file)
 end
 
 
-function load() :: Dict{String,Any}
-  SearchLight.config.db_config_settings = load_db_connection()
+function load(path::Union{String,Nothing} = nothing) :: Dict{String,Any}
+  SearchLight.config.db_config_settings = load_db_connection(path)
 end
 
 
@@ -149,31 +143,27 @@ mutable struct Settings
   log_queries::Bool
   log_level::Symbol
   log_formatted::Bool
-  log_highlight::Bool
-  log_rotate::Bool
 
   model_relations_eagerness::Symbol
 
   Settings(;
             app_env       = ENV["SEARCHLIGHT_ENV"],
 
-            db_migrations_table_name  = "schema_migrations",
-            db_migrations_folder      = joinpath("db", "migrations"),
+            db_migrations_table_name  = SearchLight.SEARCHLIGHT_MIGRATIONS_TABLE_NAME,
+            db_migrations_folder      = SearchLight.MIGRATIONS_FOLDER_NAME,
             db_config_settings        = Dict{String,Any}(),
 
             log_db        = false,
             log_queries   = true,
             log_level     = :debug,
             log_formatted = true,
-            log_highlight = true,
-            log_rotate    = true,
 
             model_relations_eagerness = :lazy
         ) =
               new(
                   app_env,
                   db_migrations_table_name, db_migrations_folder, db_config_settings,
-                  log_db, log_queries, log_level, log_formatted, log_highlight, log_rotate,
+                  log_db, log_queries, log_level, log_formatted,
                   model_relations_eagerness
                 )
 end

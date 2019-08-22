@@ -2,7 +2,7 @@ module SearchLight
 
 using Revise
 
-include(joinpath(@__DIR__, "constants.jl"))
+include("constants.jl")
 
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
@@ -3767,7 +3767,6 @@ end
 
 """
     create_migrations_table()::Bool
-    db_init()
 
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `config.db_migrations_table_name`
@@ -3775,7 +3774,14 @@ database name defined in `config.db_migrations_table_name`
 function create_migrations_table(table_name::String = config.db_migrations_table_name)::Bool
   Database.DatabaseAdapter.create_migrations_table(table_name)
 end
-function db_init()
+
+
+"""
+    init()
+
+Initializes support for SearchLight operations - for example by creating the schema migrations table.
+"""
+function init()
   create_migrations_table()
 end
 
