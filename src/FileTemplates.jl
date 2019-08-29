@@ -149,7 +149,7 @@ function new_db_config(adapter::Symbol = :sqlite) :: String
 
 
   """
-  env: $(SearchLight.config.app_env)
+  env: ENV["GENIE_ENV"]
 
   $(adapters[adapter])
     config:

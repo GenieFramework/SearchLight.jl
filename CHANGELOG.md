@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12.1 - 2019-08-29
+
+* SearchLight environment inherits Genie environment, if available
+* fixes an issue where reading the configuration file left the file open
+* API cleanup
+
 ## v0.12.0 - 2019-08-29
 
 * refactored to use Julia native logging
