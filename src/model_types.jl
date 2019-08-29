@@ -13,7 +13,6 @@ export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
 export SQLWhere, SQLWhereExpression, SQLWhereEntity, SQLLimit, SQLOrder, SQLQuery, SQLRaw
 export SQLRelation, SQLRelationData
 export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
-export Q, I, C, W, We, L
 
 export is_lazy, @sql_str
 
@@ -38,8 +37,11 @@ function searchlightabstracttype_to_print(m::T) :: String where {T<:SearchLightA
 end
 
 const DbId = Nullable{Union{Int32,Int64,String}}
+
 convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
 convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
+
+Base.show(io::IO, dbid::DbId) = print(io, (isnull(dbid) ? "NULL" : string(Base.get(dbid))))
 
 
 #
@@ -82,8 +84,6 @@ SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
 SQLInput(a::Any) = string(a) |> SQLInput
 SQLInput(n::Nullable) = isnull(n) ? SQLInput(nothing) : SQLInput(get(n))
-
-const I = SQLInput
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
 
@@ -154,7 +154,6 @@ SQLColumn(a::Array) = map(x -> SQLColumn(x), a)
 SQLColumn(c::SQLColumn) = c
 SQLColumn(r::SQLRaw) = SQLColumn(r.value, raw = true)
 SQLColumn(a::Any) = SQLColumn(string(a))
-const C = SQLColumn
 
 ==(a::SQLColumn, b::SQLColumn) = a.value == b.value
 
@@ -242,7 +241,6 @@ SQLWhere(column::SQLColumn, value::SQLInput, condition::SQLLogicOperator) = SQLW
 SQLWhere(column::Any, value::Any, operator::Any) = SQLWhere(SQLColumn(column), SQLInput(value), SQLLogicOperator("AND"), operator)
 SQLWhere(column::SQLColumn, value::SQLInput) = SQLWhere(column, value, SQLLogicOperator("AND"))
 SQLWhere(column::Any, value::Any) = SQLWhere(SQLColumn(column), SQLInput(value))
-const W = SQLWhere
 
 string(w::SQLWhere) = "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
 function string(w::SQLWhere, m::T) where {T <: AbstractModel}
@@ -323,11 +321,11 @@ struct SQLWhereExpression <: SQLType
     new(sql_expression, values, condition)
   end
 end
+SQLWhereExpression(sql_expression::String, values...) = SQLWhereExpression(sql_expression, [values...])
 SQLWhereExpression(sql_expression::String) = SQLWhereExpression(sql_expression, SQLInput[])
 SQLWhereExpression(sql_expression::String, values::Dates.Date) = SQLWhereExpression(sql_expression, [SQLInput(string(values))])
 SQLWhereExpression(sql_expression::String, values::Vector{T}) where {T} = SQLWhereExpression(sql_expression, SQLInput(values))
 SQLWhereExpression(sql_expression::String, values::T) where {T} = SQLWhereExpression(sql_expression, [SQLInput(values)])
-const We = SQLWhereExpression
 
 function string(we::SQLWhereExpression)
   string_value = we.sql_expression
@@ -389,7 +387,6 @@ struct SQLLimit <: SQLType
   end
 end
 SQLLimit() = SQLLimit(SQLLimit_ALL)
-const L = SQLLimit
 
 string(l::SQLLimit) = string(l.value)
 
@@ -421,7 +418,6 @@ function SQLOrder(s::Union{String,Symbol}; raw::Bool = false)
   end
 end
 SQLOrder(r::SQLRaw, direction::Any = "ASC") = SQLOrder(r.value, direction, raw = true)
-const O = SQLOrder
 
 string(o::SQLOrder) = "($(o.column) $(o.direction))"
 
@@ -595,7 +591,6 @@ mutable struct SQLQuery <: SQLType
               order = SQLOrder[], group = SQLColumn[], having = SQLWhereEntity[], scopes = Symbol[]) =
     new(columns, where, limit, offset, order, group, having, scopes)
 end
-const Q = SQLQuery
 
 string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)
 

@@ -1,7 +1,7 @@
 name = "SearchLight"
 uuid = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
 authors = ["Adrian Salceanu <e@essenciary.com>"]
-version = "0.11.0"
+version = "0.12.0"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -10,9 +10,9 @@ Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 LibPQ = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 MbedTLS = "739be429-bea8-5141-9913-cc70e7f3736d"
 Millboard = "39ec1447-df44-5f4c-beaa-866f30b4d3b2"
-MiniLogging = "f59402ec-0262-5707-a561-770af94bc5a6"
 MySQL = "39abe10b-433b-5dbd-92d4-e302a9df00cd"
 Nullables = "4d1e1d77-625e-5b40-9113-a560ec7a8ecd"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"

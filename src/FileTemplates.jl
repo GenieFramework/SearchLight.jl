@@ -63,14 +63,14 @@ end
 
 Default content for a new SearchLight model.
 """
-function newmodel(model_name::String, resource_name::String = model_name) :: String
+function newmodel(model_name::String, resource_name::String = model_name; pluralize::Bool = true) :: String
   pluralized_name = Inflector.to_plural(model_name) |> Base.get
   table_name = Inflector.to_plural(resource_name) |> Base.get |> lowercase
 
   """
   module $pluralized_name
 
-  using SearchLight #, Nullables, SearchLight.Validation, $(Inflector.to_plural(model_name) |> Base.get)Validator
+  using SearchLight
 
   export $model_name
 
@@ -78,59 +78,16 @@ function newmodel(model_name::String, resource_name::String = model_name) :: Str
     ### INTERNALS
     _table_name::String
     _id::String
-    _serializable::Vector{Symbol}
 
     ### FIELDS
     id::DbId
 
-    ### VALIDATION
-    # validator::ModelValidator
-
-    ### CALLBACKS
-    # before_save::Function
-    # after_save::Function
-    # on_save::Function
-    # on_find::Function
-    # after_find::Function
-
-    ### SCOPES
-    # scopes::Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}
-
     ### constructor
     $model_name(;
       ### FIELDS
-      id = DbId(),
-
-      ### VALIDATION
-      # validator = ModelValidator([
-      #   ValidationRule(:title, $(Inflector.to_plural(model_name) |> Base.get)Validator.not_empty)
-      # ]),
-
-      ### CALLBACKS
-      # before_save = (m::Todo) -> begin
-      #   @info "Before save"
-      # end,
-      # after_save = (m::Todo) -> begin
-      #   @info "After save"
-      # end,
-      # on_save = (m::Todo, field::Symbol, value::Any) -> begin
-      #   @info "On save"
-      # end,
-      # on_find = (m::Todo, field::Symbol, value::Any) -> begin
-      #   @info "On find"
-      # end,
-      # after_find = (m::Todo) -> begin
-      #   @info "After find"
-      # end,
-
-      ### SCOPES
-      # scopes = Dict{Symbol,Vector{SearchLight.SQLWhereEntity}}()
-
-    ) = new("$table_name", "id", Symbol[],                                                ### INTERNALS
-            id,                                                                           ### FIELDS
-            # validator,                                                                  ### VALIDATION
-            # before_save, after_save, on_save, on_find, after_find                       ### CALLBACKS
-            # scopes                                                                      ### SCOPES
+      id = DbId()
+    ) = new("$table_name", "id",                                                 ### INTERNALS
+            id                                                                   ### FIELDS
             )
   end
 
@@ -140,11 +97,11 @@ end
 
 
 """
-    new_validator(validator_name::String) :: String
+    newvalidator(validator_name::String) :: String
 
 Default content for a new SearchLight validator.
 """
-function new_validator(validator_name::String) :: String
+function newvalidator(validator_name::String; pluralize::Bool = true) :: String
   """
   module $(Inflector.to_plural(validator_name) |> Base.get)Validator
 
@@ -208,7 +165,7 @@ end
 
 Default content for a new test file.
 """
-function newtest(plural_name::String, singular_name::String) :: String
+function newtest(plural_name::String, singular_name::String; pluralize::Bool = true) :: String
   """
   include(joinpath("..", "..", "$(SearchLight.SEARCHLIGHT_BOOTSTRAP_FILE_NAME)"))
   using Test

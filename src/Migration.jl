@@ -3,11 +3,10 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using Millboard, Dates, Nullables
-using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Loggers, SearchLight.Database
+using Millboard, Dates, Nullables, Logging
+using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Database
 
 import Base.showerror
-import SearchLight.Loggers: log
 
 
 """
@@ -30,8 +29,7 @@ Base.showerror(io::IO, e::IrreversibleMigration) = print(io, "Migration $(e.migr
 
 
 """
-    new(migration_name::String, content::String = "") :: Nothing
-    new(cmd_args::Dict{String,Any}, config::Configuration.Settings) :: Nothing
+    newtable(migration_name::String, resource::String) :: Nothing
 
 Creates a new default migration file and persists it to disk in the configured migrations folder.
 """
@@ -45,10 +43,12 @@ function new_table(migration_name::String, resource::String) :: Nothing
     write(f, SearchLight.FileTemplates.new_table_migration(migration_module_name(migration_name), resource))
   end
 
-  log("New table migration created at $(abspath(mfn))")
+  @info "New table migration created at $(abspath(mfn))"
 
   nothing
 end
+
+const newtable = new_table
 
 
 """
@@ -63,7 +63,7 @@ function new(migration_name::String) :: Nothing
     write(f, SearchLight.FileTemplates.new_migration(migration_module_name(migration_name)))
   end
 
-  log("New table migration created at $mfn")
+  @info "New table migration created at $mfn"
 
   nothing
 end
@@ -117,6 +117,8 @@ function up(; force = false) :: Nothing
   last_up(force = force)
 end
 
+const lastup = last_up
+
 
 """
     last_down() :: Nothing
@@ -129,6 +131,8 @@ end
 function down(; force = false) :: Nothing
   last_down(force = force)
 end
+
+const lastdown = last_down
 
 
 """
@@ -206,6 +210,8 @@ function all_migrations() :: Tuple{Vector{String},Dict{String,DatabaseMigration}
   sort!(migrations), migrations_files
 end
 
+const all = all_migrations
+
 
 """
     last_migration() :: DatabaseMigration
@@ -217,6 +223,8 @@ function last_migration() :: DatabaseMigration
   migrations_files[migrations[end]]
 end
 
+const last = last_migration
+
 
 """
     run_migration(migration::DatabaseMigration, direction::Symbol; force = false) :: Nothing
@@ -227,7 +235,8 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   if ! force
     if  ( direction == :up    && in(migration.migration_hash, upped_migrations()) ) ||
         ( direction == :down  && in(migration.migration_hash, downed_migrations()) )
-      log("Skipping, migration is already $direction")
+      @warn "Skipping, migration is already $direction"
+
       return
     end
   end
@@ -235,18 +244,17 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   try
     m = include(abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))
     if in(:disabled, names(m, all = true)) && m.disabled && ! force
-      log("Skipping, migration is disabled")
+      @warn "Skipping, migration is disabled"
+
       return
     end
     Base.invokelatest(getfield(m, direction))
 
     store_migration_status(migration, direction, force = force)
 
-    log("Executed migration $(migration.migration_module_name) $(direction)")
+    @info "Executed migration $(migration.migration_module_name) $(direction)"
   catch ex
-    log("Failed executing migration $(migration.migration_module_name) $(direction)", :err)
-    log(string(ex), :err)
-    log("$(@__FILE__):$(@__LINE__)", :err)
+    @error "Failed executing migration $(migration.migration_module_name) $(direction)"
 
     rethrow(ex)
   end
@@ -268,7 +276,7 @@ function store_migration_status(migration::DatabaseMigration, direction::Symbol;
       SearchLight.query("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", system_query = true)
     end
   catch ex
-    log(string(ex), :err)
+    @error ex
 
     force || rethrow(ex)
   end
@@ -346,6 +354,8 @@ function all_with_status() :: Tuple{Vector{String},Dict{String,Dict{Symbol,Any}}
   indexes, result
 end
 
+const allwithstatus = all_with_status
+
 
 """
     all_down() :: Nothing
@@ -371,6 +381,8 @@ function all_down(; confirm = true) :: Nothing
   nothing
 end
 
+const alldown = all_down
+
 
 """
     all_up() :: Nothing
@@ -390,6 +402,8 @@ function all_up() :: Nothing
   nothing
 end
 
+const allup = all_up
+
 
 """
     function create_table() :: String
@@ -399,6 +413,8 @@ Creates a new DB table.
 function create_table(f::Function, name::Union{String,Symbol}, options::String = "") :: Nothing
   SearchLight.create_table(f, string(name), options)
 end
+
+const createtable = create_table
 
 
 """
@@ -415,7 +431,10 @@ end
 function column_id(name::Union{String,Symbol} = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
   SearchLight.column_id(string(name), options, constraint = constraint, nextval = nextval)
 end
+
 const primary_key = column_id
+const primarykey = column_id
+const columnid = column_id
 
 
 """
@@ -424,7 +443,10 @@ const primary_key = column_id
 function add_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}; name::Union{String,Symbol} = "", unique::Bool = false, order::Symbol = :none) :: Nothing
   SearchLight.add_index(string(table_name), string(column_name), name = string(name), unique = unique, order = order)
 end
+
 const create_index = add_index
+const addindex = add_index
+const createindex = add_index
 
 
 """
@@ -434,6 +456,8 @@ function add_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}
   SearchLight.add_column(string(table_name), string(name), column_type, default = default, limit = limit, not_null = not_null)
 end
 
+const addcolumn = add_column
+
 
 """
 
@@ -441,6 +465,8 @@ end
 function drop_table(name::Union{String,Symbol}) :: Nothing
   SearchLight.drop_table(string(name))
 end
+
+const droptable = drop_table
 
 
 """
@@ -450,6 +476,8 @@ function remove_column(table_name::Union{String,Symbol}, name::Union{String,Symb
   SearchLight.remove_column(string(table_name), string(name))
 end
 
+const removecolumn = remove_column
+
 
 """
 
@@ -457,6 +485,8 @@ end
 function remove_index_by_name(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Nothing
   SearchLight.remove_index(string(table_name), string(name))
 end
+
+const removeindexbyname = remove_index_by_name
 
 
 """
@@ -466,9 +496,10 @@ function remove_index(table_name::Union{String,Symbol}, column_name::Union{Strin
   Migration.remove_index_by_name(string(table_name), Database.index_name(string(table_name), string(column_name)))
 end
 
+const removeindex = remove_index
+
 
 """
-
 """
 function create_sequence(name::Union{String,Symbol}) :: Nothing
   SearchLight.create_sequence(string(name))
@@ -476,11 +507,12 @@ end
 
 
 """
-
 """
 function create_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
   SearchLight.create_sequence(sequence_name(table_name, column_name))
 end
+
+const createsequence = create_sequence
 
 
 """
@@ -533,7 +565,9 @@ end
 function remove_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}, options::String = "") :: Nothing
   Migration.remove_sequence_by_name(sequence_name(string(table_name), string(column_name)), options)
 end
+
 const drop_sequence = remove_sequence
+const dropsequence = remove_sequence
 
 end
 

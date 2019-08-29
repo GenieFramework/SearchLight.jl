@@ -12,8 +12,10 @@ const DEV   = "dev"
 const PROD  = "prod"
 const TEST  = "test"
 
+haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = DEV)
+
 # defaults
-const SEARCHLIGHT_VERSION = v"0.11.0"
+const SEARCHLIGHT_VERSION = v"0.12.0"
 
 
 """
@@ -143,6 +145,7 @@ mutable struct Settings
   log_queries::Bool
   log_level::Symbol
   log_formatted::Bool
+  log_to_file::Bool
 
   model_relations_eagerness::Symbol
 
@@ -150,20 +153,21 @@ mutable struct Settings
             app_env       = ENV["SEARCHLIGHT_ENV"],
 
             db_migrations_table_name  = SearchLight.SEARCHLIGHT_MIGRATIONS_TABLE_NAME,
-            db_migrations_folder      = SearchLight.MIGRATIONS_FOLDER_NAME,
+            db_migrations_folder      = SearchLight.MIGRATIONS_PATH,
             db_config_settings        = Dict{String,Any}(),
 
             log_db        = false,
             log_queries   = true,
             log_level     = :debug,
             log_formatted = true,
+            log_to_file   = true,
 
             model_relations_eagerness = :lazy
         ) =
               new(
                   app_env,
                   db_migrations_table_name, db_migrations_folder, db_config_settings,
-                  log_db, log_queries, log_level, log_formatted,
+                  log_db, log_queries, log_level, log_formatted, log_to_file,
                   model_relations_eagerness
                 )
 end

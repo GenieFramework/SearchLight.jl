@@ -27,10 +27,10 @@ uuid = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 version = "0.5.5"
 
 [[CodeTracking]]
-deps = ["InteractiveUtils", "Test", "UUIDs"]
-git-tree-sha1 = "9b21a2dfe51ba71fdc5688039075819196595367"
+deps = ["InteractiveUtils", "UUIDs"]
+git-tree-sha1 = "0becdab7e6fbbcb7b88d8de5b72e5bb2f28239f3"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-version = "0.5.7"
+version = "0.5.8"
 
 [[Codecs]]
 deps = ["Test"]
@@ -51,9 +51,9 @@ version = "1.0.1"
 
 [[DataFrames]]
 deps = ["CategoricalArrays", "Compat", "DataAPI", "InvertedIndices", "IteratorInterfaceExtensions", "Missings", "PooledArrays", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
-git-tree-sha1 = "48ef38bd7cf0e8fd598bda981409eb6ef4b96cbd"
+git-tree-sha1 = "934b75a90b6cb315f9ea0df961768a02c1da1612"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "0.19.2"
+version = "0.19.3"
 
 [[DataStreams]]
 deps = ["Missings", "WeakRefStrings"]
@@ -173,9 +173,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
-git-tree-sha1 = "45af0ce564939cbc9b88374f91e3339c0430fdff"
+git-tree-sha1 = "ea065f38cccb556b4eabe43b3b3b91e1c67cbffd"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "0.3.7"
+version = "0.3.8"
 
 [[Markdown]]
 deps = ["Base64"]
@@ -194,16 +194,9 @@ uuid = "f28f55f0-a522-5efc-85c2-fe41dfb9b2d9"
 version = "0.12.1"
 
 [[Millboard]]
-deps = ["Compat"]
-git-tree-sha1 = "21622ffb05343e51bc5b95c3576a71b26183809d"
+git-tree-sha1 = "c6d4a61d1b74ba35b1efe5cb025bf852145521e1"
 uuid = "39ec1447-df44-5f4c-beaa-866f30b4d3b2"
-version = "0.2.0"
-
-[[MiniLogging]]
-deps = ["Test"]
-git-tree-sha1 = "4f2f5ca0663afa0172db23bbdd99e683dd17fb0e"
-uuid = "f59402ec-0262-5707-a561-770af94bc5a6"
-version = "0.2.0"
+version = "0.2.1"
 
 [[Missings]]
 deps = ["SparseArrays", "Test"]
@@ -277,9 +270,9 @@ version = "0.2.0"
 
 [[Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "UUIDs", "Unicode"]
-git-tree-sha1 = "f0d18f8b5199150dd9ced1cc6f9200b167fbb4d9"
+git-tree-sha1 = "34e80fba701ce58064b3b5f4b32027ad3dc136ba"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "2.1.7"
+version = "2.1.8"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
