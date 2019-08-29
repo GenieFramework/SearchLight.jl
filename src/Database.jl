@@ -27,7 +27,6 @@ end
 """
     connect()::DatabaseHandle
     connect(conn_settings::Dict{String,Any})::DatabaseHandle
-    connection()::DatabaseHandle
 
 Connects to the DB and returns a database handler. If used without arguments, it defaults to using `config.db_config_settings`
 
@@ -49,57 +48,33 @@ julia> Database.connect(dict)
 PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,false)
 ```
 """
-function connect() #::DatabaseHandle
+@inline function connect() #::DatabaseHandle
   connect(SearchLight.config.db_config_settings)
-end
-function connect!(conn_settings::Dict)
-  SearchLight.config.db_config_settings["adapter"] = conn_settings["adapter"]
-  setup_adapter()
-  Database.connect(conn_settings) #::DatabaseHandle
 end
 function connect(conn_settings::Dict)
   isdefined(@__MODULE__, :DatabaseAdapter) || connect!(conn_settings)
 
   c = Base.invokelatest(DatabaseAdapter.connect, conn_settings) #::DatabaseHandle
-  Core.eval(@__MODULE__, :(const _connection = $c))
+  Core.eval(@__MODULE__, :(CONNECTION = $c))
 
   c
 end
 
 
-@inline function connection()
-  try
-    _connection
-  catch ex
-    @error "Connection not available"
-
-    rethrow(ex)
-  end
+@inline function connect!(conn_settings::Dict)
+  SearchLight.config.db_config_settings["adapter"] = conn_settings["adapter"]
+  setup_adapter() && Database.connect(conn_settings) #::DatabaseHandle
 end
 
 
 """
 
 """
-function disconnect(conn)
+@inline function disconnect(conn)
   DatabaseAdapter.disconnect(conn)
 end
-
-
-"""
-    query_tools()::Tuple{DatabaseHandle,Symbol}
-
-Returns a Tuple consisting of the database handle of the current DB connection and a symbol
-representing the type of the adapter.
-
-# Examples
-```julia
-julia> Database.query_tools()
-(PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,false),:PostgreSQL)
-```
-"""
-@inline function query_tools() #::Tuple{DatabaseHandle,Symbol}
-  (connect(), DatabaseAdapter.db_adapter())
+@inline function disconnect()
+  DatabaseAdapter.disconnect(CONNECTION)
 end
 
 
@@ -141,7 +116,7 @@ end
 
 @inline function escape_column_name(c::String)
   result =  try
-              DatabaseAdapter.escape_column_name(c, connection())::String
+              DatabaseAdapter.escape_column_name(c, CONNECTION)::String
             catch ex
               @error ex
             end
@@ -152,7 +127,7 @@ end
 
 @inline function escape_value(v::T)::T where {T}
   result =  try
-              DatabaseAdapter.escape_value(v, connection())
+              DatabaseAdapter.escape_value(v, CONNECTION)
             catch ex
               @error ex
             end
@@ -185,7 +160,7 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query;
 ```
 """
 @inline function query(sql::String; suppress_output::Bool = false, system_query::Bool = false) :: DataFrames.DataFrame
-  df::DataFrames.DataFrame =  DatabaseAdapter.query(sql, (suppress_output || system_query), connection())
+  df::DataFrames.DataFrame =  DatabaseAdapter.query(sql, (suppress_output || system_query), CONNECTION)
   (! suppress_output && ! system_query && SearchLight.config.log_db) && @info(df)
 
   df
@@ -447,5 +422,3 @@ end
 end
 
 end
-
-const Databases = Database

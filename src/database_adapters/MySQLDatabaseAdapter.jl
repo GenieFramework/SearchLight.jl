@@ -53,17 +53,9 @@ end
 Connects to the database and returns a handle.
 """
 @inline function connect(conn_data::Dict) :: DatabaseHandle
-  try
     MySQL.connect(conn_data["host"], conn_data["username"], get(conn_data, "password", ""),
                   db    = conn_data["database"],
-                  port  = get(conn_data, "port", 3306)
-                  )
-  catch ex
-    @error "Invalid DB connection settings"
-    @error ex
-
-    rethrow(ex)
-  end
+                  port  = get(conn_data, "port", 3306))
 end
 
 
@@ -146,7 +138,7 @@ julia>
 end
 
 @inline function mysql_escape(s::String, conn::DatabaseHandle)
-   MySQL.escape(conn, s)
+  MySQL.escape(conn, s)
 end
 
 
@@ -162,7 +154,7 @@ Executes the `sql` query against the database backend and returns a DataFrame re
 
 # Examples:
 ```julia
-julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Database.connection())
+julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Database.connection)
 
 2017-01-16T21:36:21.566 - info: SQL QUERY: SELECT \"articles\".\"id\" AS \"articles_id\", \"articles\".\"title\" AS \"articles_title\", \"articles\".\"summary\" AS \"articles_summary\", \"articles\".\"content\" AS \"articles_content\", \"articles\".\"updated_at\" AS \"articles_updated_at\", \"articles\".\"published_at\" AS \"articles_published_at\", \"articles\".\"slug\" AS \"articles_slug\" FROM \"articles\" LIMIT 5
 
@@ -174,16 +166,21 @@ julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Data
 """
 @inline function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
   try
-    result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
-               DB_ADAPTER.Query(conn, sql)  |> DataFrame
-             else
-               @info sql
-               @time DB_ADAPTER.Query(conn, sql) |> DataFrame
-             end
+    if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
+      DB_ADAPTER.Query(conn, sql)  |> DataFrame
+    else
+      @info sql
+      @time DB_ADAPTER.Query(conn, sql) |> DataFrame
+    end
   catch ex
-    @error "MySQL error when running $(escape_string(sql))"
+    @error """MySQL error when running "$(escape_string(sql))" """
 
-    rethrow(ex)
+    if isa(ex, MySQL.MySQLInternalError) && (ex.errno == 2013 || ex.errno == 2006)
+      @warn ex
+      query(sql, suppress_output, Database.connect())
+    else
+      rethrow(ex)
+    end
   end
 end
 
@@ -255,7 +252,7 @@ end
 
 """
 """
-@inline function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
   _m::T = m()
   (truncate ? "TRUNCATE $(_m._table_name)" : "DELETE FROM $(_m._table_name)") |> SearchLight.query
 
@@ -265,7 +262,7 @@ end
 
 """
 """
-@inline function delete(m::T)::T where {T<:AbstractModel}
+function delete(m::T)::T where {T<:AbstractModel}
   "DELETE FROM $(m._table_name) WHERE $(m._id) = '$(m.id |> Base.get)'" |> SearchLight.query
 
   tmp::T = T()
