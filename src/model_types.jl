@@ -82,6 +82,7 @@ SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
+SQLInput(n::Nothing) = SQLInput("NULL", escaped = true, raw = true)
 SQLInput(a::Any) = string(a) |> SQLInput
 SQLInput(n::Nullable) = isnull(n) ? SQLInput(nothing) : SQLInput(get(n))
 
@@ -104,7 +105,7 @@ convert(::Type{SQLInput}, d::Dates.Date) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Time) = SQLInput(string(d))
 function convert(::Type{SQLInput}, n::Nullable{T}) where {T}
   if isnull(n)
-    SQLInput("NULL", escaped = true, raw = true)
+    SQLInput(nothing)
   else
     Base.get(n) |> SQLInput
   end

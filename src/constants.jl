@@ -21,3 +21,5 @@ const SEARCHLIGHT_MIGRATIONS_TABLE_NAME       = "schema_migrations"
 const TEST_FILE_IDENTIFIER = "_test.jl"
 
 const SEARCHLIGHT_VALIDATOR_FILE_POSTFIX      = "Validator.jl"
+
+const LAST_INSERT_ID_LABEL = :LAST_INSERT_ID

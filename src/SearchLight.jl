@@ -924,11 +924,16 @@ end
 function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
   df::DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
-  id = if ! in(:id, names(df))
-    getfield(m, Symbol(primary_key_name(m)))
-  else
+  id = if in(SearchLight.LAST_INSERT_ID_LABEL, names(df))
+    df[1, SearchLight.LAST_INSERT_ID_LABEL]
+  elseif in(Symbol(primary_key_name(m)), names(df))
     df[1, Symbol(primary_key_name(m))]
   end
+
+  id === nothing && getfield(m, Symbol(primary_key_name(m))) !== nothing && (id = getfield(m, Symbol(primary_key_name(m))))
+
+  id === nothing && @error("An error has occured - can't retrive the ID of the inserted row.")
+
   n = find_one!!(typeof(m), id)
 
   db_fields = persistable_fields(m)

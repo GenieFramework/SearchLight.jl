@@ -166,12 +166,16 @@ julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Data
 """
 @inline function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
   try
-    if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
+    result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
       DB_ADAPTER.Query(conn, sql)  |> DataFrame
     else
       @info sql
       @time DB_ADAPTER.Query(conn, sql) |> DataFrame
     end
+
+    isempty(result) && startswith(sql, "INSERT ") ?
+      DataFrame(SearchLight.LAST_INSERT_ID_LABEL => last_insert_id(conn)) :
+        result
   catch ex
     @error """MySQL error when running "$(escape_string(sql))" """
 

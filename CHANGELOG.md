@@ -4,7 +4,8 @@
 
 * SearchLight environment inherits Genie environment, if available
 * Improved handling of 2006 and 2013 MySQL errors (connection lost)
-* fixes an issue where reading the configuration file left the file open
+* fixed an issue where reading the configuration file left the file open
+* fixed an issue where MySQL non-SELECT queries would not properly return the last insert id
 * API cleanup in `SearchLight.Database`
 
 ## v0.12.0 - 2019-08-29
