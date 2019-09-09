@@ -331,24 +331,20 @@ SQLWhereExpression(sql_expression::String, values::T) where {T} = SQLWhereExpres
 function string(we::SQLWhereExpression)
   string_value = we.sql_expression
 
-  # look for column placeholders, indicated by : -- such as :id
-  # column_placeholders = matchall(r":[a-zA-Z0-9_-]*", string_value)
-  for pl in collect((m.match for m = eachmatch(r":[a-zA-Z0-9_-]*", string_value)))
+  for pl in (m.match for m = eachmatch(r":[a-zA-Z0-9_-]*", string_value))
     string_value = replace(string_value, pl => SQLColumn(string(pl[2:end])))
   end
 
-  # replace value placeholders, indicated by ?
-  counter = 0
-  string_value = replace(string_value, "\\?"=>"\\§\\")
-  while something(findfirst(isequal('?'), string_value), 0) > 0 # search(string_value, '?') > 0
+  counter = 1
+  result = string_value
+  pos = 0
+  while ( pos = something(findnext(isequal('?'), string_value, pos+1), 0) ) > 0
+    result = replace(result, '?'=>string(we.values[counter]), count = 1)
+
     counter += 1
-    counter > size(we.values, 1) && throw("Not enough replacement values")
-
-    string_value = replace(string_value, "?" => string(we.values[counter]), count = 1)
   end
-  string_value = replace(string_value, "\\§\\" => "?")
 
-  we.condition * " " * string_value
+  string(we.condition, " ", result)
 end
 
 const SQLWhereEntity = Union{SQLWhere,SQLWhereExpression}
