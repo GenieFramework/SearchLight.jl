@@ -14,9 +14,6 @@ const TEST  = "test"
 
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = DEV)
 
-# defaults
-const SEARCHLIGHT_VERSION = v"0.12.2"
-
 
 """
     isdev()  :: Bool
