@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.13.1 - 2019-09-25
+
+* deps update
+
 ## v0.13.0 - 2019-09-20
 
 * deps update
