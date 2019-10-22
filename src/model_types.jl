@@ -5,14 +5,13 @@ import Base.convert
 import Base.length
 import Base.==
 
-using Dates, Reexport
-@reexport using Nullables
+import Dates, Reexport
+Reexport.@reexport using Nullables
 
 export DbId, SQLType, AbstractModel, ModelValidator
 export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
 export SQLWhere, SQLWhereExpression, SQLWhereEntity, SQLLimit, SQLOrder, SQLQuery, SQLRaw
-export SQLRelation, SQLRelationData
-export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
+export SQLJoin, SQLOn, SQLJoinType, SQLHaving
 
 export is_lazy, @sql_str
 
@@ -36,12 +35,12 @@ function searchlightabstracttype_to_print(m::T) :: String where {T<:SearchLightA
   output
 end
 
-const DbId = Nullable{Union{Int32,Int64,String}}
+const DbId = Nullables.Nullable{Union{Int32,Int64,String}}
 
-convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
-convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
+convert(::Type{Nullables.Nullable{DbId}}, v::Number) = Nullables.Nullable{DbId}(DbId(v))
+convert(::Type{Nullables.Nullable{DbId}}, v::String) = Nullables.Nullable{DbId}(DbId(v))
 
-Base.show(io::IO, dbid::DbId) = print(io, (isnull(dbid) ? "NULL" : string(Base.get(dbid))))
+Base.show(io::IO, dbid::DbId) = print(io, (Nullables.isnull(dbid) ? "NULL" : string(Base.get(dbid))))
 
 
 #
@@ -76,7 +75,7 @@ mutable struct SQLInput <: SQLType
   raw::Bool
   SQLInput(v::Union{String,Real}; escaped = false, raw = false) = new(v, escaped, raw)
 end
-SQLInput(a::Date) = string(a) |> SQLInput
+SQLInput(a::Dates.Date) = string(a) |> SQLInput
 SQLInput(a::Vector{T}) where {T} = map(x -> SQLInput(x), a)
 SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
@@ -84,7 +83,7 @@ SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
 SQLInput(n::Nothing) = SQLInput("NULL", escaped = true, raw = true)
 SQLInput(a::Any) = string(a) |> SQLInput
-SQLInput(n::Nullable) = isnull(n) ? SQLInput(nothing) : SQLInput(get(n))
+SQLInput(n::Nullables.Nullable) = Nullables.isnull(n) ? SQLInput(nothing) : SQLInput(get(n))
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
 
@@ -100,11 +99,11 @@ show(io::IO, s::SQLInput) = print(io, string(s))
 
 convert(::Type{SQLInput}, r::Real) = SQLInput(parse(r))
 convert(::Type{SQLInput}, s::Symbol) = SQLInput(string(s))
-convert(::Type{SQLInput}, d::DateTime) = SQLInput(string(d))
+convert(::Type{SQLInput}, d::Dates.DateTime) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Date) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Time) = SQLInput(string(d))
-function convert(::Type{SQLInput}, n::Nullable{T}) where {T}
-  if isnull(n)
+function convert(::Type{SQLInput}, n::Nullables.Nullable{T}) where {T}
+  if Nullables.isnull(n)
     SQLInput(nothing)
   else
     Base.get(n) |> SQLInput
@@ -375,7 +374,7 @@ struct SQLLimit <: SQLType
       return new(SQLLimit_ALL)
     else
       i = tryparse(Int, v)
-      if isnull(i)
+      if Nullables.isnull(i)
         error("Can't parse SQLLimit value")
       else
         return new(Base.get(i))
@@ -590,45 +589,3 @@ mutable struct SQLQuery <: SQLType
 end
 
 string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)
-
-
-#
-# SQLRelation
-#
-
-"""
-Represents the data contained by a SQL relation.
-"""
-mutable struct SQLRelationData{T<:AbstractModel} <: SQLType
-  collection::Vector{T}
-
-  SQLRelationData{T}(collection::Vector{T}) where {T<:AbstractModel} = new(collection)
-end
-SQLRelationData(collection::Vector{T}) where {T<:AbstractModel} = SQLRelationData{T}(collection)
-SQLRelationData(m::T) where {T<:AbstractModel} = SQLRelationData{T}([m])
-
-
-"""
-Defines the relation between two models, as reflected by the relation of their underlying SQL tables.
-"""
-mutable struct SQLRelation{T<:AbstractModel} <: SQLType
-  model_name::Type{T}
-  eagerness::Symbol
-  data::Nullable{SQLRelationData}
-  join::Nullable{SQLJoin}
-  where::Nullable{SQLWhereEntity}
-
-  SQLRelation{T}(model_name::Type{T}, eagerness, data, join, where) where {T<:AbstractModel} = new(model_name, eagerness, data, join, where)
-end
-SQLRelation(model_name::Type{T};
-            eagerness = RELATION_EAGERNESS_LAZY,
-            data = Nullable{SQLRelationData}(),
-            join = Nullable{SQLJoin}(),
-            where = Nullable{SQLWhereEntity}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, eagerness, data, join, where)
-
-function lazy(r::SQLRelation)
-  r.eagerness == RELATION_EAGERNESS_LAZY
-end
-function is_lazy(r::SQLRelation)
-  lazy(r)
-end

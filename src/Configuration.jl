@@ -3,7 +3,9 @@ Core SearchLight configuration / settings functionality.
 """
 module Configuration
 
-using SearchLight, YAML
+import Revise
+import YAML
+using SearchLight
 
 export isdev, isprod, istest, env, Settings, DEV, PROD, TEST
 
@@ -150,8 +152,6 @@ mutable struct Settings
   log_formatted::Bool
   log_to_file::Bool
 
-  model_relations_eagerness::Symbol
-
   Settings(;
             app_env       = ENV["SEARCHLIGHT_ENV"],
 
@@ -163,15 +163,12 @@ mutable struct Settings
             log_queries   = true,
             log_level     = :debug,
             log_formatted = true,
-            log_to_file   = true,
-
-            model_relations_eagerness = :lazy
+            log_to_file   = true
         ) =
               new(
                   app_env,
                   db_migrations_table_name, db_migrations_folder, db_config_settings,
-                  log_db, log_queries, log_level, log_formatted, log_to_file,
-                  model_relations_eagerness
+                  log_db, log_queries, log_level, log_formatted, log_to_file
                 )
 end
 

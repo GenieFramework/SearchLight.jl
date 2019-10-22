@@ -1,6 +1,7 @@
 module Util
 
-using Revise, Nullables
+import Revise
+import Nullables
 
 """
     add_quotes(str::String) :: String
@@ -74,8 +75,8 @@ Returns `value` if it is not `null` - otherwise `default`.
 function expand_nullable(value::T)::T where T
   value
 end
-function expand_nullable(value::Nullable{T}, default::T)::T where T
-  if isnull(value)
+function expand_nullable(value::Nullables.Nullable{T}, default::T)::T where T
+  if Nullables.isnull(value)
     default
   else
     Base.get(value)

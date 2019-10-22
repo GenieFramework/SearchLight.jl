@@ -1,7 +1,10 @@
 module SearchLight
 
-using Revise
-using Logging
+import Revise
+import DataFrames, OrderedCollections, Millboard, Distributed, Dates, Logging
+
+import DataFrames.DataFrame
+import Base.first, Base.last
 
 include("constants.jl")
 
@@ -10,14 +13,7 @@ haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 include(joinpath(@__DIR__, "Configuration.jl"))
 using .Configuration
 
-isfile("env.jl") && include(joinpath(pwd(), "env.jl"))
-
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
-
-using DataFrames, OrderedCollections, Millboard, Distributed, Dates, Logging
-
-import DataFrames.DataFrame
-import Base.first, Base.last
 
 include("Inflector.jl")
 include("FileTemplates.jl")
@@ -29,34 +25,24 @@ include("Validation.jl")
 include("Generator.jl")
 include("DatabaseSeeding.jl")
 include("QueryBuilder.jl")
+include("Highlight.jl")
 
-using .Database, .Migration, .Util, .Validation, .Inflector, .DatabaseSeeding, .QueryBuilder
+import .Database, .Migration, .Util, .Validation, .Inflector, .DatabaseSeeding, .QueryBuilder, .Highlight
 
 import Base.rand, Base.all, Base.count
 
-export finddf, find, findby, findoneby, findoneby!!, findone, findone!!, rand, randone, randone!!, all, count, findonebyorcreate, createwith
-export save, save!, save!!, updatewith!, updatewith!!, createorupdateby!!, createorupdate!!, deleteall, delete
+export finddf, find, findby, findoneby, findoneby!!, findone, findone!!
+export rand, randone, randone!!
+export all, count # min, max, mean, median
+export findonebyorcreate, createwith, createorupdateby!!, createorupdate!!
+export save, save!, save!!, updatewith!, updatewith!!
+export deleteall, delete
 export validator, validator!!
 
-export RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY
-export to_fully_qualified_sql_column_names, persistable_fields, escape_column_name, is_fully_qualified, to_fully_qualified
-export relations, has_relation, is_persisted, to_sqlinput, has_field, relation_eagerness
-export primary_key_name, table_name, disposable_instance
 export ispersisted
+export primary_key_name, table_name
 
 export QueryBuilder, Migration, Validation, Util
-
-const RELATION_HAS_ONE =    :has_one
-const RELATION_BELONGS_TO = :belongs_to
-const RELATION_HAS_MANY =   :has_many
-
-export RELATION_EAGERNESS_LAZY, RELATION_EAGERNESS_EAGER
-
-# model relations
-const RELATION_EAGERNESS_LAZY    = :lazy
-const RELATION_EAGERNESS_EAGER   = :eager
-
-const MODEL_RELATION_EAGERNESS = RELATION_EAGERNESS_LAZY
 
 const PRIMARY_KEY_NAME = "id"
 
@@ -83,38 +69,6 @@ end
 
 Base.showerror(io::IO, e::UnsupportedException) = print(io, "Method $(e.method_name) is not supported by $(e.adapter_name)")
 
-
-"""
-    direct_relations()::Vector{Symbol}
-
-Vector of available direct relations types.
-"""
-function direct_relations()::Vector{Symbol}
-  [RELATION_HAS_ONE, RELATION_BELONGS_TO, RELATION_HAS_MANY]
-end
-
-
-"""
-    relation_eagerness(eagerness::Symbol)::Bool
-
-Sets the default, global relation eagerness.
-"""
-function relation_eagerness(eagerness::Symbol)::Bool
-  ! in(eagerness, direct_relations()) && return false
-  MODEL_RELATION_EAGERNESS = eagerness
-
-  true
-end
-
-
-"""
-    relation_eagerness()::Symbol
-
-Returns the default global relation eagerness.
-"""
-function relation_eagerness()::Symbol
-  MODEL_RELATION_EAGERNESS
-end
 
 #
 # ORM methods
@@ -156,13 +110,13 @@ julia> SearchLight.find_df(Article, SQLQuery(limit = 5))
 ...
 ```
 """
-@inline function find_df(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::DataFrame where {T<:AbstractModel, N<:AbstractModel}
-  query(sql(m, q, j))::DataFrame
+@inline function find_df(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::DataFrames.DataFrame where {T<:AbstractModel, N<:AbstractModel}
+  query(sql(m, q, j))::DataFrames.DataFrame
 end
-@inline function find_df(m::Type{T}, q::SQLQuery)::DataFrame where {T<:AbstractModel}
-  query(sql(m, q))::DataFrame
+@inline function find_df(m::Type{T}, q::SQLQuery)::DataFrames.DataFrame where {T<:AbstractModel}
+  query(sql(m, q))::DataFrames.DataFrame
 end
-@inline function find_df(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrame where {T<:AbstractModel}
+@inline function find_df(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(order = order))
 end
 
@@ -194,27 +148,27 @@ julia> SearchLight.find_df(Article, SQLWhereEntity[SQLWhereExpression("id BETWEE
 ...
 ```
 """
-@inline function find_df(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrame where {T<:AbstractModel}
+@inline function find_df(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(where = [w], order = order))
 end
-@inline function find_df(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrame where {T<:AbstractModel}
+@inline function find_df(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(where = w, order = order))
 end
 
 
 """
 """
-@inline function find_df(m::Type{T}, qp::QueryBuilder.QueryPart, j::Vector{SQLJoin{N}})::DataFrame where {T<:AbstractModel, N<:AbstractModel}
+@inline function find_df(m::Type{T}, qp::QueryBuilder.QueryPart, j::Vector{SQLJoin{N}})::DataFrames.DataFrame where {T<:AbstractModel, N<:AbstractModel}
   find_df(m, qp.query, j)
 end
-@inline function find_df(m::Type{T}, qb::QueryBuilder.QueryPart)::DataFrame where {T<:AbstractModel}
+@inline function find_df(m::Type{T}, qb::QueryBuilder.QueryPart)::DataFrames.DataFrame where {T<:AbstractModel}
   find_df(m, qb.query)
 end
 
 const finddf = find_df
 
 
-@inline function DataFrame(args...)::DataFrames.DataFrame
+@inline function DataFrames.DataFrame(args...)::DataFrames.DataFrame
   find_df(args...)
 end
 
@@ -451,16 +405,16 @@ App.Article
 )
 ```
 """
-@inline function find_one_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
+@inline function find_one_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order, limit = 1)) |> to_nullable
 end
-@inline function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
+@inline function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
   find_one_by(m, SQLColumn(column_name), SQLInput(value), order = order)
 end
-@inline function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
+@inline function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [sql_expression], order = order, limit = 1)) |> to_nullable
 end
-@inline function find_one_by(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
+@inline function find_one_by(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
   qp.query.limit = 1
 
   find(m, qp.query) |> to_nullable
@@ -568,7 +522,7 @@ App.Article
 )
 ```
 """
-@inline function find_one(m::Type{T}, value::Any)::Nullable{T} where {T<:AbstractModel}
+@inline function find_one(m::Type{T}, value::Any)::Nullables.Nullable{T} where {T<:AbstractModel}
   _m::T = disposable_instance(m)
   find_one_by(m, SQLColumn(to_fully_qualified(primary_key_name(_m), table_name(_m))), SQLInput(value))
 end
@@ -688,10 +642,10 @@ App.Article
 )
 ```
 """
-@inline function rand_one(m::Type{T})::Nullable{T} where {T<:AbstractModel}
+@inline function rand_one(m::Type{T})::Nullables.Nullable{T} where {T<:AbstractModel}
   to_nullable(SearchLight.rand(m, limit = 1))
 end
-@inline function rand_one(m::Type{T}, scopes::Vector{Symbol})::Nullable{T} where {T<:AbstractModel}
+@inline function rand_one(m::Type{T}, scopes::Vector{Symbol})::Nullables.Nullable{T} where {T<:AbstractModel}
   to_nullable(SearchLight.rand(m, scopes, limit = 1))
 end
 
@@ -749,9 +703,6 @@ julia> SearchLight.all(Article)
 @inline function all(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = limit, offset = offset))
 end
-@inline function all(m::Type{T}, scopes::Vector{Symbol})::Vector{T} where {T<:AbstractModel}
-  find(m, SQLQuery(scopes = scopes))
-end
 @inline function all(m::Type{T}, query::SQLQuery)::Vector{T} where {T<:AbstractModel}
   find(m, query)
 end
@@ -759,20 +710,20 @@ end
 
 """
 """
-@inline function first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullable{T} where {T<:AbstractModel}
+@inline function first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> to_nullable
 end
-@inline function first(m::Type{T}, qp::QueryBuilder.QueryPart)::Nullable{T} where {T<:AbstractModel}
+@inline function first(m::Type{T}, qp::QueryBuilder.QueryPart)::Nullables.Nullable{T} where {T<:AbstractModel}
   find(m, qp + limit(1)) |> to_nullable
 end
 
 
 """
 """
-@inline function last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Nullable{T} where {T<:AbstractModel}
+@inline function last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Nullables.Nullable{T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> to_nullable
 end
-@inline function last(m::Type{T}, qp::QueryBuilder.QueryPart)::Nullable{T} where {T<:AbstractModel}
+@inline function last(m::Type{T}, qp::QueryBuilder.QueryPart)::Nullables.Nullable{T} where {T<:AbstractModel}
   find(m, qp + limit(1)) |> to_nullable
 end
 
@@ -922,7 +873,7 @@ App.Article
   save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 end
 function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
-  df::DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
+  df::DataFrames.DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
   id = if in(SearchLight.LAST_INSERT_ID_LABEL, names(df))
     df[1, SearchLight.LAST_INSERT_ID_LABEL]
@@ -937,7 +888,7 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
   n = find_one!!(typeof(m), id)
 
   db_fields = persistable_fields(m)
-  @sync @distributed for f in fieldnames(typeof(m))
+  @sync Distributed.@distributed for f in fieldnames(typeof(m))
     if in(string(f), db_fields)
       setfield!(m, f, getfield(n, f))
     end
@@ -946,7 +897,7 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
   m
 end
 
-function _save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::DataFrame where {T<:AbstractModel}
+function _save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::DataFrames.DataFrame where {T<:AbstractModel}
   has_field(m, :validator) && ! skip_validation && ! Validation.validate!(m) && error("SearchLight validation error(s) for $(typeof(m)): $(join( map(e -> "$(e.field) $(e.error_message)", Validation.errors(m) |> Base.get), ", "))")
 
   in(:before_save, skip_callbacks) || invoke_callback(m, :before_save)
@@ -1175,7 +1126,7 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
               nothing
             end
 
-    value == nothing && continue
+    value === nothing && continue
 
     value = if typeof(getfield(m, fieldname)) == Bool
               if lowercase(string(value)) == "on" || value == :on || value == "1" || value == 1 || lowercase(string(value)) == "true" || value == :true
@@ -1401,7 +1352,7 @@ App.Article
 """
 function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}, value::Any; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
   existing = find_one_by(typeof(m), property, value)
-  if ! isnull(existing)
+  if ! Nullables.isnull(existing)
     existing = Base.get(existing)
 
     skip_update && return existing
@@ -1511,7 +1462,7 @@ App.Article
 """
 @inline function find_one_by_or_create(m::Type{T}, property::Any, value::Any)::T where {T<:AbstractModel}
   lookup = find_one_by(m, SQLColumn(property), SQLInput(value))
-  ! isnull( lookup ) && return Base.get(lookup)
+  ! Nullables.isnull( lookup ) && return Base.get(lookup)
 
   _m::T = m()
   setfield!(_m, Symbol(is_fully_qualified(string(property)) ? from_fully_qualified(string(property))[end] : property), value)
@@ -1582,8 +1533,8 @@ App.Article
 +--------------+-------------------------------------------------------------+
 ```
 """
-function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel}
-  models = OrderedDict{DbId,T}()
+function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:AbstractModel}
+  models = OrderedCollections.OrderedDict{DbId,T}()
   dfs = dataframes_by_table(m, df)
 
   row_count::Int = 1
@@ -1595,21 +1546,7 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
       main_model = models[ getfield(main_model, Symbol(primary_key_name(__m))) |> Base.get ]
     end
 
-    for relation in relations(m)
-      r::SQLRelation, r_type::Symbol = relation
-
-      is_lazy(r) && continue
-
-      related_model = r.model_name
-      related_model_df::DataFrame = dfs[table_name(related_model())][row_count, :]
-
-      r = set_relation(r, related_model, related_model_df)
-
-      model_rels = getfield(main_model, r_type)
-      isnull(model_rels[1].data) ? model_rels[1] = r : push!(model_rels, r)
-    end
-
-    if ! haskey(models, getfield(main_model, Symbol(primary_key_name(__m)))) && ! isnull(getfield(main_model, Symbol(primary_key_name(__m))))
+    if ! haskey(models, getfield(main_model, Symbol(primary_key_name(__m)))) && ! Nullables.isnull(getfield(main_model, Symbol(primary_key_name(__m))))
       models[DbId(getfield(main_model, Symbol(primary_key_name(__m))) |> Base.get)] = main_model
     end
 
@@ -1617,26 +1554,6 @@ function to_models(m::Type{T}, df::DataFrame)::Vector{T} where {T<:AbstractModel
   end
 
   models |> values |> collect
-end
-
-
-"""
-    set_relation{T<:AbstractModel}(r::SQLRelation, related_model::Type{T}, related_model_df::DataFrames.DataFrame)::SQLRelation
-
-Sets relation data for one to many relations.
-"""
-function set_relation(r::SQLRelation, related_model::Type{T}, related_model_df::DataFrames.DataFrame)::SQLRelation where {T<:AbstractModel}
-  data =  if isnull(r.data)
-            SQLRelationData{T}(T[])
-          else
-            Base.get(r.data)
-          end
-
-  model_data = to_model(related_model, related_model_df)
-  ! isnull(model_data) && push!(data.collection, Base.get(model_data) )
-  r.data = Nullable(data)
-
-  r
 end
 
 
@@ -1900,8 +1817,8 @@ julia> SearchLight.to_model(Article, df)
 Nullable{App.Article}()
 ```
 """
-@inline function to_model(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Nullable{T} where {T<:AbstractModel}
-  size(df)[1] >= row_index ? Nullable{T}(to_model!!(m, df, row_index = row_index)) : Nullable{T}()
+@inline function to_model(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Nullables.Nullable{T} where {T<:AbstractModel}
+  size(df)[1] >= row_index ? Nullables.Nullable{T}(to_model!!(m, df, row_index = row_index)) : Nullables.Nullable{T}()
 end
 
 
@@ -2231,489 +2148,6 @@ end
 
 
 """
-    relations{T<:AbstractModel}(m::Type{T})::Vector{Tuple{SQLRelation,Symbol}}
-
-Returns the vector of relations for the given model type.
-
-# Examples
-```julia
-julia> SearchLight.relations(User)
-1-element Array{Tuple{SearchLight.SQLRelation,Symbol},1}:
- (
-SearchLight.SQLRelation{App.Role}
-+============+=================================================================================+
-|        key |                                                                           value |
-+============+=================================================================================+
-|       data | Nullable{Union{Array{SearchLight.AbstractModel,1},SearchLight.AbstractModel}}() |
-+------------+---------------------------------------------------------------------------------+
-|  eagerness |                                                                            auto |
-+------------+---------------------------------------------------------------------------------+
-|       join |                   Nullable{SearchLight.SQLJoin{T<:SearchLight.AbstractModel}}() |
-+------------+---------------------------------------------------------------------------------+
-| model_name |                                                                        App.Role |
-+------------+---------------------------------------------------------------------------------+
-|   required |                                                                           false |
-+------------+---------------------------------------------------------------------------------+
-,:belongs_to)
-```
-"""
-function relations(m::Type{T})::Vector{Tuple{SQLRelation,Symbol}} where {T<:AbstractModel}
-  _m::T = m()
-
-  rls = Tuple{SQLRelation,Symbol}[]
-
-  for r in direct_relations()
-    if has_field(_m, r)
-      relation = getfield(_m, r)
-      if ! isempty(relation)
-        for rel in relation
-          push!(rls, (rel, r))
-        end
-      end
-    end
-  end
-
-  rls
-end
-
-
-"""
-    relation{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelation{R}}
-
-Gets the relation instance of `relation_type` for the model instance `m` and `model_name`.
-
-# Examples
-```julia
-julia> u = SearchLight.find_one!!(User, 1)
-
-2016-12-23T10:47:33.021 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at" FROM "users" WHERE ("id" = 1) ORDER BY users.id ASC LIMIT 1
-
-  0.002944 seconds (1.23 k allocations: 52.641 KB)
-
-2016-12-23T10:47:36.711 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000711 seconds (13 allocations: 432 bytes)
-
-App.User
-+============+==================================================================+
-|        key |                                                            value |
-+============+==================================================================+
-|      email |                                                 e@essenciary.com |
-+------------+------------------------------------------------------------------+
-|         id |                                               Nullable{Int32}(1) |
-+------------+------------------------------------------------------------------+
-|       name |                                                  Adrian Salceanu |
-+------------+------------------------------------------------------------------+
-|   password | 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08 |
-+------------+------------------------------------------------------------------+
-|    role_id |                                               Nullable{Int32}(2) |
-+------------+------------------------------------------------------------------+
-| updated_at |                                              2016-08-25T20:05:24 |
-+------------+------------------------------------------------------------------+
-
-
-julia> SearchLight.relations(User)
-1-element Array{Tuple{SearchLight.SQLRelation,Symbol},1}:
- (
-SearchLight.SQLRelation{App.Role}
-+============+=======================================================================+
-|        key |                                                                 value |
-+============+=======================================================================+
-|       data | Nullable{SearchLight.SQLRelationData{T<:SearchLight.AbstractModel}}() |
-+------------+-----------------------------------------------------------------------+
-|  eagerness |                                                                  auto |
-+------------+-----------------------------------------------------------------------+
-|       join |         Nullable{SearchLight.SQLJoin{T<:SearchLight.AbstractModel}}() |
-+------------+-----------------------------------------------------------------------+
-| model_name |                                                              App.Role |
-+------------+-----------------------------------------------------------------------+
-|   required |                                                                 false |
-+------------+-----------------------------------------------------------------------+
-,:belongs_to)
-
-julia> SearchLight.relation(u, Role, :belongs_to)
-Nullable{SearchLight.SQLRelation{App.Role}}(
-SearchLight.SQLRelation{App.Role}
-+============+======================================================================+
-|        key |                                                                value |
-+============+======================================================================+
-|            | Nullable{SearchLight.SQLRelationData{T<:SearchLight.AbstractModel}}( |
-|       data |                                   SearchLight.SQLRelationData{App...})|
-+------------+----------------------------------------------------------------------+
-|  eagerness |                                                                 auto |
-+------------+----------------------------------------------------------------------+
-|       join |        Nullable{SearchLight.SQLJoin{T<:SearchLight.AbstractModel}}() |
-+------------+----------------------------------------------------------------------+
-| model_name |                                                             App.Role |
-+------------+----------------------------------------------------------------------+
-|   required |                                                                false |
-+------------+----------------------------------------------------------------------+
-)
-```
-"""
-function relation(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelation{R}} where {T<:AbstractModel,R<:AbstractModel}
-  nullable_defined_rels::Nullable{Vector{SQLRelation}} = getfield(m, relation_type)
-  if ! isnull(nullable_defined_rels)
-    defined_rels::Vector{SQLRelation{R}} = Base.get(nullable_defined_rels)
-
-    for rel::SQLRelation{R} in defined_rels
-      if rel.model_name == model_name || split(string(rel.model_name), ".")[end] == string(model_name)
-        return Nullable{SQLRelation}(rel)
-      else
-        @warn "Must check this: $(rel.model_name) == $(model_name) at $(@__FILE__) $(@__LINE__)"
-      end
-    end
-  end
-
-  Nullable{SQLRelation}()
-end
-
-
-"""
-    relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}}
-
-Retrieves the data (model object or vector of model objects) associated by the relation.
-
-# Examples
-```julia
-julia> u = SearchLight.find_one!!(User, 1)
-
-2016-12-22T19:01:24.483 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at" FROM "users" WHERE ("id" = 1) ORDER BY users.id ASC LIMIT 1
-
-  0.002004 seconds (1.23 k allocations: 52.641 KB)
-
-2016-12-22T19:01:28.214 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000760 seconds (13 allocations: 432 bytes)
-
-App.User
-+============+==================================================================+
-|        key |                                                            value |
-+============+==================================================================+
-|      email |                                               adrian@example.com |
-+------------+------------------------------------------------------------------+
-|         id |                                               Nullable{Int32}(1) |
-+------------+------------------------------------------------------------------+
-|       name |                                                  Adrian Salceanu |
-+------------+------------------------------------------------------------------+
-|   password | 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08 |
-+------------+------------------------------------------------------------------+
-|    role_id |                                               Nullable{Int32}(2) |
-+------------+------------------------------------------------------------------+
-| updated_at |                                              2016-08-25T20:05:24 |
-+------------+------------------------------------------------------------------+
-
-
-julia> SearchLight.relation_data(u, Role, :belongs_to)
-Nullable{SearchLight.SQLRelationData{App.Role}}(
-SearchLight.SQLRelationData{App.Role}
-+============+===============================+
-|        key |                         value |
-+============+===============================+
-|            |                     App.Role[ |
-|            |                      App.Role |
-|            | +======+====================+ |
-|            | |  key |              value | |
-| collection |      +======+=============...]|
-+------------+-------------------------------+
-)
-```
-"""
-function relation_data(m::T, model_name::Type{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}} where {T<:AbstractModel,R<:AbstractModel}
-  rel::SQLRelation{R} = relation(m, model_name, relation_type) |> Base.get
-  isnull(rel.data) && (rel.data = get_relation_data(m, rel, relation_type))
-
-  rel.data
-end
-
-
-"""
-    relation_data!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::SQLRelationData{R}
-
-Retrieves the data (model object or vector of model objects) associated by the relation. Similar to `relation_data` except if the data is null, throws error.
-
-# Examples
-```julia
-julia> u = SearchLight.find_one!!(User, 1)
-
-2016-12-22T19:01:24.483 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at" FROM "users" WHERE ("id" = 1) ORDER BY users.id ASC LIMIT 1
-
-  0.002004 seconds (1.23 k allocations: 52.641 KB)
-
-2016-12-22T19:01:28.214 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000760 seconds (13 allocations: 432 bytes)
-
-App.User
-+============+==================================================================+
-|        key |                                                            value |
-+============+==================================================================+
-|      email |                                               adrian@example.com |
-+------------+------------------------------------------------------------------+
-|         id |                                               Nullable{Int32}(1) |
-+------------+------------------------------------------------------------------+
-|       name |                                                  Adrian Salceanu |
-+------------+------------------------------------------------------------------+
-|   password | 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08 |
-+------------+------------------------------------------------------------------+
-|    role_id |                                               Nullable{Int32}(2) |
-+------------+------------------------------------------------------------------+
-| updated_at |                                              2016-08-25T20:05:24 |
-+------------+------------------------------------------------------------------+
-
-julia> SearchLight.relation_data!!(u, Role, :belongs_to)
-
-SearchLight.SQLRelationData{App.Role}
-+============+===============================+
-|        key |                         value |
-+============+===============================+
-|            |                     App.Role[ |
-|            |                      App.Role |
-|            | +======+====================+ |
-|            | |  key |              value | |
-| collection |      +======+=============...]|
-+------------+-------------------------------+
-```
-"""
-@inline function relation_data!!(m::T, model_name::Type{R}, relation_type::Symbol)::SQLRelationData{R} where {T<:AbstractModel,R<:AbstractModel}
-  Base.get(relation_data(m, model_name, relation_type))
-end
-
-
-"""
-    relation_collection!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol)::Vector{R}
-
-Returns the collection (vector) containing the data associated through the relation.
-
-# Examples
-```julia
-julia> SearchLight.relation_collection!!(SearchLight.find_one!!(User, 1), Role, :belongs_to)
-
-2016-12-23T12:21:14.519 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at" FROM "users" WHERE ("id" = 1) ORDER BY users.id ASC LIMIT 1
-
-  0.001603 seconds (15 allocations: 528 bytes)
-
-2016-12-23T12:21:14.548 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000593 seconds (13 allocations: 432 bytes)
-1-element Array{App.Role,1}:
-
-App.Role
-+======+====================+
-|  key |              value |
-+======+====================+
-|   id | Nullable{Int32}(2) |
-+------+--------------------+
-| name |              admin |
-+------+--------------------+
-```
-"""
-@inline function relation_collection!!(m::T, model_name::Type{R}, relation_type::Symbol)::Vector{R} where {T<:AbstractModel,R<:AbstractModel}
-  relation_data!!(m, model_name, relation_type).collection
-end
-
-
-"""
-    relation_object!!{T<:AbstractModel,R<:AbstractModel}(m::T, model_name::Type{R}, relation_type::Symbol; idx = 1)::R
-
-Returns the model object at `idx` from the collection defined by the associated relation.
-
-# Examples
-```julia
-julia> SearchLight.relation_object!!(SearchLight.find_one!!(User, 1), Role, :belongs_to)
-
-2016-12-23T12:22:44.321 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at" FROM "users" WHERE ("id" = 1) ORDER BY users.id ASC LIMIT 1
-
-  0.000666 seconds (15 allocations: 528 bytes)
-
-2016-12-23T12:22:44.328 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000477 seconds (13 allocations: 432 bytes)
-
-App.Role
-+======+====================+
-|  key |              value |
-+======+====================+
-|   id | Nullable{Int32}(2) |
-+------+--------------------+
-| name |              admin |
-+------+--------------------+
-```
-"""
-@inline function relation_object!!(m::T, model_name::Type{R}, relation_type::Symbol; idx = 1)::R where {T<:AbstractModel,R<:AbstractModel}
-  relation_collection!!(m, model_name, relation_type)[idx]
-end
-
-
-"""
-    get_relation_data{T<:AbstractModel}{R<:AbstractModel}(m::T, rel::SQLRelation{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}}
-    get_relation_data{T<:AbstractModel,R<:AbstractModel}(m::T, relation_info::Tuple{SQLRelation,Symbol})::Nullable{SQLRelationData{R}}
-
-Extracts the data (instantiates the models) associated by the relation, performing the corresponding SQL queries.
-
-# Examples
-```julia
-julia> SearchLight.relations(User)
-1-element Array{Tuple{SearchLight.SQLRelation,Symbol},1}:
- (
-SearchLight.SQLRelation{App.Role}
-+============+=======================================================================+
-|        key |                                                                 value |
-+============+=======================================================================+
-|       data | Nullable{SearchLight.SQLRelationData{T<:SearchLight.AbstractModel}}() |
-+------------+-----------------------------------------------------------------------+
-|  eagerness |                                                                  auto |
-+------------+-----------------------------------------------------------------------+
-|       join |         Nullable{SearchLight.SQLJoin{T<:SearchLight.AbstractModel}}() |
-+------------+-----------------------------------------------------------------------+
-| model_name |                                                              App.Role |
-+------------+-----------------------------------------------------------------------+
-|   required |                                                                 false |
-+------------+-----------------------------------------------------------------------+
-,:belongs_to)
-
-julia> SearchLight.get_relation_data(SearchLight.find_one!!(User, 1), SearchLight.relations(User)[1][1], :belongs_to)
-
-2016-12-23T12:24:09.542 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at" FROM "users" WHERE ("id" = 1) ORDER BY users.id ASC LIMIT 1
-
-  0.000608 seconds (15 allocations: 528 bytes)
-
-2016-12-23T12:24:09.549 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000519 seconds (13 allocations: 432 bytes)
-
-2016-12-23T12:24:09.557 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000658 seconds (13 allocations: 432 bytes)
-Nullable{SearchLight.SQLRelationData{App.Role}}(
-SearchLight.SQLRelationData{App.Role}
-+============+===============================+
-|        key |                         value |
-+============+===============================+
-|            |                     App.Role[ |
-|            |                      App.Role |
-|            | +======+====================+ |
-|            | |  key |              value | |
-| collection |      +======+=============...]|
-+------------+-------------------------------+
-)
-
-###
-
-julia> rels = SearchLight.relations(User)
-1-element Array{Tuple{SearchLight.SQLRelation,Symbol},1}:
- (
-SearchLight.SQLRelation{App.Role}
-+============+=======================================================================+
-|        key |                                                                 value |
-+============+=======================================================================+
-|       data | Nullable{SearchLight.SQLRelationData{T<:SearchLight.AbstractModel}}() |
-+------------+-----------------------------------------------------------------------+
-|  eagerness |                                                                  auto |
-+------------+-----------------------------------------------------------------------+
-|       join |         Nullable{SearchLight.SQLJoin{T<:SearchLight.AbstractModel}}() |
-+------------+-----------------------------------------------------------------------+
-| model_name |                                                              App.Role |
-+------------+-----------------------------------------------------------------------+
-|   required |                                                                 false |
-+------------+-----------------------------------------------------------------------+
-,:belongs_to)
-
-julia> SearchLight.get_relation_data(SearchLight.find_one!!(User, 1), rels[1])
-
-2016-12-23T12:29:25.033 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at" FROM "users" WHERE ("id" = 1) ORDER BY users.id ASC LIMIT 1
-
-  0.001999 seconds (1.23 k allocations: 52.641 KB)
-
-2016-12-23T12:29:28.681 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000733 seconds (13 allocations: 432 bytes)
-
-2016-12-23T12:29:28.874 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000567 seconds (13 allocations: 432 bytes)
-Nullable{SearchLight.SQLRelationData{App.Role}}(
-SearchLight.SQLRelationData{App.Role}
-+============+===============================+
-|        key |                         value |
-+============+===============================+
-|            |                     App.Role[ |
-|            |                      App.Role |
-|            | +======+====================+ |
-|            | |  key |              value | |
-| collection |      +======+=============...]|
-+------------+-------------------------------+
-)
-```
-"""
-function get_relation_data(m::T, rel::SQLRelation{R}, relation_type::Symbol)::Nullable{SQLRelationData{R}} where {T<:AbstractModel,R<:AbstractModel}
-  conditions = SQLWhereEntity[]
-
-  limit = if relation_type == RELATION_HAS_ONE || relation_type == RELATION_BELONGS_TO
-            1
-          else
-            "ALL"
-          end
-
-  where = if relation_type == RELATION_HAS_ONE || relation_type == RELATION_HAS_MANY
-            if ! isnull(rel.where)
-              Base.get(rel.where)
-            else
-              SQLWhere(SQLColumn(((lowercase(string(typeof(m))) |> strip_module_name) * "_" * primary_key_name(m) |> escape_column_name), raw = true), m.id)
-            end
-          elseif relation_type == RELATION_BELONGS_TO
-            if ! isnull(rel.where)
-              Base.get(rel.where)
-            else
-              _r = (rel.model_name)()
-              SQLWhere(SQLColumn(to_fully_qualified(primary_key_name(_r), table_name(_r)), raw = true), getfield(m, Symbol((lowercase(string(typeof(_r))) |> strip_module_name) * "_" * primary_key_name(_r))) |> Base.get)
-            end
-          end
-
-  push!(conditions, where)
-
-  data = SearchLight.find(rel.model_name, SQLQuery(where = conditions, limit = SQLLimit(limit)))
-
-  isempty(data) && return Nullable{SQLRelationData{R}}()
-
-  if relation_type == RELATION_HAS_ONE || relation_type == RELATION_BELONGS_TO
-    return Nullable(SQLRelationData(first(data)))
-  else
-    return Nullable(SQLRelationData(data))
-  end
-
-  Nullable{SQLRelationData{R}}()
-end
-@inline function get_relation_data(m::T, relation_info::Tuple{SQLRelation{R},Symbol})::Nullable{SQLRelationData{R}} where {T<:AbstractModel,R<:AbstractModel}
-  get_relation_data(m, relation_info[1], relation_info[2])
-end
-
-
-"""
-    relations_tables_names{T<:AbstractModel}(m::Type{T})::Vector{String}
-
-Returns a vector of strings containing the names of the related SQL database tables.
-
-# Examples
-```julia
-julia> SearchLight.relations_tables_names(User)
-1-element Array{String,1}:
- "roles"
-```
-"""
-function relations_tables_names(m::Type{T})::Vector{String} where {T<:AbstractModel}
-  tables_names = String[]
-  for r in relations(m)
-    r, r_type = r
-    rmdl = disposable_instance(r.model_name)
-    push!(tables_names, table_name(rmdl))
-  end
-
-  tables_names
-end
-
-
-"""
     columns_names_by_table(tables_names::Vector{String}, df::DataFrame)::Dict{String,Vector{Symbol}}
 
 Returns the names of the columns from `df` grouped by table name -- as a `Dict` that has as keys the names of the tables from `tables_names` and as values vectors of symbols representing the names of the columns from `df`.
@@ -2738,7 +2172,7 @@ Dict{String,Array{Symbol,1}} with 1 entry:
   "users" => Symbol[:users_id,:users_name,:users_email,:users_password,:users_role_id,:users_updated_at]
 ```
 """
-function columns_names_by_table(tables_names::Vector{String}, df::DataFrame)::Dict{String,Vector{Symbol}}
+function columns_names_by_table(tables_names::Vector{String}, df::DataFrames.DataFrame)::Dict{String,Vector{Symbol}}
   tables_columns = Dict{String,Vector{Symbol}}()
 
   for t in tables_names
@@ -2799,8 +2233,8 @@ julia> SearchLight.dataframes_by_table(["users"], SearchLight.columns_names_by_t
 │ 1   │ 1        │ "Adrian Salceanu" │ "e@essenciary.com" │ "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" │ 2             │ "2016-08-25 20:05:24" │
 ```
 """
-function dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{String,Vector{Symbol}}, df::DataFrame)::Dict{String,DataFrame}
-  sub_dfs = Dict{String,DataFrame}()
+function dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{String,Vector{Symbol}}, df::DataFrames.DataFrame)::Dict{String,DataFrames.DataFrame}
+  sub_dfs = Dict{String,DataFrames.DataFrame}()
 
   for t in tables_names
     sub_dfs[t] = df[:, tables_columns[t]]
@@ -2808,34 +2242,10 @@ function dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{
 
   sub_dfs
 end
-function dataframes_by_table(m::Type{T}, df::DataFrame)::Dict{String,DataFrame} where {T<:AbstractModel}
-  tables_names = vcat(String[table_name(disposable_instance(m))], relations_tables_names(m))
+function dataframes_by_table(m::Type{T}, df::DataFrames.DataFrame)::Dict{String,DataFrames.DataFrame} where {T<:AbstractModel}
+  tables_names = String[table_name(disposable_instance(m))]
 
   dataframes_by_table(tables_names, columns_names_by_table(tables_names, df), df)
-end
-
-
-"""
-    relation_to_sql{T<:AbstractModel}(m::T, rel::Tuple{SQLRelation,Symbol})::String
-
-Returns the part of the SQL query that corresponds to the SQL JOIN defined by the relationship.
-
-# Examples
-```julia
-julia> SearchLight.relation_to_sql(SearchLight.find_one!!(User, 1), SearchLight.relations(User)[1])
-
-2016-12-23T14:52:35.711 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id" WHERE ("users"."id" = 1) ORDER BY users.id ASC LIMIT 1
-
-  0.000880 seconds (16 allocations: 576 bytes)
-
-2016-12-23T14:52:35.724 - info: SQL QUERY: SELECT "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "roles" WHERE (roles.id = 2) LIMIT 1
-
-  0.000461 seconds (13 allocations: 432 bytes)
-""roles" ON "users"."role_id" = "roles"."id""
-```
-"""
-@inline function relation_to_sql(m::T, rel::Tuple{SQLRelation,Symbol})::String where {T<:AbstractModel}
-  Database.relation_to_sql(m, rel)
 end
 
 
@@ -3003,7 +2413,7 @@ julia> SearchLight.query("SELECT * FROM articles LIMIT 5")
 5×7 DataFrames.DataFrame
 ```
 """
-@inline function query(sql::String; system_query::Bool = false) :: DataFrame
+@inline function query(sql::String; system_query::Bool = false) :: DataFrames.DataFrame
   Database.query(sql, system_query = system_query)
 end
 
@@ -3214,16 +2624,16 @@ end
 
 
 """
-    is_persisted{T<:AbstractModel}(m::T)::Bool
+    ispersisted{T<:AbstractModel}(m::T)::Bool
 
 Returns wheter or not the model object is persisted to the database.
 
 # Examples
 ```julia
-julia> SearchLight.is_persisted(User())
+julia> SearchLight.ispersisted(User())
 false
 
-julia> SearchLight.is_persisted(SearchLight.find_one!!(User, 1))
+julia> SearchLight.ispersisted(SearchLight.find_one!!(User, 1))
 
 2016-12-23T16:44:24.805 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id" WHERE ("users"."id" = 1) ORDER BY users.id ASC LIMIT 1
 
@@ -3235,11 +2645,9 @@ julia> SearchLight.is_persisted(SearchLight.find_one!!(User, 1))
 true
 ```
 """
-@inline function is_persisted(m::T)::Bool where {T<:AbstractModel}
-  ! ( isa(getfield(m, Symbol(primary_key_name(m))), Nullable) && isnull( getfield(m, Symbol(primary_key_name(m))) ) )
+@inline function ispersisted(m::T)::Bool where {T<:AbstractModel}
+  ! ( isa(getfield(m, Symbol(primary_key_name(m))), Nullables.Nullable) && Nullables.isnull( getfield(m, Symbol(primary_key_name(m))) ) )
 end
-
-const ispersisted = is_persisted
 
 
 """
@@ -3290,8 +2698,9 @@ julia> SearchLight.persistable_fields(SearchLight.find_one!!(User, 1))
 function persistable_fields(m::T; fully_qualified::Bool = false)::Vector{String} where {T<:AbstractModel}
   object_fields = map(x -> string(x), fieldnames(typeof(m)))
   db_columns =  try
-                  columns(typeof(m))[!, DatabaseAdapter.COLUMN_NAME_FIELD_NAME]
+                  columns(typeof(m))[!, Database.DatabaseAdapter.COLUMN_NAME_FIELD_NAME]
                 catch ex
+                  @error ex
                   []
                 end
 
@@ -3418,7 +2827,7 @@ SearchLight.ModelValidator
 )
 ```
 """
-@inline function validator(m::T)::Nullable{ModelValidator} where {T<:AbstractModel}
+@inline function validator(m::T)::Nullables.Nullable{ModelValidator} where {T<:AbstractModel}
   Validation.validator!!(m)
 end
 
@@ -3761,18 +3170,8 @@ end
 
 Wraps a result vector into a `Nullable`.
 """
-@inline function to_nullable(result::Vector{T})::Nullable{T} where {T<:AbstractModel}
-  isempty(result) ? Nullable{T}() : Nullable{T}(result |> first)
-end
-
-
-"""
-    has_relation{T<:AbstractModel}(m::T, relation_type::Symbol)::Bool
-
-Returns wheter or not the model `m` has defined a relation of type `relation_type`.
-"""
-@inline function has_relation(m::T, relation_type::Symbol)::Bool where {T<:AbstractModel}
-  has_field(m, relation_type)
+@inline function to_nullable(result::Vector{T})::Nullables.Nullable{T} where {T<:AbstractModel}
+  isempty(result) ? Nullables.Nullable{T}() : Nullables.Nullable{T}(result |> first)
 end
 
 

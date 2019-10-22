@@ -1,6 +1,8 @@
 module Validation
 
-using SearchLight, Millboard, Nullables
+import Revise
+import Millboard, Nullables
+using SearchLight
 
 import Base.show
 
@@ -50,7 +52,7 @@ function validationabstracttype_to_print(m::T) :: String where {T<:ValidationAbs
   output = "\n" # "\n" * "$(typeof(m))" * "\n"
 
   try
-    if (has_field(m, :error_message))
+    if (SearchLight.has_field(m, :error_message))
       output *= "$(m.field) $(m.error_message)"
     else
       output *= "$(m.field) $(m.validator_function)"
@@ -142,9 +144,9 @@ end
 
 Returns the `vector` of validation rules wrapped in a `Nullable`.
 """
-function rules(m::T)::Nullable{Vector{ValidationRule}} where {T<:AbstractModel}
+function rules(m::T)::Nullables.Nullable{Vector{ValidationRule}} where {T<:AbstractModel}
   v = validator(m)
-  isnull(v) ? Nullable{Vector{ValidationRule}}() : Nullable{Vector{ValidationRule}}(Base.get(v).errors)
+  Nullables.isnull(v) ? Nullables.Nullable{Vector{ValidationRule}}() : Nullables.Nullable{Vector{ValidationRule}}(Base.get(v).errors)
 end
 
 
@@ -165,7 +167,7 @@ Returns the `vector` of validation errors wrapped in a `Nullable`.
 """
 function errors(m::T)::Nullable{Vector{ValidationError}} where {T<:AbstractModel}
   v = validator(m)
-  isnull(v) ? Nullable{Vector{ValidationError}}() : Nullable{Vector{ValidationError}}(Base.get(v).errors)
+  Nullables.isnull(v) ? Nullables.Nullable{Vector{ValidationError}}() : Nullables.Nullable{Vector{ValidationError}}(Base.get(v).errors)
 end
 
 
@@ -184,8 +186,8 @@ end
 
 `m`'s validator, wrapped in a Nullable.
 """
-function validator(m::T)::Nullable{ModelValidator} where {T<:AbstractModel}
-  has_validator(m) ? Nullable{ModelValidator}(m.validator) : Nullable{ModelValidator}()
+function validator(m::T)::Nullables.Nullable{ModelValidator} where {T<:AbstractModel}
+  has_validator(m) ? Nullables.Nullable{ModelValidator}(m.validator) : Nullables.Nullable{ModelValidator}()
 end
 
 
@@ -195,7 +197,7 @@ end
 Whether or not `m` has a validator defined.
 """
 function has_validator(m::T)::Bool where {T<:AbstractModel}
-  has_field(m, :validator)
+  SearchLight.has_field(m, :validator)
 end
 
 

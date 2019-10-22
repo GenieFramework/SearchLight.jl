@@ -3,9 +3,9 @@ Generates various SearchLight files.
 """
 module Generator
 
-using Revise
-using Unicode, Nullables, Logging
-using SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight, SearchLight.Migration
+import Revise
+import Unicode, Nullables, Logging
+using SearchLight, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight.Migration
 
 
 """
@@ -42,7 +42,7 @@ function newresource(resource_name::Union{String,Symbol}; pluralize::Bool = true
 
   sf = Inflector.to_singular(resource_name)
 
-  model_name = (isnull(sf) ? resource_name : Base.get(sf)) |> uppercasefirst
+  model_name = (Nullables.isnull(sf) ? resource_name : Base.get(sf)) |> uppercasefirst
   newmodel(Dict{String,Any}("model:new" => model_name), pluralize = pluralize)
   new_table_migration(Dict{String,Any}("migration:new" => resource_name), pluralize = pluralize)
 

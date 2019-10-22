@@ -3,7 +3,7 @@ Functionality for handling the default content of the various files (migrations,
 """
 module FileTemplates
 
-using SearchLight.Inflector, SearchLight
+using SearchLight, SearchLight.Inflector
 
 
 """

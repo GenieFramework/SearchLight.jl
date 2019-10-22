@@ -3,9 +3,9 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using Millboard, Dates, Nullables, Logging
+import Revise
+import Millboard, Dates, Nullables, Logging
 using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Database
-
 import Base.showerror
 
 
@@ -143,7 +143,7 @@ Runs up the migration corresponding to `migration_module_name`.
 """
 function up(migration_module_name::String; force::Bool = false) :: Nothing
   migration = migration_by_module_name(migration_module_name)
-  if ! isnull(migration)
+  if ! Nullables.isnull(migration)
     run_migration(Base.get(migration), :up, force = force)
   else
     error("Migration $migration_module_name not found")
@@ -162,7 +162,7 @@ Runs down the migration corresponding to `migration_module_name`.
 """
 function down(migration_module_name::String; force::Bool = false) :: Nothing
   migration = migration_by_module_name(migration_module_name)
-  if ! isnull(migration)
+  if ! Nullables.isnull(migration)
     run_migration(Base.get(migration), :down, force = force)
   else
     error("Migration $migration_module_name not found")
@@ -178,16 +178,16 @@ end
 
 Computes the migration that corresponds to `migration_module_name`.
 """
-function migration_by_module_name(migration_module_name::String) :: Nullable{DatabaseMigration}
+function migration_by_module_name(migration_module_name::String) :: Nullables.Nullable{DatabaseMigration}
   ids, migrations = all_migrations()
   for id in ids
     migration = migrations[id]
     if migration.migration_module_name == migration_module_name
-      return Nullable(migration)
+      return Nullables.Nullable(migration)
     end
   end
 
-  Nullable()
+  Nullables.Nullable()
 end
 
 

@@ -1,7 +1,7 @@
 module Database
 
-using Revise
-using YAML, DataFrames, Logging
+import Revise
+import YAML, DataFrames, Logging
 using SearchLight, SearchLight.Configuration
 
 
@@ -170,14 +170,6 @@ end
 """
 
 """
-@inline function relation_to_sql(m::T, rel::Tuple{SQLRelation,Symbol})::String where {T<:AbstractModel}
-  DatabaseAdapter.relation_to_sql(m, rel)
-end
-
-
-"""
-
-"""
 @inline function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
   DatabaseAdapter.to_find_sql(m, q, joins)
 end
@@ -240,25 +232,6 @@ end
 function _to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
   _m::T = m()
 
-  joined_tables = []
-
-  if has_relation(_m, RELATION_HAS_ONE)
-    rels = _m.has_one
-    joined_tables = vcat(joined_tables, map(x -> is_lazy(x) ? nothing : (x.model_name)(), rels))
-  end
-
-  if has_relation(_m, RELATION_HAS_MANY)
-    rels = _m.has_many
-    joined_tables = vcat(joined_tables, map(x -> is_lazy(x) ? nothing : (x.model_name)(), rels))
-  end
-
-  if has_relation(_m, RELATION_BELONGS_TO)
-    rels = _m.belongs_to
-    joined_tables = vcat(joined_tables, map(x -> is_lazy(x) ? nothing : (x.model_name)(), rels))
-  end
-
-  filter!(x -> x != nothing, joined_tables)
-
   if ! isempty(cols)
     table_columns = []
     cols = vcat(cols, columns_from_joins(joins))
@@ -269,17 +242,10 @@ function _to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])
 
     return join(table_columns, ", ")
   else
-    table_columns = join(to_fully_qualified_sql_column_names(_m, persistable_fields(_m), escape_columns = true), ", ")
-    table_columns = isempty(table_columns) ? String[] : vcat(table_columns, map(x -> prepare_column_name(x, _m), columns_from_joins(joins)))
+    tbl_cols = join(SearchLight.to_fully_qualified_sql_column_names(_m, SearchLight.persistable_fields(_m), escape_columns = true), ", ")
+    table_columns = isempty(tbl_cols) ? String[] : vcat(tbl_cols, map(x -> prepare_column_name(x, _m), columns_from_joins(joins)))
 
-    related_table_columns = String[]
-    for rels in map(x -> to_fully_qualified_sql_column_names(x, persistable_fields(x), escape_columns = true), joined_tables)
-      for col in rels
-        push!(related_table_columns, col)
-      end
-    end
-
-    return join([table_columns ; related_table_columns], ", ")
+    return join(table_columns, ", ")
   end
 end
 

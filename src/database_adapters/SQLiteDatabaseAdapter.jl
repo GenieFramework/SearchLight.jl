@@ -1,6 +1,7 @@
 module SQLiteDatabaseAdapter
 
-using SQLite, DataFrames, DataStreams, Logging
+import Revise
+import SQLite, DataFrames, DataStreams, Logging
 using SearchLight, SearchLight.Database
 
 export DatabaseHandle, ResultHandle
@@ -194,21 +195,21 @@ function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: Data
 
   result =  if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
               if length(parts) == 2
-                SQLite.Query(conn, parts[1]) |> DataFrame
-                SQLite.Query(conn, parts[2]) |> DataFrame
+                SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
+                SQLite.Query(conn, parts[2]) |> DataFrames.DataFrame
               else
-                SQLite.Query(conn, parts[1]) |> DataFrame
+                SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
               end
             else
               if length(parts) == 2
                 @info parts[1]
-                @time SQLite.Query(conn, parts[1]) |> DataFrame
+                @time SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
 
                 @info parts[2]
-                @time SQLite.Query(conn, parts[2]) |> DataFrame
+                @time SQLite.Query(conn, parts[2]) |> DataFrames.DataFrame
               else
                 @info parts[1]
-                @time SQLite.Query(conn, parts[1]) |> DataFrame
+                @time SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
               end
             end
 
@@ -217,28 +218,6 @@ end
 
 
 """
-
-"""
-function relation_to_sql(m::T, rel::Tuple{SQLRelation,Symbol})::String where {T<:AbstractModel}
-  rel, rel_type = rel
-  j = disposable_instance(rel.model_name)
-  join_table_name = j._table_name
-
-  if rel_type == RELATION_BELONGS_TO
-    j, m = m, j
-  end
-
-  (join_table_name |> Database.escape_column_name) * " ON " *
-    (j._table_name |> Database.escape_column_name) * "." *
-    ( (lowercase(string(typeof(m))) |> SearchLight.strip_module_name) * "_" * m._id |> Database.escape_column_name) *
-    " = " *
-    (m._table_name |> Database.escape_column_name) * "." *
-    (m._id |> Database.escape_column_name)
-end
-
-
-"""
-
 """
 @inline function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
   sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(m, q.where, q.scopes)) " *
@@ -257,24 +236,23 @@ const to_fetch_sql = to_find_sql
 
 
 """
-
 """
 function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:AbstractModel} # upsert strateygy = :none | :error | :ignore | :update
-  uf = persistable_fields(m)
+  uf = SearchLight.persistable_fields(m)
 
-  sql = if ! is_persisted(m) || (is_persisted(m) && conflict_strategy == :update)
+  sql = if ! ispersisted(m) || (ispersisted(m) && conflict_strategy == :update)
     pos = findfirst(x -> x == m._id, uf)
     pos > 0 && splice!(uf, pos)
 
     fields = SQLColumn(uf)
-    vals = join( map(x -> string(to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))), uf), ", ")
+    vals = join( map(x -> string(SearchLight.to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))), uf), ", ")
 
     "INSERT $( conflict_strategy == :ignore ? " OR IGNORE" : "" ) INTO $(m._table_name) ( $fields ) VALUES ( $vals )"
   else
     "UPDATE $(m._table_name) SET $(update_query_part(m))"
   end
 
-  sql * "$SELECT_LAST_ID_QUERY_START $( isnull(getfield(m, Symbol(m._id))) ? -1 : getfield(m, Symbol(m._id)) |> Base.get ) $SELECT_LAST_ID_QUERY_END"
+  sql * "$SELECT_LAST_ID_QUERY_START $( Nullables.isnull(getfield(m, Symbol(m._id))) ? -1 : getfield(m, Symbol(m._id)) |> Base.get ) $SELECT_LAST_ID_QUERY_END"
 end
 
 
@@ -317,7 +295,7 @@ end
 
 """
 @inline function update_query_part(m::T)::String where {T<:AbstractModel}
-  update_values = join(map(x -> "$(string(SQLColumn(x))) = $( string(to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))) )", persistable_fields(m)), ", ")
+  update_values = join(map(x -> "$(string(SQLColumn(x))) = $( string(SearchLight.to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))) )", SearchLight.persistable_fields(m)), ", ")
 
   " $update_values WHERE $(m._table_name).$(m._id) = '$(Base.get(m.id))'"
 end
@@ -327,7 +305,7 @@ end
 
 """
 @inline function column_data_to_column_name(column::SQLColumn, column_data::Dict{Symbol,Any})::String
-  "$(to_fully_qualified(column_data[:column_name], column_data[:table_name])) AS $( isempty(column_data[:alias]) ? SearchLight.to_sql_column_name(column_data[:column_name], column_data[:table_name]) : column_data[:alias] )"
+  "$(SearchLight.to_fully_qualified(column_data[:column_name], column_data[:table_name])) AS $( isempty(column_data[:alias]) ? SearchLight.to_sql_column_name(column_data[:column_name], column_data[:table_name]) : column_data[:alias] )"
 end
 
 
@@ -335,7 +313,7 @@ end
 
 """
 @inline function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
-  "SELECT " * Database._to_select_part(m, cols, joins)
+  "SELECT " * SearchLight.Database._to_select_part(m, cols, joins)
 end
 
 
@@ -343,7 +321,7 @@ end
 
 """
 @inline function to_from_part(m::Type{T})::String where {T<:AbstractModel}
-  "FROM " * Database.escape_column_name(m()._table_name)
+  "FROM " * SearchLight.Database.escape_column_name(m()._table_name)
 end
 
 
@@ -392,7 +370,7 @@ end
 @inline function to_order_part(m::Type{T}, o::Vector{SQLOrder})::String where {T<:AbstractModel}
   isempty(o) ?
     "" :
-    "ORDER BY " * join(map(x -> (! is_fully_qualified(x.column.value) ? to_fully_qualified(m, x.column) : x.column.value) * " " * x.direction, o), ", ")
+    "ORDER BY " * join(map(x -> (! SearchLight.is_fully_qualified(x.column.value) ? SearchLight.to_fully_qualified(m, x.column) : x.column.value) * " " * x.direction, o), ", ")
 end
 
 
@@ -440,16 +418,6 @@ end
 function to_join_part(m::Type{T}, joins = SQLJoin[])::String where {T<:AbstractModel}
   _m::T = m()
   join_part = ""
-
-  for rel in relations(m)
-    mr = first(rel)
-    ( mr |> is_lazy ) && continue
-    if ! isnull(mr.join)
-      join_part *= mr.join |> Base.get |> string
-    else # default
-      join_part *= (mr.required ? "INNER " : "LEFT ") * "JOIN " * relation_to_sql(_m, rel)
-    end
-  end
 
   join_part * join( map(x -> string(x), joins), " " )
 end
