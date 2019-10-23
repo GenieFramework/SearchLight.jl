@@ -170,11 +170,8 @@ end
 """
 
 """
-@inline function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
+@inline function to_find_sql(m::Type{T}, q::SQLQuery, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   DatabaseAdapter.to_find_sql(m, q, joins)
-end
-@inline function to_find_sql(m::Type{T}, q::SQLQuery)::String where {T<:AbstractModel}
-  DatabaseAdapter.to_find_sql(m, q)
 end
 
 const to_fetch_sql = to_find_sql
@@ -261,28 +258,8 @@ end
 """
 
 """
-@inline function to_where_part(m::Type{T}, w::Vector{SQLWhereEntity}, scopes::Vector{Symbol})::String where {T<:AbstractModel}
-  DatabaseAdapter.to_where_part(m, w, scopes)
-end
 @inline function to_where_part(w::Vector{SQLWhereEntity})::String
   DatabaseAdapter.to_where_part(w)
-end
-
-
-"""
-
-"""
-@inline function required_scopes(m::Type{T})::Vector{SQLWhereEntity} where {T<:AbstractModel}
-  s = scopes(m)
-  haskey(s, :required) ? s[:required] : SQLWhereEntity[]
-end
-
-
-"""
-
-"""
-@inline function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
-  in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
 end
 
 
@@ -374,9 +351,6 @@ end
 """
 @inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   DatabaseAdapter.rand(m, limit = limit)
-end
-@inline function rand(m::Type{T}, scopes::Vector{Symbol}; limit = 1)::Vector{T} where {T<:AbstractModel}
-  DatabaseAdapter.rand(m, scopes, limit = limit)
 end
 
 

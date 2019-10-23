@@ -536,8 +536,7 @@ convert(::Type{Vector{SQLJoin}}, j::SQLJoin) = [j]
               offset  = 0,
               order   = SQLOrder[],
               group   = SQLColumn[],
-              having  = SQLWhereEntity[],
-              scopes  = Symbol[] )
+              having  = SQLWhereEntity[])
 
 Returns a new instance of SQLQuery.
 
@@ -565,8 +564,6 @@ SearchLight.SQLQuery
 |         |                                      |       key |   value | |
 |   order |                                                 +========... |
 +---------+--------------------------------------------------------------+
-|  scopes |                                                     Symbol[] |
-+---------+--------------------------------------------------------------+
 |         |  Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}[ |
 |         |                               SearchLight.SQLWhereExpression |
 |   where |                                                 +========... |
@@ -581,11 +578,10 @@ mutable struct SQLQuery <: SQLType
   order::Vector{SQLOrder}
   group::Vector{SQLColumn}
   having::Vector{SQLWhereEntity}
-  scopes::Vector{Symbol}
 
   SQLQuery(;  columns = SQLColumn[], where = SQLWhereEntity[], limit = SQLLimit("ALL"), offset = 0,
-              order = SQLOrder[], group = SQLColumn[], having = SQLWhereEntity[], scopes = Symbol[]) =
-    new(columns, where, limit, offset, order, group, having, scopes)
+              order = SQLOrder[], group = SQLColumn[], having = SQLWhereEntity[]) =
+    new(columns, where, limit, offset, order, group, having)
 end
 
 string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)

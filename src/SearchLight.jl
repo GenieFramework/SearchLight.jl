@@ -35,7 +35,7 @@ export finddf, find, findby, findoneby, findoneby!!, findone, findone!!
 export rand, randone, randone!!
 export all, count # min, max, mean, median
 export findonebyorcreate, createwith, createorupdateby!!, createorupdate!!
-export save, save!, save!!, updatewith!, updatewith!!
+export save, save!, save!!, updatewith!!
 export deleteall, delete
 export validator, validator!!
 
@@ -110,11 +110,8 @@ julia> SearchLight.find_df(Article, SQLQuery(limit = 5))
 ...
 ```
 """
-@inline function find_df(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::DataFrames.DataFrame where {T<:AbstractModel, N<:AbstractModel}
+@inline function find_df(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{AbstractModel,Nothing}}
   query(sql(m, q, j))::DataFrames.DataFrame
-end
-@inline function find_df(m::Type{T}, q::SQLQuery)::DataFrames.DataFrame where {T<:AbstractModel}
-  query(sql(m, q))::DataFrames.DataFrame
 end
 @inline function find_df(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
   find_df(m, SQLQuery(order = order))
@@ -158,15 +155,11 @@ end
 
 """
 """
-@inline function find_df(m::Type{T}, qp::QueryBuilder.QueryPart, j::Vector{SQLJoin{N}})::DataFrames.DataFrame where {T<:AbstractModel, N<:AbstractModel}
+@inline function find_df(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   find_df(m, qp.query, j)
-end
-@inline function find_df(m::Type{T}, qb::QueryBuilder.QueryPart)::DataFrames.DataFrame where {T<:AbstractModel}
-  find_df(m, qb.query)
 end
 
 const finddf = find_df
-
 
 @inline function DataFrames.DataFrame(args...)::DataFrames.DataFrame
   find_df(args...)
@@ -200,17 +193,11 @@ julia> SearchLight.find(Article)
 ...
 ```
 """
-@inline function find(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::Vector{T} where {T<:AbstractModel, N<:AbstractModel}
+@inline function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   to_models(m, find_df(m, q, j))
-end
-@inline function find(m::Type{T}, q::SQLQuery)::Vector{T} where {T<:AbstractModel}
-  to_models(m, find_df(m, q))
 end
 @inline function find(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order))
-end
-@inline function find(m::Type{T}, scopes::Vector{Symbol})::Vector{T} where {T<:AbstractModel}
-  find(m, SQLQuery(scopes = scopes))
 end
 
 
@@ -251,11 +238,8 @@ end
 
 """
 """
-@inline function find(m::Type{T}, qp::QueryBuilder.QueryPart, j::Vector{SQLJoin{N}})::Vector{T} where {T<:AbstractModel, N<:AbstractModel}
+@inline function find(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   find(m, qp.query, j)
-end
-@inline function find(m::Type{T}, qp::QueryBuilder.QueryPart)::Vector{T} where {T<:AbstractModel}
-  find(m, qp.query)
 end
 
 
@@ -613,9 +597,6 @@ julia> SearchLight.rand(Article, limit = 3)
 @inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   Database.rand(m, limit = limit)
 end
-@inline function rand(m::Type{T}, scopes::Vector{Symbol}; limit = 1)::Vector{T} where {T<:AbstractModel}
-  Database.rand(m, scopes, limit = limit)
-end
 
 
 """
@@ -645,9 +626,6 @@ App.Article
 @inline function rand_one(m::Type{T})::Nullables.Nullable{T} where {T<:AbstractModel}
   to_nullable(SearchLight.rand(m, limit = 1))
 end
-@inline function rand_one(m::Type{T}, scopes::Vector{Symbol})::Nullables.Nullable{T} where {T<:AbstractModel}
-  to_nullable(SearchLight.rand(m, scopes, limit = 1))
-end
 
 const randone = rand_one
 
@@ -673,9 +651,6 @@ App.Article
 """
 @inline function rand_one!!(m::Type{T})::T where {T<:AbstractModel}
   SearchLight.rand_one(m) |> Base.get
-end
-@inline function rand_one!!(m::Type{T}, scopes::Vector{Symbol})::T where {T<:AbstractModel}
-  SearchLight.rand_one(m, scopes) |> Base.get
 end
 
 const rand!! = rand_one!!
@@ -1882,128 +1857,8 @@ julia> SearchLight.to_from_part(Article)
 end
 
 
-"""
-    to_where_part{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity})::String
-    to_where_part(w::Vector{SQLWhereEntity})::String
-
-Generates the WHERE part of the SQL query.
-
-# Examples
-```julia
-julia> SearchLight.required_scopes(Article)
-1-element Array{Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression},1}:
-
-SearchLight.SQLWhereExpression
-+================+====================+
-|            key |              value |
-+================+====================+
-|      condition |                AND |
-+----------------+--------------------+
-| sql_expression | id BETWEEN ? AND ? |
-+----------------+--------------------+
-|         values |                1,2 |
-+----------------+--------------------+
-
-julia> SearchLight.to_where_part(Article)
-"WHERE id BETWEEN 1 AND 2" # required scope automatically applied
-
-julia> SearchLight.to_where_part(Article, SQLWhereEntity[SQLWhere(:id, 2)])
-"WHERE ("id" = 2) AND id BETWEEN 1 AND 2"
-
-julia> SearchLight.scopes(Article)
-Dict{Symbol,Array{Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression},1}} with 2 entries:
-  :own      => Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}...
-  :required => Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}...
-
-julia> SearchLight.to_where_part(Article, SQLWhereEntity[SQLWhere(:id, 2)], [:own])
-"WHERE ("id" = 2) AND id BETWEEN 1 AND 2 AND ("user_id" = 1)"
-```
-"""
-@inline function to_where_part(m::Type{T}, w::Vector{SQLWhereEntity} = Vector{SQLWhereEntity}(), scopes::Vector{Symbol} = Vector{Symbol}())::String where {T<:AbstractModel}
-  Database.to_where_part(m, w, scopes)
-end
 @inline function to_where_part(w::Vector{SQLWhereEntity})::String
   Database.to_where_part(w)
-end
-
-
-"""
-    required_scopes{T<:AbstractModel}(m::Type{T})::Vector{SQLWhereEntity}
-
-Returns the Vector containing the required scopes defined on the model `m`.
-The required scopes are defined under the `:required` key and are automatically applied to all the SQL queries.
-
-# Examples
-```julia
-julia> SearchLight.required_scopes(Article)
-1-element Array{Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression},1}:
-
-SearchLight.SQLWhereExpression
-+================+====================+
-|            key |              value |
-+================+====================+
-|      condition |                AND |
-+----------------+--------------------+
-| sql_expression | id BETWEEN ? AND ? |
-+----------------+--------------------+
-|         values |                1,2 |
-+----------------+--------------------+
-```
-"""
-@inline function required_scopes(m::Type{T})::Vector{SQLWhereEntity} where {T<:AbstractModel}
-  Database.required_scopes(m)
-end
-
-
-"""
-    scopes{T<:AbstractModel}(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}}
-
-Returns a `Dict` containing the names of all the scopes defined on the model `m` as keys, and the corresponding `Vectors` of `SQLWhereEntity` that make up the actual scopes.
-Includes the `:required` scope if defined.
-
-# Examples
-```julia
-julia> SearchLight.scopes(Article)
-Dict{Symbol,Array{Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression},1}} with 2 entries:
-  :own      => Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}…
-  :required => Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}…
-
-julia> SearchLight.scopes(Article)[:required]
-1-element Array{Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression},1}:
-
-SearchLight.SQLWhereExpression
-+================+====================+
-|            key |              value |
-+================+====================+
-|      condition |                AND |
-+----------------+--------------------+
-| sql_expression | id BETWEEN ? AND ? |
-+----------------+--------------------+
-|         values |                1,2 |
-+----------------+--------------------+
-```
-"""
-@inline function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
-  Database.scopes(m)
-end
-
-
-"""
-    scopes_names{T<:AbstractModel}(m::Type{T})::Vector{Symbol}
-
-Returns the names of all the scopes defined on the model `m`, as a `Vector` of `Symbol`.
-Includes the `:required` scope if defined.
-
-# Examples
-```julia
-julia> SearchLight.scopes_names(Article)
-2-element Array{Symbol,1}:
- :own
- :required
-```
-"""
-@inline function scopes_names(m::Type{T})::Vector{Symbol} where {T<:AbstractModel}
-  scopes(m) |> keys |> collect
 end
 
 
@@ -2260,14 +2115,8 @@ julia> SearchLight.to_find_sql(User, SQLQuery())
 "SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id""
 ```
 """
-@inline function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel,N<:AbstractModel}
+@inline function to_find_sql(m::Type{T}, q::SQLQuery = SQLQuery(), joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel,N<:Union{Nothing,AbstractModel}}
   Database.to_find_sql(m, q, joins)
-end
-@inline function to_find_sql(m::Type{T}, q::SQLQuery) where {T<:AbstractModel}
-  Database.to_find_sql(m, q)
-end
-@inline function to_find_sql(m::Type{T}) where {T<:AbstractModel}
-  to_find_sql(m, SQLQuery())
 end
 
 const to_fetch_sql = to_find_sql
@@ -2494,8 +2343,6 @@ SearchLight.SQLQuery
 +---------+--------------------------------------------------------------+
 |   order |                                       SearchLight.SQLOrder[] |
 +---------+--------------------------------------------------------------+
-|  scopes |                                                     Symbol[] |
-+---------+--------------------------------------------------------------+
 |   where | Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}[] |
 +---------+--------------------------------------------------------------+
 
@@ -2520,8 +2367,6 @@ SearchLight.SQLQuery
 |  offset |                                                            0 |
 +---------+--------------------------------------------------------------+
 |   order |                                       SearchLight.SQLOrder[] |
-+---------+--------------------------------------------------------------+
-|  scopes |                                                     Symbol[] |
 +---------+--------------------------------------------------------------+
 |   where | Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}[] |
 +---------+--------------------------------------------------------------+
@@ -2563,8 +2408,6 @@ SearchLight.SQLQuery
 +---------+--------------------------------------------------------------+
 |   order |                                       SearchLight.SQLOrder[] |
 +---------+--------------------------------------------------------------+
-|  scopes |                                                     Symbol[] |
-+---------+--------------------------------------------------------------+
 |   where | Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}[] |
 +---------+--------------------------------------------------------------+
 
@@ -2588,8 +2431,6 @@ SearchLight.SQLQuery
 |  offset |                                                            2 |
 +---------+--------------------------------------------------------------+
 |   order |                                       SearchLight.SQLOrder[] |
-+---------+--------------------------------------------------------------+
-|  scopes |                                                     Symbol[] |
 +---------+--------------------------------------------------------------+
 |   where | Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}[] |
 +---------+--------------------------------------------------------------+
@@ -3340,11 +3181,8 @@ end
 
 """
 """
-@inline function sql(m::Type{T}, q::SQLQuery, j::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
+@inline function sql(m::Type{T}, q::SQLQuery = SQLQuery(), j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   to_fetch_sql(m, q, j)
-end
-@inline function sql(m::Type{T}, q::SQLQuery = SQLQuery())::String where {T<:AbstractModel}
-  to_fetch_sql(m, q)
 end
 @inline function sql(m::Type{T}, qp::QueryBuilder.QueryPart)::String where {T<:AbstractModel}
   sql(m, qp.query)

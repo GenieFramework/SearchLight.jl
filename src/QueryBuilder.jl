@@ -5,7 +5,7 @@ using SearchLight
 import Base: (+) #, select
 # TODO: Base.isequal and Base.hash
 
-export from, select, where, limit, offset, order, group, having, scopes, prepare
+export from, select, where, limit, offset, order, group, having, prepare
 
 struct MissingModel <: SearchLight.AbstractModel
 end
@@ -83,13 +83,6 @@ end
 
 """
 """
-function scopes(scopes::Vector{Symbol})::QueryPart
-  QueryPart(MissingModel, SQLQuery(scopes = scopes))
-end
-
-
-"""
-"""
 function prepare(qb::QueryPart{T}) where {T<:AbstractModel}
   (qb.model::Type{T}, qb)
 end
@@ -108,8 +101,7 @@ function (+)(q::SQLQuery, r::SQLQuery)
     offset  = r.offset != 0 ? r.offset : q.offset,
     order   = vcat(q.order, r.order),
     group   = vcat(q.group, r.group),
-    having  = vcat(q.having, r.having),
-    scopes  = vcat(q.scopes, r.scopes)
+    having  = vcat(q.having, r.having)
   )
 end
 
