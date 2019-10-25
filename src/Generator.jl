@@ -4,7 +4,7 @@ Generates various SearchLight files.
 module Generator
 
 import Revise
-import Unicode, Nullables, Logging
+import Unicode, Logging
 using SearchLight, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight.Migration
 
 
@@ -16,14 +16,13 @@ Generates a new SearchLight model file and persists it to the resources folder.
 function newmodel(cmd_args::Dict{String,Any}; pluralize::Bool = true) :: Nothing
   resource_name = uppercasefirst(cmd_args["model:new"])
 
-  if Inflector.is_singular(resource_name)
-    resource_name = Inflector.to_plural(resource_name) |> Base.get
-  end
+  SearchLight.Inflector.is_singular(resource_name) &&
+    (resource_name = SearchLight.Inflector.to_plural(resource_name))
 
   resource_path = setup_resource_path(resource_name)
   mfn = model_file_name(resource_name)
   write_resource_file(resource_path, mfn, resource_name, :model, pluralize = pluralize) &&
-  @info "New model created at $(abspath(joinpath(resource_path, mfn)))"
+    @info "New model created at $(abspath(joinpath(resource_path, mfn)))"
 
   nothing
 end
@@ -40,16 +39,15 @@ Generates all the files associated with a new resource and persists them to the 
 function newresource(resource_name::Union{String,Symbol}; pluralize::Bool = true) :: Nothing
   resource_name = string(resource_name)
 
-  sf = Inflector.to_singular(resource_name)
+  sf = SearchLight.Inflector.to_singular(resource_name)
 
-  model_name = (Nullables.isnull(sf) ? resource_name : Base.get(sf)) |> uppercasefirst
+  model_name = (sf === nothing ? resource_name : sf) |> uppercasefirst
   newmodel(Dict{String,Any}("model:new" => model_name), pluralize = pluralize)
   new_table_migration(Dict{String,Any}("migration:new" => resource_name), pluralize = pluralize)
 
   resource_name = uppercasefirst(resource_name)
-  if pluralize && Inflector.is_singular(resource_name)
-    resource_name = Inflector.to_plural(resource_name) |> Base.get
-  end
+  pluralize && SearchLight.Inflector.is_singular(resource_name) &&
+    (resource_name = SearchLight.Inflector.to_plural(resource_name))
 
   resource_path = setup_resource_path(resource_name)
   for (resource_file, resource_type) in [(validator_file_name(resource_name), :validator)]
@@ -73,10 +71,11 @@ end
 function new_table_migration(cmd_args::Dict{String,Any}; pluralize::Bool = true) :: Nothing
   resource_name = uppercasefirst(cmd_args["migration:new"])
 
-  Inflector.is_singular(resource_name) && pluralize && (resource_name = Inflector.to_plural(resource_name) |> Base.get)
+  SearchLight.Inflector.is_singular(resource_name) && pluralize &&
+    (resource_name = SearchLight.Inflector.to_plural(resource_name))
 
   migration_name = "create_table_" * lowercase(resource_name)
-  Migration.new_table(migration_name, lowercase(resource_name))
+  SearchLight.Migration.new_table(migration_name, lowercase(resource_name))
 
   nothing
 end
@@ -121,7 +120,7 @@ end
 Generates all resouce files and persists them to disk.
 """
 function write_resource_file(resource_path::String, file_name::String, resource_name::String, resource_type::Symbol; pluralize::Bool = true) :: Bool
-  resource_name = (pluralize ? Base.get(Inflector.to_singular(resource_name)) : resource_name) |> Inflector.from_underscores
+  resource_name = (pluralize ? SearchLight.Inflector.to_singular(resource_name) : resource_name) |> SearchLight.Inflector.from_underscores
 
   try
     if resource_type == :model
@@ -149,8 +148,8 @@ function write_resource_file(resource_path::String, file_name::String, resource_
     if resource_type == :test
       resource_does_not_exist(resource_path, file_name) || return true
       open(joinpath(resource_path, file_name), "w") do f
-        uname = Inflector.from_underscores(resource_name)
-        uname = pluralize ? Base.get(Inflector.to_plural(uname)) : uname
+        uname = SearchLight.Inflector.from_underscores(resource_name)
+        uname = pluralize ? SearchLight.Inflector.to_plural(uname) : uname
 
         write(f, SearchLight.FileTemplates.newtest(uname, resource_name, pluralize = pluralize))
       end

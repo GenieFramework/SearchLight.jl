@@ -1,7 +1,6 @@
 module Util
 
 import Revise
-import Nullables
 
 """
     add_quotes(str::String) :: String
@@ -68,19 +67,12 @@ end
 
 
 """
-    expand_nullable{T}(value::Nullable{T}, default::T) :: T
+    expand_nullable{T}(value::Union{Nothing,T}, default::T) :: T
 
-Returns `value` if it is not `null` - otherwise `default`.
+Returns `value` if it is not `nothing` - otherwise `default`.
 """
-function expand_nullable(value::T)::T where T
-  value
-end
-function expand_nullable(value::Nullables.Nullable{T}, default::T)::T where T
-  if Nullables.isnull(value)
-    default
-  else
-    Base.get(value)
-  end
+function expand_nullable(value::Union{Nothing,T}, default::T)::T where T
+  value === nothing ? default : value
 end
 
 end

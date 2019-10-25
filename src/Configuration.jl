@@ -5,7 +5,7 @@ module Configuration
 
 import Revise
 import YAML
-using SearchLight
+using SearchLight, SearchLight.Exceptions
 
 export isdev, isprod, istest, env, Settings, DEV, PROD, TEST
 
@@ -106,7 +106,7 @@ function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
   return  if haskey(db_conn_data, SearchLight.config.app_env)
             db_conn_data[SearchLight.config.app_env]
           else
-            @error "DB configuration for $(SearchLight.config.app_env) not found"
+            throw(MissingDatabaseConfigurationException("DB configuration for $(SearchLight.config.app_env) not found"))
 
             Dict{String,Any}()
           end

@@ -5,15 +5,14 @@ import Base.convert
 import Base.length
 import Base.==
 
-import Dates, Reexport
-Reexport.@reexport using Nullables
+import Dates
 
-export DbId, SQLType, AbstractModel, ModelValidator
+export DbId, SQLType, AbstractModel
 export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
 export SQLWhere, SQLWhereExpression, SQLWhereEntity, SQLLimit, SQLOrder, SQLQuery, SQLRaw
 export SQLJoin, SQLOn, SQLJoinType, SQLHaving
 
-export is_lazy, @sql_str
+export @sql_str
 
 abstract type SearchLightAbstractType end
 abstract type SQLType <: SearchLightAbstractType end
@@ -29,18 +28,17 @@ show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabs
 Pretty printing of SearchLight types.
 """
 function searchlightabstracttype_to_print(m::T) :: String where {T<:SearchLightAbstractType}
-  output = "\n" * "$(typeof(m))" * "\n"
-  output *= string(Millboard.table(to_string_dict(m))) * "\n"
-
-  output
+  string(typeof(m), "\n", Millboard.table(to_string_dict(m)), "\n")
 end
 
-const DbId = Nullables.Nullable{Union{Int32,Int64,String}}
+mutable struct DbId
+  value::Union{Nothing,Int32,Int64,String}
+end
+DbId() = DbId(nothing)
 
-convert(::Type{Nullables.Nullable{DbId}}, v::Number) = Nullables.Nullable{DbId}(DbId(v))
-convert(::Type{Nullables.Nullable{DbId}}, v::String) = Nullables.Nullable{DbId}(DbId(v))
+Base.convert(::Type{DbId}, v::Union{Number,String}) = DbId(v)
 
-Base.show(io::IO, dbid::DbId) = print(io, (Nullables.isnull(dbid) ? "NULL" : string(Base.get(dbid))))
+Base.show(io::IO, dbid::DbId) = print(io, (dbid.value === nothing ? "NULL" : string(dbid.value)))
 
 
 #
@@ -83,7 +81,6 @@ SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
 SQLInput(n::Nothing) = SQLInput("NULL", escaped = true, raw = true)
 SQLInput(a::Any) = string(a) |> SQLInput
-SQLInput(n::Nullables.Nullable) = Nullables.isnull(n) ? SQLInput(nothing) : SQLInput(get(n))
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
 
@@ -102,13 +99,6 @@ convert(::Type{SQLInput}, s::Symbol) = SQLInput(string(s))
 convert(::Type{SQLInput}, d::Dates.DateTime) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Date) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Time) = SQLInput(string(d))
-function convert(::Type{SQLInput}, n::Nullables.Nullable{T}) where {T}
-  if Nullables.isnull(n)
-    SQLInput(nothing)
-  else
-    Base.get(n) |> SQLInput
-  end
-end
 
 
 """
@@ -361,6 +351,10 @@ convert(::Type{SQLWhereEntity}, s::String) = SQLWhereExpression(s);
 const SQLLimit_ALL = "ALL"
 export SQLLimit_ALL
 
+struct UnparsableSQLLimitException <: Exception
+  value
+end
+Base.showerror(io::IO, e::UnparsableSQLLimitException) = print(io, "Can't parse SQLLimit value $(e.value)")
 
 """
 Wrapper around SQL `limit` operator.
@@ -374,11 +368,7 @@ struct SQLLimit <: SQLType
       return new(SQLLimit_ALL)
     else
       i = tryparse(Int, v)
-      if Nullables.isnull(i)
-        error("Can't parse SQLLimit value")
-      else
-        return new(Base.get(i))
-      end
+      i === nothing ? throw(UnparsableSQLLimitException(v)) : i
     end
   end
 end
@@ -455,6 +445,11 @@ end
 # SQLJoin - SQLJoinType
 #
 
+struct InvalidJoinTypeException <: Exception
+  jointype::String
+end
+
+Base.showerror(io::IO, e::InvalidJoinTypeException) = print(io, "Invalid join type $(e.jointype)")
 
 """
 Wrapper around the various types of SQL `join` (`left`, `right`, `inner`, etc).
@@ -468,8 +463,8 @@ struct SQLJoinType <: SQLType
     if in(t, accepted_values)
       new(uppercase(t))
     else
-      error("""Invalid join type - accepted options are $(join(accepted_values, ", "))""")
-      new("INNER")
+      @error  """Accepted JOIN types are $(join(accepted_values, ", "))"""
+      throw(InvalidJoinTypeException(t))
     end
   end
 end

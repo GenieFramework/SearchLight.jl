@@ -1,7 +1,7 @@
 module SearchLight
 
 import Revise
-import DataFrames, OrderedCollections, Millboard, Distributed, Dates, Logging
+import DataFrames, OrderedCollections, Distributed, Dates, Logging, Millboard
 
 import DataFrames.DataFrame
 import Base.first, Base.last
@@ -9,6 +9,8 @@ import Base.first, Base.last
 include("constants.jl")
 
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
+
+include("Exceptions.jl")
 
 include(joinpath(@__DIR__, "Configuration.jl"))
 using .Configuration
@@ -27,17 +29,19 @@ include("DatabaseSeeding.jl")
 include("QueryBuilder.jl")
 include("Highlight.jl")
 
-import .Database, .Migration, .Util, .Validation, .Inflector, .DatabaseSeeding, .QueryBuilder, .Highlight
+import .Database, .Migration, .Util, .Validation
+import .Inflector, .DatabaseSeeding, .QueryBuilder
+import .Exceptions, .Highlight
 
 import Base.rand, Base.all, Base.count
 
-export finddf, find, findby, findoneby, findoneby!!, findone, findone!!
-export rand, randone, randone!!
+export finddf, find, findby, findoneby, findone
+export rand, randone
 export all, count # min, max, mean, median
-export findonebyorcreate, createwith, createorupdateby!!, createorupdate!!
-export save, save!, save!!, updatewith!!
+export findonebyorcreate, createwith, createorupdateby, createorupdate
+export save, save!, save!!, updatewith, updatewith!!
 export deleteall, delete
-export validator, validator!!
+export validator
 
 export ispersisted
 export primary_key_name, table_name
@@ -260,17 +264,7 @@ julia> SearchLight.find_by(Article, :slug, "cupiditate-velit-repellat-dolorem-no
   0.000802 seconds (16 allocations: 576 bytes)
 
 1-element Array{App.Article,1}:
-
-App.Article
-+==============+=========================================================+
-|          key |                                                   value |
-+==============+=========================================================+
-|           id |                                     Nullable{Int32}(36) |
-+--------------+---------------------------------------------------------+
 ...
-+--------------+---------------------------------------------------------+
-|         slug |                 cupiditate-velit-repellat-dolorem-nobis |
-+--------------+---------------------------------------------------------+
 
 julia> SearchLight.find_by(Article, SQLWhereExpression("slug LIKE ?", "%dolorem%"))
 
@@ -279,17 +273,7 @@ julia> SearchLight.find_by(Article, SQLWhereExpression("slug LIKE ?", "%dolorem%
   0.000782 seconds (16 allocations: 576 bytes)
 
 1-element Array{App.Article,1}:
-
-App.Article
-+==============+=========================================================+
-|          key |                                                   value |
-+==============+=========================================================+
-|           id |                                     Nullable{Int32}(36) |
-+--------------+---------------------------------------------------------+
 ...
-+--------------+---------------------------------------------------------+
-|         slug |                 cupiditate-velit-repellat-dolorem-nobis |
-+--------------+---------------------------------------------------------+
 ```
 """
 @inline function find_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
@@ -308,14 +292,19 @@ end
 const findby = find_by
 
 
+function onereduce(collection::Vector{T})::Union{Nothing,T} where {T<:AbstractModel}
+  isempty(collection) ? nothing : first(collection)
+end
+
+
 """
-    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Nullable{T}
-    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Nullable{T}
-    find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Nullable{T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Union{Nothing,T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Union{Nothing,T}
+    find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Union{Nothing,T}
 
 Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using the `column_name` and the `value`
 or the `sql_expression`.
-Returns the first result as a `Nullable{T<:AbstractModel}`.
+Returns the first result as a `Union{Nothing,T} where {T<:AbstractModel}`.
 
 # Examples:
 ```julia
@@ -324,37 +313,14 @@ julia> SearchLight.find_one_by(Article, :title, "Cupiditate velit repellat dolor
 2016-11-25T23:43:13.969 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("title" = 'Cupiditate velit repellat dolorem nobis.')
 
   0.002319 seconds (1.23 k allocations: 52.688 KB)
-
-Nullable{App.Article}(
-App.Article
-+==============+=========================================================+
-|          key |                                                   value |
-+==============+=========================================================+
-|           id |                                     Nullable{Int32}(36) |
-+--------------+---------------------------------------------------------+
 ...
-+--------------+---------------------------------------------------------+
-|        title |                Cupiditate velit repellat dolorem nobis. |
-+--------------+---------------------------------------------------------+
 
 julia> SearchLight.find_one_by(Article, SQLWhereExpression("slug LIKE ?", "%nobis"))
 
 2016-11-25T23:51:40.934 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE slug LIKE '%nobis'
 
   0.001152 seconds (16 allocations: 576 bytes)
-
-Nullable{App.Article}(
-App.Article
-+==============+=========================================================+
-|          key |                                                   value |
-+==============+=========================================================+
-|           id |                                     Nullable{Int32}(36) |
-+--------------+---------------------------------------------------------+
 ...
-+--------------+---------------------------------------------------------+
-|         slug |                 cupiditate-velit-repellat-dolorem-nobis |
-+--------------+---------------------------------------------------------+
-)
 
 julia> SearchLight.find_one_by(Article, SQLWhereExpression("title LIKE ?", "%u%"), order = SQLOrder(:updated_at, :desc))
 
@@ -362,130 +328,37 @@ julia> SearchLight.find_one_by(Article, SQLWhereExpression("title LIKE ?", "%u%"
 
   0.000891 seconds (16 allocations: 576 bytes)
 
-Nullable{App.Article}(
-App.Article
-+==============+================================================================================+
-|          key |                                                                          value |
-+==============+================================================================================+
-|           id |                                                            Nullable{Int32}(19) |
-+--------------+--------------------------------------------------------------------------------+
-...
-)
-
 julia> SearchLight.find_one_by(Article, :title, "Id soluta officia quis quis incidunt.", order = SQLOrder(:updated_at, :desc))
 
 2016-11-26T23:03:12.311 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("title" = 'Id soluta officia quis quis incidunt.') ORDER BY articles.updated_at DESC LIMIT 1
 
   0.003903 seconds (1.23 k allocations: 52.688 KB)
-
-Nullable{App.Article}(
-App.Article
-+==============+================================================================================+
-|          key |                                                                          value |
-+==============+================================================================================+
-|           id |                                                            Nullable{Int32}(19) |
-+--------------+--------------------------------------------------------------------------------+
-...
-)
 ```
 """
-@inline function find_one_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
-  find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order, limit = 1)) |> to_nullable
+@inline function find_one_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
+  find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order, limit = 1)) |> onereduce
 end
-@inline function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
-  find_one_by(m, SQLColumn(column_name), SQLInput(value), order = order)
+@inline function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
+  find_one_by(m, SQLColumn(column_name), SQLInput(value), order = order) |> onereduce
 end
-@inline function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
-  find(m, SQLQuery(where = [sql_expression], order = order, limit = 1)) |> to_nullable
+@inline function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
+  find(m, SQLQuery(where = [sql_expression], order = order, limit = 1)) |> onereduce
 end
-@inline function find_one_by(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
+@inline function find_one_by(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
   qp.query.limit = 1
 
-  find(m, qp.query) |> to_nullable
+  find(m, qp.query)  |> onereduce
 end
 
 const findoneby = find_one_by
 
 
 """
-    find_one_by!!{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::T
-    find_one_by!!{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::T
-
-Similar to `find_one_by` but also attempts to `get` the value inside the `Nullable` by means of `Base.get`.
-Returns the value if is not `NULL`. Throws a `NullException` otherwise.
-
-# Examples:
-```julia
-julia> SearchLight.find_one_by!!(Article, :id, 1)
-
-2016-11-26T22:20:32.788 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 1) ORDER BY articles.id ASC LIMIT 1
-
-  0.001170 seconds (16 allocations: 576 bytes)
-
-App.Article
-+==============+===============================================================================+
-|          key |                                                                         value |
-+==============+===============================================================================+
-|           id |                                                            Nullable{Int32}(1) |
-+--------------+-------------------------------------------------------------------------------+
-...
-
-julia> SearchLight.find_one_by!!(Article, SQLWhereExpression("title LIKE ?", "%n%"))
-
-2016-11-26T21:58:47.15 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE title LIKE '%n%' ORDER BY articles.id ASC LIMIT 1
-
-  0.000939 seconds (16 allocations: 576 bytes)
-
-App.Article
-+==============+===============================================================================+
-|          key |                                                                         value |
-+==============+===============================================================================+
-|           id |                                                            Nullable{Int32}(1) |
-+--------------+-------------------------------------------------------------------------------+
-...
-+--------------+-------------------------------------------------------------------------------+
-|        title |                              Nobis provident dolor sit voluptatibus pariatur. |
-+--------------+-------------------------------------------------------------------------------+
-
-julia> SearchLight.find_one_by!!(Article, SQLWhereExpression("title LIKE ?", "foo bar baz"))
-
-2016-11-26T21:59:39.651 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE title LIKE 'foo bar baz' ORDER BY articles.id ASC LIMIT 1
-
-  0.000764 seconds (16 allocations: 576 bytes)
-
------- NullException ------------------- Stacktrace (most recent call last)
-
- [1] — find_one_by!!(::Type{App.Article}, ::SearchLight.SQLWhereExpression) at SearchLight.jl:295
-
- [2] — |>(::Nullable{App.Article}, ::Base.#get) at operators.jl:350
-
- [3] — get at nullable.jl:62 [inlined]
-
-NullException()
-```
-"""
-@inline function find_one_by!!(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
-  find_one_by(m, column_name, value, order = order) |> Base.get
-end
-@inline function find_one_by!!(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
-  find_one_by(m, sql_expression, order = order) |> Base.get
-end
-@inline function find_one_by!!(m::Type{T}, column::SQLColumn, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
-  find_one_by(m, column, value, order = order) |> Base.get
-end
-@inline function find_one_by!!(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(primary_key_name(disposable_instance(m))))::T where {T<:AbstractModel}
-  find_one_by(m, qp, order = order) |> Base.get
-end
-
-const findoneby!! = find_one_by!!
-
-
-"""
-    find_one{T<:AbstractModel}(m::Type{T}, value::Any)::Nullable{T}
+    find_one{T<:AbstractModel}(m::Type{T}, value::Any)::Union{Nothing,T}
 
 Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using
 `SearchLight`s `_id` column and the `value`.
-Returns the result as a `Nullable{T<:AbstractModel}`.
+Returns the result as a `Union{Nothing,T} where {T<:AbstractModel}`.
 
 # Examples
 ```julia
@@ -494,70 +367,14 @@ julia> SearchLight.find_one(Article, 1)
 2016-11-26T22:29:11.443 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 1) ORDER BY articles.id ASC LIMIT 1
 
   0.000754 seconds (16 allocations: 576 bytes)
-
-Nullable{App.Article}(
-App.Article
-+==============+===============================================================================+
-|          key |                                                                         value |
-+==============+===============================================================================+
-|           id |                                                            Nullable{Int32}(1) |
-+--------------+-------------------------------------------------------------------------------+
-...
-)
 ```
 """
-@inline function find_one(m::Type{T}, value::Any)::Nullables.Nullable{T} where {T<:AbstractModel}
+@inline function find_one(m::Type{T}, value::Any)::Union{Nothing,T} where {T<:AbstractModel}
   _m::T = disposable_instance(m)
   find_one_by(m, SQLColumn(to_fully_qualified(primary_key_name(_m), table_name(_m))), SQLInput(value))
 end
 
 const findone = find_one
-
-
-"""
-    find_one!!{T<:AbstractModel}(m::Type{T}, value::Any)::T
-
-Similar to `find_one` but also attempts to get the value inside the `Nullable`.
-Returns the value if is not `NULL`. Throws a `NullException` otherwise.
-
-# Examples
-```julia
-julia> SearchLight.find_one!!(Article, 36)
-
-2016-11-26T22:35:46.166 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 36) ORDER BY articles.id ASC LIMIT 1
-
-  0.000742 seconds (16 allocations: 576 bytes)
-
-App.Article
-+==============+=========================================================+
-|          key |                                                   value |
-+==============+=========================================================+
-|           id |                                     Nullable{Int32}(36) |
-+--------------+---------------------------------------------------------+
-...
-
-julia> SearchLight.find_one!!(Article, 387)
-
-2016-11-26T22:36:22.492 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 387) ORDER BY articles.id ASC LIMIT 1
-
-  0.000915 seconds (16 allocations: 576 bytes)
-
------- NullException ------------------- Stacktrace (most recent call last)
-
- [1] — find_one!!(::Type{App.Article}, ::Int64) at SearchLight.jl:333
-
- [2] — |>(::Nullable{App.Article}, ::Base.#get) at operators.jl:350
-
- [3] — get at nullable.jl:62 [inlined]
-
-NullException()
-```
-"""
-@inline function find_one!!(m::Type{T}, value::Any)::T where {T<:AbstractModel}
-  find_one(m, value) |> Base.get
-end
-
-const findone!! = find_one!!
 
 
 """
@@ -575,13 +392,6 @@ julia> SearchLight.rand(Article)
   0.007991 seconds (16 allocations: 576 bytes)
 
 1-element Array{App.Article,1}:
-
-App.Article
-+==============+==========================================================================================+
-|          key |                                                                                    value |
-+==============+==========================================================================================+
-|           id |                                                                      Nullable{Int32}(16) |
-+--------------+------------------------------------------------------------------------------------------+
 ...
 
 julia> SearchLight.rand(Article, limit = 3)
@@ -600,9 +410,9 @@ end
 
 
 """
-    rand_one{T<:AbstractModel}(m::Type{T})::Nullable{T}
+    rand_one{T<:AbstractModel}(m::Type{T})::Union{Nothing,T}
 
-Similar to `SearchLight.rand` -- returns one random instance of {T<:AbstractModel}, wrapped into a Nullable{T}.
+Similar to `SearchLight.rand` -- returns one random instance of {T<:AbstractModel}.
 
 # Examples
 ```julia
@@ -611,50 +421,15 @@ julia> SearchLight.rand_one(Article)
 2016-11-26T22:46:11.47100000000000003 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" ORDER BY random() ASC LIMIT 1
 
   0.001087 seconds (16 allocations: 576 bytes)
-
-Nullable{App.Article}(
-App.Article
-+==============+=======================================================================================+
-|          key |                                                                                 value |
-+==============+=======================================================================================+
-|           id |                                                                   Nullable{Int32}(37) |
-+--------------+---------------------------------------------------------------------------------------+
 ...
 )
 ```
 """
-@inline function rand_one(m::Type{T})::Nullables.Nullable{T} where {T<:AbstractModel}
-  to_nullable(SearchLight.rand(m, limit = 1))
+@inline function rand_one(m::Type{T})::Union{Nothing,T} where {T<:AbstractModel}
+  SearchLight.rand(m, limit = 1) |> onereduce
 end
 
 const randone = rand_one
-
-
-"""
-    rand_one!!{T<:AbstractModel}(m::Type{T})::T
-
-Similar to `SearchLight.rand_one` -- returns one random instance of {T<:AbstractModel}, but also attempts to get the object within the Nullable{T} instance.
-Will throw an error if Nullable{T} is null.
-
-# Examples
-```julia
-julia> ar = SearchLight.rand_one!!(Article)
-
-App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|           id |                                                                                     Nullable{Int32}(59) |
-+--------------+---------------------------------------------------------------------------------------------------------+
-...
-```
-"""
-@inline function rand_one!!(m::Type{T})::T where {T<:AbstractModel}
-  SearchLight.rand_one(m) |> Base.get
-end
-
-const rand!! = rand_one!!
-const randone!! = rand_one!!
 
 
 """
@@ -685,21 +460,21 @@ end
 
 """
 """
-@inline function first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Nullables.Nullable{T} where {T<:AbstractModel}
-  find(m, SQLQuery(order = order, limit = 1)) |> to_nullable
+@inline function first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
+  find(m, SQLQuery(order = order, limit = 1)) |> onereduce
 end
-@inline function first(m::Type{T}, qp::QueryBuilder.QueryPart)::Nullables.Nullable{T} where {T<:AbstractModel}
-  find(m, qp + limit(1)) |> to_nullable
+@inline function first(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:AbstractModel}
+  find(m, qp + QueryBuilder.limit(1)) |> onereduce
 end
 
 
 """
 """
-@inline function last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Nullables.Nullable{T} where {T<:AbstractModel}
-  find(m, SQLQuery(order = order, limit = 1)) |> to_nullable
+@inline function last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Union{Nothing,T} where {T<:AbstractModel}
+  find(m, SQLQuery(order = order, limit = 1)) |> onereduce
 end
-@inline function last(m::Type{T}, qp::QueryBuilder.QueryPart)::Nullables.Nullable{T} where {T<:AbstractModel}
-  find(m, qp + limit(1)) |> to_nullable
+@inline function last(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:AbstractModel}
+  find(m, qp + QueryBuilder.limit(1)) |> onereduce
 end
 
 
@@ -717,23 +492,7 @@ Invokes validations and callbacks.
 julia> a = Article()
 
 App.Article
-+==============+=========================+
-|          key |                   value |
-+==============+=========================+
-|      content |                         |
-+--------------+-------------------------+
-|           id |       Nullable{Int32}() |
-+--------------+-------------------------+
-| published_at |    Nullable{DateTime}() |
-+--------------+-------------------------+
-|         slug |                         |
-+--------------+-------------------------+
-|      summary |                         |
-+--------------+-------------------------+
-|        title |                         |
-+--------------+-------------------------+
-|   updated_at | 2016-11-27T21:53:13.375 |
-+--------------+-------------------------+
+...
 
 julia> a.content = join(Faker.words(), " ") |> uppercasefirst
 "Eaque nostrum nam"
@@ -784,23 +543,7 @@ Similar to `save` but it returns the model reloaded from the database, applying 
 julia> a = Article()
 
 App.Article
-+==============+========================+
-|          key |                  value |
-+==============+========================+
-|      content |                        |
-+--------------+------------------------+
-|           id |      Nullable{Int32}() |
-+--------------+------------------------+
-| published_at |   Nullable{DateTime}() |
-+--------------+------------------------+
-|         slug |                        |
-+--------------+------------------------+
-|      summary |                        |
-+--------------+------------------------+
-|        title |                        |
-+--------------+------------------------+
-|   updated_at | 2016-11-27T22:10:23.12 |
-+--------------+------------------------+
+...
 
 julia> a.content = join(Faker.paragraphs(), " ")
 "Facere dolorum eum ut velit. Reiciendis at facere voluptatum neque. Est.. Et nihil et delectus veniam. Ipsum sint voluptatem voluptates. Aut necessitatibus necessitatibus.. Doloremque aspernatur maiores. Numquam facere tenetur quae. Aliquam.."
@@ -825,23 +568,7 @@ julia> SearchLight.save!(a)
   0.009514 seconds (1.23 k allocations: 52.688 KB)
 
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Facere dolorum eum ut velit. Reiciendis at facere voluptatum neque. Est.. Et nihil et delectus venia... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                     Nullable{Int32}(43) |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug |                                                                                          nulla-odit-est |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |                                                                                                         |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | Perspiciatis facilis perspiciatis modi. Quae natus voluptatem. Et dolor..Perspiciatis facilis perspi... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                  2016-11-27T22:10:23.12 |
-+--------------+---------------------------------------------------------------------------------------------------------+
+...
 ```
 """
 @inline function save!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
@@ -856,24 +583,27 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
     df[1, Symbol(primary_key_name(m))]
   end
 
-  id === nothing && getfield(m, Symbol(primary_key_name(m))) !== nothing && (id = getfield(m, Symbol(primary_key_name(m))))
+  id === nothing && getfield(m, Symbol(primary_key_name(m))).value !== nothing &&
+    (id = getfield(m, Symbol(primary_key_name(m))).value)
 
-  id === nothing && @error("An error has occured - can't retrive the ID of the inserted row.")
+  id === nothing && throw(Exceptions.UnretrievedModelException(typeof(m), id))
 
-  n = find_one!!(typeof(m), id)
+  n = findone(typeof(m), id)
+
+  n === nothing && throw(Exceptions.UnretrievedModelException(typeof(m), id))
 
   db_fields = persistable_fields(m)
   @sync Distributed.@distributed for f in fieldnames(typeof(m))
-    if in(string(f), db_fields)
-      setfield!(m, f, getfield(n, f))
-    end
+    in(string(f), db_fields) && setfield!(m, f, getfield(n, f))
   end
 
   m
 end
 
 function _save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::DataFrames.DataFrame where {T<:AbstractModel}
-  has_field(m, :validator) && ! skip_validation && ! Validation.validate!(m) && error("SearchLight validation error(s) for $(typeof(m)): $(join( map(e -> "$(e.field) $(e.error_message)", Validation.errors(m) |> Base.get), ", "))")
+  hasfield(m, :validator) && ! skip_validation &&
+    ! Validation.validate!(m) &&
+    throw(Exceptions.InvalidModelException(m, Validation.errors(m)))
 
   in(:before_save, skip_callbacks) || invoke_callback(m, :before_save)
 
@@ -894,34 +624,18 @@ If not, it return `(false, m)`.
 # Examples
 ```julia
 julia> a = Articles.random()
-
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
 ...
 
 julia> SearchLight.invoke_callback(a, :before_save)
 (true,
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
 ...
 )
 
 julia> SearchLight.invoke_callback(a, :after_save)
 (false,
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
 ...
 )
 ```
@@ -945,88 +659,18 @@ Copies the data from `w` into the corresponding properties in `m`. Returns `m`.
 # Examples
 ```julia
 julia> a = Articles.random()
-
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Iusto et vel aut minima molestias. Debitis maiores magnam repellat. Eos totam blanditiis..Iusto et v... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug |    at-omnis-maxime-corrupti-omnis-dignissimos-ducimusat-omnis-maxime-corrupti-omnis-dignissimos-ducimus |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |    Iusto et vel aut minima molestias. Debitis maiores magnam repellat. Eos totam blanditiis..Iusto et v |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | At omnis maxime. Corrupti omnis dignissimos ducimus..At omnis maxime. Corrupti omnis dignissimos duc... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                    2016-11-27T23:11:27.7010000000000001 |
-+--------------+---------------------------------------------------------------------------------------------------------+
+...
 
 julia> b = Article()
-
 App.Article
-+==============+=========================+
-|          key |                   value |
-+==============+=========================+
-|      content |                         |
-+--------------+-------------------------+
-|           id |       Nullable{Int32}() |
-+--------------+-------------------------+
-| published_at |    Nullable{DateTime}() |
-+--------------+-------------------------+
-|         slug |                         |
-+--------------+-------------------------+
-|      summary |                         |
-+--------------+-------------------------+
-|        title |                         |
-+--------------+-------------------------+
-|   updated_at | 2016-11-27T23:11:35.628 |
-+--------------+-------------------------+
+...
 
 julia> SearchLight.update_with!(b, a)
-
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Iusto et vel aut minima molestias. Debitis maiores magnam repellat. Eos totam blanditiis..Iusto et v... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug |    at-omnis-maxime-corrupti-omnis-dignissimos-ducimusat-omnis-maxime-corrupti-omnis-dignissimos-ducimus |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |    Iusto et vel aut minima molestias. Debitis maiores magnam repellat. Eos totam blanditiis..Iusto et v |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | At omnis maxime. Corrupti omnis dignissimos ducimus..At omnis maxime. Corrupti omnis dignissimos duc... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                    2016-11-27T23:11:27.7010000000000001 |
-+--------------+---------------------------------------------------------------------------------------------------------+
 
 julia> b
-
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Iusto et vel aut minima molestias. Debitis maiores magnam repellat. Eos totam blanditiis..Iusto et v... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug |    at-omnis-maxime-corrupti-omnis-dignissimos-ducimusat-omnis-maxime-corrupti-omnis-dignissimos-ducimus |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |    Iusto et vel aut minima molestias. Debitis maiores magnam repellat. Eos totam blanditiis..Iusto et v |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | At omnis maxime. Corrupti omnis dignissimos ducimus..At omnis maxime. Corrupti omnis dignissimos duc... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                    2016-11-27T23:11:27.7010000000000001 |
-+--------------+---------------------------------------------------------------------------------------------------------+
 
 julia> d = Articles.random() |> SearchLight.to_dict
 Dict{String,Any} with 7 entries:
@@ -1039,46 +683,10 @@ Dict{String,Any} with 7 entries:
   "published_at" => #NULL
 
 julia> a = Article()
-
 App.Article
-+==============+=========================+
-|          key |                   value |
-+==============+=========================+
-|      content |                         |
-+--------------+-------------------------+
-|           id |       Nullable{Int32}() |
-+--------------+-------------------------+
-| published_at |    Nullable{DateTime}() |
-+--------------+-------------------------+
-|         slug |                         |
-+--------------+-------------------------+
-|      summary |                         |
-+--------------+-------------------------+
-|        title |                         |
-+--------------+-------------------------+
-|   updated_at | 2016-11-27T23:18:06.438 |
-+--------------+-------------------------+
 
 julia> SearchLight.update_with!(a, d)
-
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culp... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug |              minima-eius-velit-sunt-ducimus-cumque-evenietminima-eius-velit-sunt-ducimus-cumque-eveniet |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |    Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culp |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title |    Minima. Eius. Velit. Sunt ducimus cumque eveniet..Minima. Eius. Velit. Sunt ducimus cumque eveniet.. |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                 2016-11-27T23:17:55.379 |
-+--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
 @inline function update_with!(m::T, w::T)::T where {T<:AbstractModel}
@@ -1126,7 +734,7 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
       setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
     catch ex
       @error ex
-      @error "obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $( typeof(getfield(m, fieldname)) )"
+      @error "obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $(typeof(getfield(m, fieldname)))"
 
       rethrow(ex)
     end
@@ -1156,25 +764,7 @@ Dict{String,Any} with 7 entries:
   "published_at" => #NULL
 
 julia> a = Article()
-
 App.Article
-+==============+=========================+
-|          key |                   value |
-+==============+=========================+
-|      content |                         |
-+--------------+-------------------------+
-|           id |       Nullable{Int32}() |
-+--------------+-------------------------+
-| published_at |    Nullable{DateTime}() |
-+--------------+-------------------------+
-|         slug |                         |
-+--------------+-------------------------+
-|      summary |                         |
-+--------------+-------------------------+
-|        title |                         |
-+--------------+-------------------------+
-|   updated_at | 2016-11-27T23:24:25.494 |
-+--------------+-------------------------+
 
 julia> SearchLight.update_with!!(a, d)
 
@@ -1187,23 +777,6 @@ julia> SearchLight.update_with!!(a, d)
   0.003159 seconds (1.23 k allocations: 52.688 KB)
 
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                     Nullable{Int32}(60) |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug | impedit-ut-nulla-sed-sint-sed-dolorum-quas-beatae-aspernaturimpedit-ut-nulla-sed-sint-sed-dolorum-qu... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |    Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | Impedit ut nulla sed. Sint sed dolorum quas beatae aspernatur..Impedit ut nulla sed. Sint sed doloru... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                 2016-11-27T23:24:20.062 |
-+--------------+---------------------------------------------------------------------------------------------------------+
 ```
 """
 @inline function update_with!!(m::T, w::Union{T,Dict})::T where {T<:AbstractModel}
@@ -1234,25 +807,7 @@ If `skip_update` is `true` and `m` is already persisted, no update will be perfo
 # Examples
 ```julia
 julia> a = Articles.random()
-
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam no... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug | neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-si... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |    Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam no |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi autem ut asperiores..Neque repudianda... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                 2016-11-28T22:18:48.723 |
-+--------------+---------------------------------------------------------------------------------------------------------+
 
 
 julia> SearchLight.update_by_or_create!!(a, :slug)
@@ -1270,23 +825,6 @@ julia> SearchLight.update_by_or_create!!(a, :slug)
   0.000747 seconds (16 allocations: 576 bytes)
 
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam no... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                     Nullable{Int32}(61) |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug | neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-si... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |    Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam no |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi autem ut asperiores..Neque repudianda... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                 2016-11-28T22:18:48.723 |
-+--------------+---------------------------------------------------------------------------------------------------------+
 
 julia> a.summary = Faker.paragraph() ^ 2
 "Similique sunt. Cupiditate eligendi..Similique sunt. Cupiditate eligendi.."
@@ -1306,30 +844,13 @@ julia> SearchLight.update_by_or_create!!(a, :slug)
   0.000741 seconds (16 allocations: 576 bytes)
 
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam no... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                     Nullable{Int32}(61) |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug | neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-si... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |                              Similique sunt. Cupiditate eligendi..Similique sunt. Cupiditate eligendi.. |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi autem ut asperiores..Neque repudianda... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                 2016-11-28T22:18:48.723 |
-+--------------+---------------------------------------------------------------------------------------------------------+
+...
 ```
 """
-function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}, value::Any; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+function createorupdateby(m::T, property::Union{Symbol,SQLColumn,String}, value::Any; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
   existing = find_one_by(typeof(m), property, value)
-  if ! Nullables.isnull(existing)
-    existing = Base.get(existing)
 
+  if existing !== nothing
     skip_update && return existing
 
     for fieldname in fieldnames(typeof(m))
@@ -1343,32 +864,26 @@ function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}, v
     return SearchLight.save!!(m)
   end
 end
-function update_by_or_create!!(m::T, property::Union{Symbol,SQLColumn,String}; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+function createorupdateby(m::T, property::Union{Symbol,SQLColumn,String}; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
   isa(property, String) && occursin(r"(.+)\.(.+)", property) && (property = SQLColumn(property))
-  update_by_or_create!!(m, property, getfield(m, isa(property, SQLColumn) ? Symbol(property.column_name) : Symbol(property)), ignore = ignore, skip_update = skip_update)
+  createorupdateby(m, property, getfield(m, isa(property, SQLColumn) ? Symbol(property.column_name) : Symbol(property)), ignore = ignore, skip_update = skip_update)
 end
-function update_by_or_create!!(m::T)::T where {T<:AbstractModel}
-  create_or_update!!(m)
+function createorupdateby(m::T)::T where {T<:AbstractModel}
+  createorupdateby(m)
 end
-
-const create_or_update_by!! = update_by_or_create!!
-const createorupdateby!! = create_or_update_by!!
-const updatebyorcreate!! = update_by_or_create!!
 
 
 """
-    create_or_update!!{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false)::T
+    createorupdate{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false)::T
 
 Looks up `m` by `id` as configured in `_id`.
 If `m` is already persisted, it gets updated. If not, it is persisted as a new row.
 If values are provided for `ignore`, the corresponding properties (fields) of `m` will not be updated.
 If `skip_update` is `true` and `m` is already persisted, no update will be performed, and the originally persisted `m` will be returned.
 """
-@inline function create_or_update!!(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  update_by_or_create!!(m, Symbol(primary_key_name(m)), getfield(m, Symbol(primary_key_name(m))), ignore = ignore, skip_update = skip_update)
+@inline function createorupdate(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+  createorupdateby(m, Symbol(primary_key_name(m)), getfield(m, Symbol(primary_key_name(m))), ignore = ignore, skip_update = skip_update)
 end
-
-const createorupdate!! = create_or_update!!
 
 
 """
@@ -1390,23 +905,7 @@ julia> SearchLight.find_one_by_or_create(Article, :slug, SearchLight.find_one!!(
   0.001069 seconds (16 allocations: 576 bytes)
 
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam no... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                     Nullable{Int32}(61) |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug | neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-si... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |                              Similique sunt. Cupiditate eligendi..Similique sunt. Cupiditate eligendi.. |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi autem ut asperiores..Neque repudianda... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                 2016-11-28T22:18:48.723 |
-+--------------+---------------------------------------------------------------------------------------------------------+
+...
 
 
 julia> SearchLight.find_one_by_or_create(Article, :slug, "foo-bar")
@@ -1416,28 +915,12 @@ julia> SearchLight.find_one_by_or_create(Article, :slug, "foo-bar")
   0.000909 seconds (16 allocations: 576 bytes)
 
 App.Article
-+==============+=========================+
-|          key |                   value |
-+==============+=========================+
-|      content |                         |
-+--------------+-------------------------+
-|           id |       Nullable{Int32}() |
-+--------------+-------------------------+
-| published_at |    Nullable{DateTime}() |
-+--------------+-------------------------+
-|         slug |                 foo-bar |
-+--------------+-------------------------+
-|      summary |                         |
-+--------------+-------------------------+
-|        title |                         |
-+--------------+-------------------------+
-|   updated_at | 2016-11-28T22:32:19.518 |
-+--------------+-------------------------+
+...
 ```
 """
 @inline function find_one_by_or_create(m::Type{T}, property::Any, value::Any)::T where {T<:AbstractModel}
   lookup = find_one_by(m, SQLColumn(property), SQLInput(value))
-  ! Nullables.isnull( lookup ) && return Base.get(lookup)
+  lookup !== nothing && return lookup
 
   _m::T = m()
   setfield!(_m, Symbol(is_fully_qualified(string(property)) ? from_fully_qualified(string(property))[end] : property), value)
@@ -1485,27 +968,7 @@ julia> objects = SearchLight.to_models(Article, df)
 1-element Array{App.Article,1}:
 
 App.Article
-+==============+=============================================================+
-|          key |                                                       value |
-+==============+=============================================================+
-|              | Hic. Est aut officia perspiciatis. Et non est dolor autem.. |
-|      content |                 Aliquid dolores quo aut. Aperiam explica... |
-+--------------+-------------------------------------------------------------+
-|           id |                                          Nullable{Int32}(4) |
-+--------------+-------------------------------------------------------------+
-| published_at |                                        Nullable{DateTime}() |
-+--------------+-------------------------------------------------------------+
-|         slug |             possimus-sit-cum-nesciunt-doloribus-dignissimos |
-+--------------+-------------------------------------------------------------+
-|              |                                                  Similique. |
-|              |                                 Ut debitis qui perferendis. |
-|              |               Voluptatem qui recusandae ut itaque voluptas. |
-|      summary |                                                       Sunt. |
-+--------------+-------------------------------------------------------------+
-|        title |            Possimus sit cum nesciunt doloribus dignissimos. |
-+--------------+-------------------------------------------------------------+
-|   updated_at |                                     2016-09-27T07:49:59.098 |
-+--------------+-------------------------------------------------------------+
+...
 ```
 """
 function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:AbstractModel}
@@ -1517,12 +980,13 @@ function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:Ab
   for row in eachrow(df)
     main_model::T = to_model!!(m, dfs[table_name(__m)][row_count, :])
 
-    if haskey(models, getfield(main_model, Symbol(primary_key_name(__m))))
-      main_model = models[ getfield(main_model, Symbol(primary_key_name(__m))) |> Base.get ]
+    if haskey(models, getfield(main_model, Symbol(primary_key_name(__m))).value)
+      main_model = models[getfield(main_model, Symbol(primary_key_name(__m))).value]
     end
 
-    if ! haskey(models, getfield(main_model, Symbol(primary_key_name(__m)))) && ! Nullables.isnull(getfield(main_model, Symbol(primary_key_name(__m))))
-      models[DbId(getfield(main_model, Symbol(primary_key_name(__m))) |> Base.get)] = main_model
+    if ! haskey(models, getfield(main_model, Symbol(primary_key_name(__m))).value) &&
+          getfield(main_model, Symbol(primary_key_name(__m))).value !== nothing
+      models[DbId(getfield(main_model, Symbol(primary_key_name(__m))).value)] = main_model
     end
 
     row_count += 1
@@ -1579,27 +1043,7 @@ articles_slug          possimus-sit-cum-nesciunt-doloribus-dignissimos
 julia> SearchLight.to_model(Article, dfr)
 
 App.Article
-+==============+=============================================================+
-|          key |                                                       value |
-+==============+=============================================================+
-|              | Hic. Est aut officia perspiciatis. Et non est dolor autem.. |
-|      content |                 Aliquid dolores quo aut. Aperiam explica... |
-+--------------+-------------------------------------------------------------+
-|           id |                                          Nullable{Int32}(4) |
-+--------------+-------------------------------------------------------------+
-| published_at |                                        Nullable{DateTime}() |
-+--------------+-------------------------------------------------------------+
-|         slug |             possimus-sit-cum-nesciunt-doloribus-dignissimos |
-+--------------+-------------------------------------------------------------+
-|              |                                                  Similique. |
-|              |                                 Ut debitis qui perferendis. |
-|              |               Voluptatem qui recusandae ut itaque voluptas. |
-|      summary |                                                       Sunt. |
-+--------------+-------------------------------------------------------------+
-|        title |            Possimus sit cum nesciunt doloribus dignissimos. |
-+--------------+-------------------------------------------------------------+
-|   updated_at |                                     2016-09-27T07:49:59.098 |
-+--------------+-------------------------------------------------------------+
+...
 ```
 """
 function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
@@ -1616,7 +1060,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
     value = if isdefined(_m, :on_find!)
               try
                 _m, value = _m.on_find!(_m, unq_field, row[field])
-                (is(value, Nothing) || value == nothing) && (value = row[field])
+                value === nothing && (value = row[field])
                 value
               catch ex
                 @error "Failed to process on_find! the field $unq_field ($field)"
@@ -1627,7 +1071,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
             elseif isdefined(_m, :on_find)
               try
                 value = _m.on_find(_m, unq_field, row[field])
-                (isa(value, Nothing) || value == nothing) && (value = row[field])
+                value === nothing && (value = row[field])
                 value
               catch ex
                 @error "Failed to process on_find the field $unq_field ($field)"
@@ -1649,7 +1093,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
       setfield!(obj, unq_field, oftype(getfield(_m, unq_field), value))
     catch ex
       @error ex
-      @error "obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $( typeof(getfield(_m, unq_field)) )"
+      @error "obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $(typeof(getfield(_m, unq_field)))"
 
       isdefined(_m, :on_error!) ? obj = _m.on_error!(ex, model = obj, data = _m, field = unq_field, value = value)::T : rethrow(ex)
     end
@@ -1694,26 +1138,7 @@ julia> df = SearchLight.query(SearchLight.to_find_sql(Article, SQLQuery(where = 
 julia> SearchLight.to_model!!(Article, df)
 
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Porro est eaque impedit sint quos. Provident neque numquam dignissimos. Et aliquid natus libero ut. ... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                     Nullable{Int32}(11) |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug |                                                                                 facere-hic-ut-libero-et |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|              |                                                                              Optio quam necessitatibus. |
-|              |                                                                      Praesentium dolorem et cupiditate. |
-|              |                                                                                              Omnis vel. |
-|      summary |                                                                                             Voluptatem. |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title |                                                                                Facere hic ut libero et. |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                 2016-09-27T07:49:59.323 |
-+--------------+---------------------------------------------------------------------------------------------------------+
+...
 
 julia> df = SearchLight.query(SearchLight.to_find_sql(Article, SQLQuery(where = [SQLWhereExpression("title = '--- this article does not exist --'")])))
 
@@ -1740,7 +1165,7 @@ end
 
 
 """
-    to_model{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Nullable{T}
+    to_model{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Union{Nothing,T}
 
 Attempts to extract row at `row_index` from `df` and convert it to an instance of `T`.
 
@@ -1756,28 +1181,9 @@ julia> df = SearchLight.query(SearchLight.to_find_sql(Article, SQLQuery(where = 
 ...
 
 julia> SearchLight.to_model(Article, df)
-Nullable{App.Article}(
+Union{Nothing,App.Article}(
 App.Article
-+==============+======================================================================================+
-|          key |                                                                                value |
-+==============+======================================================================================+
-|              | Ducimus fuga sit magni. Non labore facilis dolore. Nisi dignissimos. Voluptas quis.. |
-|      content |                                                                   Ullam sequi dol... |
-+--------------+--------------------------------------------------------------------------------------+
-|           id |                                                                   Nullable{Int32}(5) |
-+--------------+--------------------------------------------------------------------------------------+
-| published_at |                                                                 Nullable{DateTime}() |
-+--------------+--------------------------------------------------------------------------------------+
-|         slug |                                                    voluptas-ea-incidunt-et-provident |
-+--------------+--------------------------------------------------------------------------------------+
-|              |                                                                    Animi ducimus in. |
-|              |                               Voluptatem ipsum doloribus perspiciatis consequatur a. |
-|      summary |                                                       Vel quibusdam quas veritati... |
-+--------------+--------------------------------------------------------------------------------------+
-|        title |                                                   Voluptas ea incidunt et provident. |
-+--------------+--------------------------------------------------------------------------------------+
-|   updated_at |                                                              2016-09-27T07:49:59.129 |
-+--------------+--------------------------------------------------------------------------------------+
+...
 )
 
 julia> df = SearchLight.query(SearchLight.to_find_sql(Article, SQLQuery(where = [SQLWhereExpression("title LIKE ?", "%agggzgguuyyyo79%")], limit = 1)))
@@ -1789,11 +1195,11 @@ julia> df = SearchLight.query(SearchLight.to_find_sql(Article, SQLQuery(where = 
 0×7 DataFrames.DataFrame
 
 julia> SearchLight.to_model(Article, df)
-Nullable{App.Article}()
+Union{Nothing,App.Article}()
 ```
 """
-@inline function to_model(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Nullables.Nullable{T} where {T<:AbstractModel}
-  size(df)[1] >= row_index ? Nullables.Nullable{T}(to_model!!(m, df, row_index = row_index)) : Nullables.Nullable{T}()
+@inline function to_model(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Union{Nothing,T} where {T<:AbstractModel}
+  size(df)[1] >= row_index ? to_model!!(m, df, row_index = row_index) : nothing
 end
 
 
@@ -2155,7 +1561,7 @@ function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractMod
   value = if isdefined(m, :on_save)
             try
               r = m.on_save(m, field, value)
-              isa(r, Nothing) || r == nothing ? value : r
+              r === nothing ? value : r
             catch ex
               @error "Failed to persist field $field"
               @error ex
@@ -2218,23 +1624,7 @@ julia> SearchLight.delete(SearchLight.find_one!!(Article, 61))
   0.013913 seconds (5 allocations: 176 bytes)
 
 App.Article
-+==============+=========================================================================================================+
-|          key |                                                                                                   value |
-+==============+=========================================================================================================+
-|      content | Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam no... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|           id |                                                                                       Nullable{Int32}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-| published_at |                                                                                    Nullable{DateTime}() |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|         slug | neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-si... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|      summary |                              Similique sunt. Cupiditate eligendi..Similique sunt. Cupiditate eligendi.. |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|        title | Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi autem ut asperiores..Neque repudianda... |
-+--------------+---------------------------------------------------------------------------------------------------------+
-|   updated_at |                                                                                 2016-11-28T22:18:48.723 |
-+--------------+---------------------------------------------------------------------------------------------------------+
+...
 ```
 """
 @inline function delete(m::T)::T where {T<:AbstractModel}
@@ -2487,7 +1877,7 @@ true
 ```
 """
 @inline function ispersisted(m::T)::Bool where {T<:AbstractModel}
-  ! ( isa(getfield(m, Symbol(primary_key_name(m))), Nullables.Nullable) && Nullables.isnull( getfield(m, Symbol(primary_key_name(m))) ) )
+  getfield(m, Symbol(primary_key_name(m))).value !== nothing
 end
 
 
@@ -2599,11 +1989,7 @@ const tablename = table_name
 
 
 function primary_key_name(m::T)::String where {T<:AbstractModel}
-  if in(:_id, fieldnames(typeof(m)))
-    m._id
-  else
-    PRIMARY_KEY_NAME
-  end
+  m._id
 end
 function primary_key_name(m::Type{T})::String where {T<:AbstractModel}
   primary_key_name(disposable_instance(m))
@@ -2613,50 +1999,15 @@ const primarykeyname = primary_key_name
 
 
 """
-    validator!!{T<:AbstractModel}(m::T)::ModelValidator
+    validator{T<:AbstractModel}(m::T)::Union{Nothing,ModelValidator}
 
-Gets the ModelValidator object defined for `m`.
-If no ModelValidator is defined, an error will be thrown.
-
-# Examples
-```julia
-julia> ar = SearchLight.rand_one!!(Article)
-
-App.Article
-+==============+==========================================================================================+
-|          key |                                                                                    value |
-+==============+==========================================================================================+
-|           id |                                                                      Nullable{Int32}(16) |
-+--------------+------------------------------------------------------------------------------------------+
-...
-
-julia> SearchLight.validator!!(ar)
-
-SearchLight.ModelValidator
-+========+=========================================================================================================+
-|    key |                                                                                                   value |
-+========+=========================================================================================================+
-| errors |                                                                           Tuple{Symbol,Symbol,String}[] |
-+--------+---------------------------------------------------------------------------------------------------------+
-|  rules | #Tuple{Symbol,Function,Vararg{Any,N}}[(:title,Validation.not_empty),(:title,Validation.min_length,20)... |
-+--------+---------------------------------------------------------------------------------------------------------+
-```
-"""
-@inline function validator!!(m::T)::ModelValidator where {T<:AbstractModel}
-  Validation.validator!!(m)
-end
-
-
-"""
-    validator{T<:AbstractModel}(m::T)::Nullable{ModelValidator}
-
-Gets the ModelValidator object defined for `m` wrapped in a Nullable{ModelValidator}.
+Gets the ModelValidator object defined for `m` wrapped in a Union{Nothing,ModelValidator}.
 
 # Examples
 ```julia
 julia> SearchLight.rand_one!!(Article) |> SearchLight.validator
 
-Nullable{SearchLight.ModelValidator}(
+Union{Nothing,SearchLight.ModelValidator}(
 SearchLight.ModelValidator
 +========+=========================================================================================================+
 |    key |                                                                                                   value |
@@ -2668,30 +2019,28 @@ SearchLight.ModelValidator
 )
 ```
 """
-@inline function validator(m::T)::Nullables.Nullable{ModelValidator} where {T<:AbstractModel}
+@inline function validator(m::T)::Union{Nothing,SearchLight.Validation.ModelValidator} where {T<:AbstractModel}
   Validation.validator!!(m)
 end
 
 
 """
-    has_field{T<:AbstractModel}(m::T, f::Symbol)::Bool
+    hasfield{T<:AbstractModel}(m::T, f::Symbol)::Bool
 
 Returns a `Bool` whether or not the field `f` is defined on the model `m`.
 
 # Examples
 ```julia
-julia> SearchLight.has_field(ar, :validator)
+julia> SearchLight.hasfield(ar, :validator)
 true
 
-julia> SearchLight.has_field(ar, :moo)
+julia> SearchLight.hasfield(ar, :moo)
 false
 ```
 """
-@inline function has_field(m::T, f::Symbol)::Bool where {T<:AbstractModel}
+@inline function hasfield(m::T, f::Symbol)::Bool where {T<:AbstractModel}
   isdefined(m, f)
 end
-
-const hasfield = has_field
 
 
 """
@@ -2726,7 +2075,7 @@ false
 ```
 """
 @inline function is_fully_qualified(m::T, f::Symbol)::Bool where {T<:AbstractModel}
-  startswith(string(f), table_name(m)) && has_field(m, strip_table_name(m, f))
+  startswith(string(f), table_name(m)) && hasfield(m, strip_table_name(m, f))
 end
 @inline function is_fully_qualified(t::T)::Bool where {T<:SQLType}
   replace(t |> string, "\""=>"") |> string |> is_fully_qualified
@@ -2986,14 +2335,15 @@ If `all_fields` is `true`, all fields are included; otherwise just the fields co
 function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false)::Dict{String,String} where {T<:AbstractModel}
   fields = all_fields ? fieldnames(typeof(m)) : persistable_fields(m)
   response = Dict{String,String}()
+
   for f in fields
     value = getfield(m, Symbol(f))
-    response[string(f) * " :: " * (isa(value, DbId) ? "DbId" : string(typeof(value)))] = string(value)
+    response[string(f) * "::" * string(typeof(value))] = string(value)
   end
 
   response
 end
-@inline function to_string_dict(m::Any, ; all_output::Bool = false)::Dict{String,String}
+@inline function to_string_dict(m::Any; all_output::Bool = false)::Dict{String,String}
   to_string_dict(m, [f for f in fieldnames(typeof(m))], all_output = all_output)
 end
 function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false)::Dict{String,String}
@@ -3003,16 +2353,6 @@ function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false
   end
 
   response
-end
-
-
-"""
-    to_nullable{T<:AbstractModel}(result::Vector{T})::Nullable{T}
-
-Wraps a result vector into a `Nullable`.
-"""
-@inline function to_nullable(result::Vector{T})::Nullables.Nullable{T} where {T<:AbstractModel}
-  isempty(result) ? Nullables.Nullable{T}() : Nullables.Nullable{T}(result |> first)
 end
 
 
@@ -3073,7 +2413,7 @@ end
 Converts the Julia type to the corresponding type in the database. For example, the bool type for SQLite is 1 or 0
 """
 @inline function adapter_type(v::Bool)::Union{Bool,Int,Char,String}
-  DatabaseAdapter.cast_type(v)
+  Database.DatabaseAdapter.cast_type(v)
 end
 
 
@@ -3083,7 +2423,7 @@ end
 Creates a new DB table
 """
 @inline function create_table(f::Function, name::String, options::String = "") :: Nothing
-  sql = DatabaseAdapter.create_table_sql(f, name, options)
+  sql = Database.DatabaseAdapter.create_table_sql(f, name, options)
   try
     SearchLight.query(sql)
   catch ex
@@ -3104,21 +2444,21 @@ const createtable = create_table
 Returns the adapter-dependent SQL for defining a table column
 """
 @inline function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false)::String
-  DatabaseAdapter.column_sql(name, column_type, options, default = default, limit = limit, not_null = not_null)
+  Database.DatabaseAdapter.column_sql(name, column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
 
 """
 """
 @inline function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
-  DatabaseAdapter.column_id_sql(name, options, constraint = constraint, nextval = nextval)
+  Database.DatabaseAdapter.column_id_sql(name, options, constraint = constraint, nextval = nextval)
 end
 
 
 """
 """
 @inline function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Nothing
-  DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
+  Database.DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
 
   nothing
 end
@@ -3127,7 +2467,7 @@ end
 """
 """
 @inline function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false)::Nothing
-  DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
+  Database.DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
 
   nothing
 end
@@ -3136,7 +2476,7 @@ end
 """
 """
 @inline function drop_table(name::String)::Nothing
-  DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
+  Database.DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
 
   nothing
 end
@@ -3146,7 +2486,7 @@ end
 
 """
 @inline function remove_column(table_name::String, name::String)::Nothing
-  DatabaseAdapter.remove_column_sql(table_name, name) |> SearchLight.query
+  Database.DatabaseAdapter.remove_column_sql(table_name, name) |> SearchLight.query
 
   nothing
 end
@@ -3155,7 +2495,7 @@ end
 """
 """
 @inline function remove_index(table_name::String, name::String)::Nothing
-  DatabaseAdapter.remove_index_sql(table_name, name) |> SearchLight.query
+  Database.DatabaseAdapter.remove_index_sql(table_name, name) |> SearchLight.query
 
   nothing
 end
@@ -3164,7 +2504,7 @@ end
 """
 """
 @inline function create_sequence(name::String)::Nothing
-  DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
+  Database.DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
 
   nothing
 end
@@ -3173,7 +2513,7 @@ end
 """
 """
 @inline function remove_sequence(name::String, options::String = "")::Nothing
-  DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
+  Database.DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
 
   nothing
 end

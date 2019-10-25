@@ -2,7 +2,7 @@ module MySQLDatabaseAdapter
 
 import Revise
 import MySQL, DataFrames, DataStreams, Logging
-using SearchLight, SearchLight.Database
+using SearchLight, SearchLight.Database, SearchLight.Exceptions
 
 export DatabaseHandle, ResultHandle
 
@@ -96,7 +96,7 @@ function create_migrations_table(table_name::String)::Bool
   "CREATE TABLE `$table_name` (
     `version` varchar(30) NOT NULL DEFAULT '',
     PRIMARY KEY (`version`)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8" |> Database.query
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8" |> SearchLight.Database.query
 
   @info "Created table $table_name"
 
@@ -182,7 +182,7 @@ julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Data
 
     if isa(ex, MySQL.MySQLInternalError) && (ex.errno == 2013 || ex.errno == 2006)
       @warn ex
-      query(sql, suppress_output, Database.connect())
+      query(sql, suppress_output, SearchLight.Database.connect())
     else
       rethrow(ex)
     end
@@ -192,7 +192,7 @@ end
 
 """
 """
-@inline function to_find_sql(m::Type{T}, q::SQLQuery, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
+@inline function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(m, q.where)) " *
                       "$(to_group_part(q.group)) $(to_having_part(q.having)) $(to_order_part(m, q.order)) " *
                       "$(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
@@ -204,20 +204,20 @@ const to_fetch_sql = to_find_sql
 
 """
 """
-function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:AbstractModel} # upsert strateygy = :none | :error | :ignore | :update
+function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:SearchLight.AbstractModel}
   uf = SearchLight.persistable_fields(m)
 
-  sql = if ! ispersisted(m) || (ispersisted(m) && conflict_strategy == :update)
-    pos = findfirst(x -> x == m._id, uf)
+  sql = if ! SearchLight.ispersisted(m) || (SearchLight.ispersisted(m) && conflict_strategy == :update)
+    pos = findfirst(x -> x == SearchLight.primary_key_name(m), uf)
     pos > 0 && splice!(uf, pos)
 
-    fields = SQLColumn(uf)
+    fields = SearchLight.SQLColumn(uf)
     vals = join( map(x -> string(SearchLight.to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))), uf), ", ")
 
     "INSERT INTO $(m._table_name) ( $fields ) VALUES ( $vals )" *
         if ( conflict_strategy == :error ) ""
-        elseif ( conflict_strategy == :ignore ) " ON DUPLICATE KEY UPDATE `$(m._id)` = `$(m._id)`"
-        elseif ( conflict_strategy == :update && ! Nullables.isnull( getfield(m, Symbol(m._id)) ) )
+        elseif ( conflict_strategy == :ignore ) " ON DUPLICATE KEY UPDATE `$(SearchLight.primary_key_name(m))` = `$(SearchLight.primary_key_name(m))`"
+        elseif ( conflict_strategy == :update && getfield(m, Symbol(SearchLight.primary_key_name(m))).value !== nothing )
            " ON DUPLICATE KEY UPDATE $(update_query_part(m))"
         else ""
         end
@@ -225,13 +225,13 @@ function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:Abstra
     "UPDATE $(m._table_name) SET $(update_query_part(m))"
   end
 
-  sql # * "; SELECT IF( LAST_INSERT_ID() = 0, $( isnull(getfield(m, Symbol(m._id))) ? -1 : getfield(m, Symbol(m._id)) |> Base.get ), LAST_INSERT_ID() ) AS id"
+  sql
 end
 
 
 """
 """
-function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:SearchLight.AbstractModel}
   _m::T = m()
   (truncate ? "TRUNCATE $(_m._table_name)" : "DELETE FROM $(_m._table_name)") |> SearchLight.query
 
@@ -241,11 +241,12 @@ end
 
 """
 """
-function delete(m::T)::T where {T<:AbstractModel}
-  "DELETE FROM $(m._table_name) WHERE $(m._id) = '$(m.id |> Base.get)'" |> SearchLight.query
+function delete(m::T)::T where {T<:SearchLight.AbstractModel}
+  SearchLight.ispersisted(m) || throw(SearchLight.Exceptions.NotPersistedException(m))
 
-  tmp::T = T()
-  m.id = tmp.id
+  "DELETE FROM $(m._table_name) WHERE $(SearchLight.primary_key_name(m)) = '$(m.id.value)'" |> SearchLight.query
+
+  m.id = SearchLight.DbId()
 
   m
 end
@@ -253,45 +254,45 @@ end
 
 """
 """
-@inline function count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
-  count_column = SQLColumn("COUNT(*) AS __cid", raw = true)
+@inline function count(m::Type{T}, q::SearchLight.SQLQuery = SearchLight.SQLQuery())::Int where {T<:SearchLight.AbstractModel}
+  count_column = SearchLight.SQLColumn("COUNT(*) AS __cid", raw = true)
   q = SearchLight.clone(q, :columns, push!(q.columns, count_column))
 
-  finddf(m, q)[1, Symbol("__cid")]
+  SearchLight.finddf(m, q)[1, Symbol("__cid")]
 end
 
 
 """
 """
-@inline function update_query_part(m::T)::String where {T<:AbstractModel}
-  update_values = join(map(x -> "$(string(SQLColumn(x))) = $( string(SearchLight.to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))) )", SearchLight.persistable_fields(m)), ", ")
+@inline function update_query_part(m::T)::String where {T<:SearchLight.AbstractModel}
+  update_values = join(map(x -> "$(string(SearchLight.SQLColumn(x))) = $(string(SearchLight.to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))))", SearchLight.persistable_fields(m)), ", ")
 
-  " $update_values WHERE $(m._table_name).$(m._id) = '$(Base.get(m.id))'"
+  " $update_values WHERE $(m._table_name).$(SearchLight.primary_key_name(m)) = '$(m.id.value)'"
 end
 
 
 """
 """
-@inline function column_data_to_column_name(column::SQLColumn, column_data::Dict{Symbol,Any}) :: String
-  "$(SearchLight.to_fully_qualified(column_data[:column_name], column_data[:table_name])) AS $( isempty(column_data[:alias]) ? SearchLight.to_sql_column_name(column_data[:column_name], column_data[:table_name]) : column_data[:alias] )"
+@inline function column_data_to_column_name(column::SearchLight.SQLColumn, column_data::Dict{Symbol,Any}) :: String
+  "$(SearchLight.to_fully_qualified(column_data[:column_name], column_data[:table_name])) AS $(isempty(column_data[:alias]) ? SearchLight.to_sql_column_name(column_data[:column_name], column_data[:table_name]) : column_data[:alias])"
 end
 
 
 """
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
+@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
   "SELECT " * SearchLight.Database._to_select_part(m, cols, joins)
 end
 
 
 """
 """
-@inline function to_from_part(m::Type{T})::String where {T<:AbstractModel}
+@inline function to_from_part(m::Type{T})::String where {T<:SearchLight.AbstractModel}
   "FROM " * SearchLight.Database.escape_column_name(m()._table_name)
 end
 
 
-@inline function to_where_part(w::Vector{SQLWhereEntity}) :: String
+@inline function to_where_part(w::Vector{SearchLight.SQLWhereEntity}) :: String
   where = isempty(w) ?
           "" :
           "WHERE " * (string(first(w).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(wx -> string(wx), w), " ")
@@ -302,7 +303,7 @@ end
 
 """
 """
-@inline function to_order_part(m::Type{T}, o::Vector{SQLOrder})::String where {T<:AbstractModel}
+@inline function to_order_part(m::Type{T}, o::Vector{SearchLight.SQLOrder})::String where {T<:SearchLight.AbstractModel}
   isempty(o) ?
     "" :
     "ORDER BY " * join(map(x -> (! SearchLight.is_fully_qualified(x.column.value) ? SearchLight.to_fully_qualified(m, x.column) : x.column.value) * " " * x.direction, o), ", ")
@@ -311,7 +312,7 @@ end
 
 """
 """
-@inline function to_group_part(g::Vector{SQLColumn}) :: String
+@inline function to_group_part(g::Vector{SearchLight.SQLColumn}) :: String
   isempty(g) ?
     "" :
     " GROUP BY " * join(map(x -> string(x), g), ", ")
@@ -320,7 +321,7 @@ end
 
 """
 """
-@inline function to_limit_part(l::SQLLimit) :: String
+@inline function to_limit_part(l::SearchLight.SQLLimit) :: String
   l.value != "ALL" ? "LIMIT " * (l |> string) : ""
 end
 
@@ -334,7 +335,7 @@ end
 
 """
 """
-@inline function to_having_part(h::Vector{SQLWhereEntity}) :: String
+@inline function to_having_part(h::Vector{SearchLight.SQLWhereEntity}) :: String
   having =  isempty(h) ?
             "" :
             "HAVING " * (string(first(h).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(w -> string(w), h), " ")
@@ -345,7 +346,7 @@ end
 
 """
 """
-function to_join_part(m::Type{T}, joins = SQLJoin[])::String where {T<:AbstractModel}
+function to_join_part(m::Type{T}, joins = SearchLight.[])::String where {T<:SearchLight.AbstractModel}
   _m::T = m()
   join_part = ""
 
@@ -375,7 +376,7 @@ end
 function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false)::String
   "$name $(TYPE_MAPPINGS[column_type] |> string) " *
     (isa(limit, Int) || isa(limit, String) ? "($limit)" : "") *
-    (default == nothing ? "" : " DEFAULT $default ") *
+    (default === nothing ? "" : " DEFAULT $default ") *
     (not_null ? " NOT NULL " : "") *
     " " * options
 end
@@ -391,7 +392,7 @@ end
 """
 """
 @inline function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
-  name = isempty(name) ? Database.index_name(table_name, column_name) : name
+  name = isempty(name) ? SearchLight.Database.index_name(table_name, column_name) : name
   "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
 end
 
@@ -426,8 +427,8 @@ end
 
 """
 """
-@inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
-  SearchLight.find(m, SQLQuery(limit = SQLLimit(limit), order = [SQLOrder("rand()", raw = true)]))
+@inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:SearchLight.AbstractModel}
+  SearchLight.find(m, SearchLight.SQLQuery(limit = SearchLight.SQLLimit(limit), order = [SearchLight.SQLOrder("rand()", raw = true)]))
 end
 
 

@@ -64,8 +64,8 @@ end
 Default content for a new SearchLight model.
 """
 function newmodel(model_name::String, resource_name::String = model_name; pluralize::Bool = true) :: String
-  pluralized_name = Inflector.to_plural(model_name) |> Base.get
-  table_name = Inflector.to_plural(resource_name) |> Base.get |> lowercase
+  pluralized_name = SearchLight.Inflector.to_plural(model_name)
+  table_name = SearchLight.Inflector.to_plural(resource_name) |> lowercase
 
   """
   module $pluralized_name
@@ -103,7 +103,7 @@ Default content for a new SearchLight validator.
 """
 function newvalidator(validator_name::String; pluralize::Bool = true) :: String
   """
-  module $(Inflector.to_plural(validator_name) |> Base.get)Validator
+  module $(SearchLight.Inflector.to_plural(validator_name))Validator
 
   using SearchLight, SearchLight.Validation
 
