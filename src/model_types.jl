@@ -18,9 +18,15 @@ abstract type SearchLightAbstractType end
 abstract type SQLType <: SearchLightAbstractType end
 abstract type AbstractModel <: SearchLightAbstractType end
 
-string(io::IO, t::T) where {T<:SearchLightAbstractType} = "$(typeof(t)) <: $(supertype(typeof(t)))"
-print(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, "$(typeof(t)) <: $(supertype(typeof(t)))")
-show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabstracttype_to_print(t))
+function Base.print(io::IO, t::T) where {T<:SearchLightAbstractType}
+  props = []
+  for (k,v) in to_string_dict(t)
+    push!(props, "$k=$v")
+  end
+  print(io, string("$(typeof(t))(", join(props, ','), ")"))
+end
+
+Base.show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabstracttype_to_print(t))
 
 """
     searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: String
@@ -360,8 +366,9 @@ Base.showerror(io::IO, e::UnparsableSQLLimitException) = print(io, "Can't parse 
 Wrapper around SQL `limit` operator.
 """
 struct SQLLimit <: SQLType
-  value::Union{Int, String}
+  value::Union{Int,String}
   SQLLimit(v::Int) = new(v)
+
   function SQLLimit(v::String)
     v = strip(uppercase(v))
     if v == SQLLimit_ALL
@@ -497,6 +504,7 @@ SQLJoin(model_name::Type{T},
         where = SQLWhereEntity[],
         natural = false,
         columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin{T}(model_name, on, join_type, outer, where, natural, columns)
+
 SQLJoin(model_name::Type{T},
         on_column_1::Union{String,SQLColumn},
         on_column_2::Union{String,SQLColumn};
@@ -505,6 +513,7 @@ SQLJoin(model_name::Type{T},
         where = SQLWhereEntity[],
         natural = false,
         columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin(model_name, SQLOn(on_column_1, on_column_2), join_type = join_type, outer = outer, where = where, natural = natural, columns = columns)
+
 function string(j::SQLJoin)
   _m = j.model_name()
   sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(Util.add_quotes(_m._table_name)) $(string(j.on)) """
