@@ -3,63 +3,58 @@ Handles the functionality for applying various gramatical rules.
 """
 module Inflector
 
-using Unicode, Nullables
+import Revise
+import Unicode
+import SearchLight
+
 const vowels = ["a", "e", "i", "o", "u"]
 
 
 """
-    to_singular(word::String; is_irregular::Bool = false) :: Nullable{String}
+    to_singular(word::String; is_irregular::Bool = false) :: Union{Nothing,String}
 
 Returns the singural form of `word`.
 """
-function to_singular(word::String; is_irregular::Bool = Inflector.is_irregular(word)) :: Nullable{String}
+function to_singular(word::String; is_irregular::Bool = Inflector.is_irregular(word)) :: Union{Nothing,String}
   ( is_irregular || ! endswith(word, "s") ) && return to_singular_irregular(word)
-  endswith(word, "ies") && ! in(word[end-3], vowels) && return Nullable{String}(word[1:end-3] * "y")
-  endswith(word, "s") && return Nullable{String}(word[1:end-1])
+  endswith(word, "ies") && ! in(word[end-3], vowels) && return (word[1:end-3] * "y")
+  endswith(word, "s") && return word[1:end-1]
 
-  Nullable{String}()
+  nothing
 end
 
 
 """
-    to_singular_irregular(word::String) :: Nullable{String}
+    to_singular_irregular(word::String) :: Union{Nothing,String}
 
 Returns the singular form of the irregular word `word`.
 """
-function to_singular_irregular(word::String) :: Nullable{String}
+function to_singular_irregular(word::String) :: Union{Nothing,String}
   irr = irregular(word)
-  if ! isnull(irr)
-    Nullable{Base.get(irr)[1]}
-  else
-    Nullable{String}()
-  end
+  irr !== nothing ? irr[1] : nothing
 end
 
 
 """
-    to_plural(word::String; is_irregular::Bool = false) :: Nullable{String}
+    to_plural(word::String; is_irregular::Bool = false) :: Union{Nothing,String}
 
 Returns the plural form of `word`.
 """
-function to_plural(word::String; is_irregular::Bool = Inflector.is_irregular(word)) :: Nullable{String}
+function to_plural(word::String; is_irregular::Bool = Inflector.is_irregular(word)) :: Union{Nothing,String}
   is_irregular && return to_plural_irregular(word)
-  endswith(word, "y") && ! in(word[end-1], vowels) && return Nullable{String}(word[1:end-1] * "ies") # category -> categories // story -> stories
-  is_singular(word) ? Nullable{String}(word * "s") : Nullable{String}(word)
+  endswith(word, "y") && ! in(word[end-1], vowels) && return (word[1:end-1] * "ies") # category -> categories // story -> stories
+  is_singular(word) ? (word * "s") : (word)
 end
 
 
 """
-    to_plural_irregular(word::String) :: Nullable{String}
+    to_plural_irregular(word::String) :: Union{Nothing,String}
 
 Returns the plural form of the irregular word `word`.
 """
-function to_plural_irregular(word::String) :: Nullable{String}
+function to_plural_irregular(word::String) :: Union{Nothing,String}
   irr = irregular(word)
-  if ! isnull(irr)
-    Nullable{String}(Base.get(irr)[2])
-  else
-    Nullable{String}()
-  end
+  irr !== nothing ? (irr)[2] : nothing
 end
 
 
@@ -91,9 +86,9 @@ Returns wether or not `word` is a plural.
 function is_plural(word::String) :: Bool
   word = Unicode.normalize(word, casefold = true)
   irr_word = irregular(word)
-  (! isnull(irr_word) && word != Base.get(irr_word)[1]) ||
-    (! isnull(irr_word) && word == Base.get(irr_word)[2]) ||
-    endswith(word, "s")
+  (irr_word !== nothing && word != (irr_word)[1]) ||
+    (irr_word !== nothing && word == (irr_word)[2]) ||
+      endswith(word, "s")
 end
 
 
@@ -108,18 +103,18 @@ end
 
 
 """
-    irregular(word::String) :: Nullable{Tuple{String,String}}
+    irregular(word::String) :: Union{Nothing,Tuple{String,String}}
 
 Wether or not `word` has an irregular singular or plural form.
 """
-function irregular(word::String) :: Nullable{Tuple{String,String}}
+function irregular(word::String) :: Union{Nothing,Tuple{String,String}}
   word = Unicode.normalize(word, casefold = true)
 
   for (k, v) in IRREGULAR_NOUNS
-    (word == k || word == v) && return Nullable{Tuple{String,String}}( (k,v) )
+    (word == k || word == v) && return (k::String, v::String)
   end
 
-  Nullable{Tuple{String,String}}()
+  nothing
 end
 
 
@@ -129,7 +124,7 @@ end
 Whether or not `word` has a singular or plural irregular form.
 """
 function is_irregular(word::String) :: Bool
-  isnull(irregular(word)) ? false : true
+  irregular(word) === nothing ? false : true
 end
 
 
