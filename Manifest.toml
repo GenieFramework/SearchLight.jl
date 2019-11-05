@@ -10,10 +10,10 @@ uuid = "9e28174c-4ba2-5203-b857-d8d62c4213ee"
 version = "0.8.10"
 
 [[BinaryProvider]]
-deps = ["Libdl", "Logging", "SHA"]
-git-tree-sha1 = "c7361ce8a2129f20b0e05a89f7070820cfed6648"
+deps = ["Libdl", "SHA"]
+git-tree-sha1 = "5b08ed6036d9d3f0ee6369410b830f8873d4024c"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
-version = "0.5.6"
+version = "0.5.8"
 
 [[CEnum]]
 git-tree-sha1 = "5a2679abe17f5e70d90753940dcb7f15e61369d4"
@@ -69,9 +69,9 @@ version = "0.4.2"
 
 [[DataStructures]]
 deps = ["InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "2103e504f427e54ffa19af9ada225733a21f951f"
+git-tree-sha1 = "1fe8fad5fc84686dcbc674aa255bc867a64f8132"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.17.3"
+version = "0.17.5"
 
 [[DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -219,16 +219,10 @@ uuid = "78c3b35d-d492-501b-9361-3d52fe80e533"
 version = "0.7.0"
 
 [[MySQL]]
-deps = ["BinaryProvider", "Dates", "DecFP", "Libdl", "Tables", "Test"]
-git-tree-sha1 = "4b9828e56c9c70a04740f5fc369bd5c65efdbd0a"
+deps = ["BinaryProvider", "Dates", "DecFP", "Libdl", "Tables"]
+git-tree-sha1 = "c0d5cd3b35a868855bf79c4300b4b6aeb2a0d0b6"
 uuid = "39abe10b-433b-5dbd-92d4-e302a9df00cd"
-version = "0.7.0"
-
-[[Nullables]]
-deps = ["Compat"]
-git-tree-sha1 = "ae1a63457e14554df2159b0b028f48536125092d"
-uuid = "4d1e1d77-625e-5b40-9113-a560ec7a8ecd"
-version = "0.0.8"
+version = "0.7.1"
 
 [[OffsetArrays]]
 git-tree-sha1 = "1af2f79c7eaac3e019a0de41ef63335ff26a0a57"
@@ -243,9 +237,9 @@ version = "1.1.0"
 
 [[Parsers]]
 deps = ["Dates", "Test"]
-git-tree-sha1 = "ef0af6c8601db18c282d092ccbd2f01f3f0cd70b"
+git-tree-sha1 = "c56ecb484f286639f161e712b8311f5ab77e8d32"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "0.3.7"
+version = "0.3.8"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]

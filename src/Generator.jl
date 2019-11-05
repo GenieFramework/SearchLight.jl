@@ -39,7 +39,7 @@ Generates all the files associated with a new resource and persists them to the 
 function newresource(resource_name::Union{String,Symbol}; pluralize::Bool = true) :: Nothing
   resource_name = string(resource_name)
 
-  sf = SearchLight.Inflector.to_singular(resource_name)
+  sf = SearchLight.Inflector.tosingular(resource_name)
 
   model_name = (sf === nothing ? resource_name : sf) |> uppercasefirst
   newmodel(Dict{String,Any}("model:new" => model_name), pluralize = pluralize)
@@ -120,7 +120,7 @@ end
 Generates all resouce files and persists them to disk.
 """
 function write_resource_file(resource_path::String, file_name::String, resource_name::String, resource_type::Symbol; pluralize::Bool = true) :: Bool
-  resource_name = (pluralize ? SearchLight.Inflector.to_singular(resource_name) : resource_name) |> SearchLight.Inflector.from_underscores
+  resource_name = (pluralize ? SearchLight.Inflector.tosingular(resource_name) : resource_name) |> SearchLight.Inflector.from_underscores
 
   try
     if resource_type == :model

@@ -295,7 +295,7 @@ List of all migrations that are `up`.
 function upped_migrations() :: Vector{String}
   result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC", system_query = true)
 
-  String[string(x) for x = result[:version]]
+  String[string(x) for x = result[!, :version]]
 end
 
 

@@ -35,10 +35,10 @@ import .Exceptions, .Highlight
 
 import Base.rand, Base.all, Base.count
 
-export finddf, find, findby, findoneby, findone
+export find, findone
 export rand, randone
 export all, count # min, max, mean, median
-export findonebyorcreate, createwith, createorupdateby, createorupdate
+export findoneby_or_create, createwith, createorupdateby, createorupdate
 export save, save!, save!!, updatewith, updatewith!!
 export deleteall, delete
 export validator
@@ -64,7 +64,6 @@ end
 
 
 """
-
 """
 mutable struct UnsupportedException <: Exception
   method_name::Symbol
@@ -80,14 +79,14 @@ Base.showerror(io::IO, e::UnsupportedException) = print(io, "Method $(e.method_n
 
 
 """
-    find_df{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]])::DataFrame
-    find_df{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::DataFrame
+    DataFrames.DataFrame{T<:AbstractModel, N<:AbstractModel}(m::Type{T}[, q::SQLQuery[, j::Vector{SQLJoin{N}}]])::DataFrame
+    DataFrames.DataFrame{T<:AbstractModel}(m::Type{T}; order = SQLOrder(m()._id))::DataFrame
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `DataFrame`.
 
 # Examples
 ```julia
-julia> SearchLight.find_df(Article)
+julia> DataFrame(Article)
 
 2016-11-15T23:16:19.152 - info: SQL QUERY: SELECT articles.id AS articles_id, articles.title AS articles_title, articles.summary AS articles_summary, articles.content AS articles_content, articles.updated_at AS articles_updated_at, articles.published_at AS articles_published_at, articles.slug AS articles_slug FROM articles
 
@@ -100,7 +99,7 @@ julia> SearchLight.find_df(Article)
 │ 2   │ 5           │ "Voluptas ea incidunt et provident."               │ "Animi ducimus in.\nVoluptatem ipsum doloribus perspiciatis consequatur a.\nVel quibusdam quas veritatis laboriosam.\nEum quibusdam." │
 ...
 
-julia> SearchLight.find_df(Article, SQLQuery(limit = 5))
+julia> DataFrame(Article, SQLQuery(limit = 5))
 
 2016-11-15T23:12:10.513 - info: SQL QUERY: SELECT articles.id AS articles_id, articles.title AS articles_title, articles.summary AS articles_summary, articles.content AS articles_content, articles.updated_at AS articles_updated_at, articles.published_at AS articles_published_at, articles.slug AS articles_slug FROM articles LIMIT 5
 
@@ -114,23 +113,27 @@ julia> SearchLight.find_df(Article, SQLQuery(limit = 5))
 ...
 ```
 """
-@inline function find_df(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{AbstractModel,Nothing}}
+@inline function DataFrames.DataFrame(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{AbstractModel,Nothing}}
   query(sql(m, q, j))::DataFrames.DataFrame
-end
-@inline function find_df(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
-  find_df(m, SQLQuery(order = order))
 end
 
 
 """
-    find_df{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::DataFrame
-    find_df{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::DataFrame
+"""
+@inline function DataFrames.DataFrame(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
+  DataFrame(m, SQLQuery(order = order))
+end
+
+
+"""
+    DataFrames.DataFrame{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::DataFrame
+    DataFrames.DataFrame{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::DataFrame
 
 Executes a SQL `SELECT` query against the database and returns the resultset as a `DataFrame`.
 
 # Examples
 ```julia
-julia> SearchLight.find_df(Article, SQLWhereExpression("id BETWEEN ? AND ?", [1, 10]))
+julia> DataFrame(Article, SQLWhereExpression("id BETWEEN ? AND ?", [1, 10]))
 
 2016-11-28T23:16:02.526 - info: SQL QUERY: SELECT articles.id AS articles_id, articles.title AS articles_title, articles.summary AS articles_summary, articles.content AS articles_content, articles.updated_at AS articles_updated_at, articles.published_at AS articles_published_at, articles.slug AS articles_slug FROM articles WHERE id BETWEEN 1 AND 10
 
@@ -139,7 +142,7 @@ julia> SearchLight.find_df(Article, SQLWhereExpression("id BETWEEN ? AND ?", [1,
 10×7 DataFrames.DataFrame
 ...
 
-julia> SearchLight.find_df(Article, SQLWhereEntity[SQLWhereExpression("id BETWEEN ? AND ?", [1, 10]), SQLWhereExpression("id >= 5")])
+julia> DataFrame(Article, SQLWhereEntity[SQLWhereExpression("id BETWEEN ? AND ?", [1, 10]), SQLWhereExpression("id >= 5")])
 
 2016-11-28T23:14:43.496 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE id BETWEEN 1 AND 10 AND id >= 5
 
@@ -149,24 +152,29 @@ julia> SearchLight.find_df(Article, SQLWhereEntity[SQLWhereExpression("id BETWEE
 ...
 ```
 """
-@inline function find_df(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
-  find_df(m, SQLQuery(where = [w], order = order))
-end
-@inline function find_df(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
-  find_df(m, SQLQuery(where = w, order = order))
+@inline function DataFrames.DataFrame(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
+  DataFrame(m, SQLQuery(where = [w], order = order))
 end
 
 
 """
 """
-@inline function find_df(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
-  find_df(m, qp.query, j)
+@inline function DataFrames.DataFrame(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
+  DataFrame(m, SQLQuery(where = w, order = order))
 end
 
-const finddf = find_df
 
+"""
+"""
+@inline function DataFrames.DataFrame(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
+  DataFrame(m, qp.query, j)
+end
+
+
+"""
+"""
 @inline function DataFrames.DataFrame(args...)::DataFrames.DataFrame
-  find_df(args...)
+  DataFrame(args...)
 end
 
 
@@ -198,98 +206,42 @@ julia> SearchLight.find(Article)
 ```
 """
 @inline function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
-  to_models(m, find_df(m, q, j))
-end
-@inline function find(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
-  find(m, SQLQuery(order = order))
+  to_models(m, DataFrame(m, q, j))
 end
 
 
 """
-    find{T<:AbstractModel}(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(m()._id))::Vector{T}
-    find{T<:AbstractModel}(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(m()._id))::Vector{T}
-
-Executes a SQL `SELECT` query against the database and returns the resultset as a `Vector{T<:AbstractModel}`.
-
-# Examples
-```julia
-julia> SearchLight.find(Article, SQLWhereExpression("id BETWEEN ? AND ?", [1, 10]))
-
-2016-11-28T22:56:01.6880000000000001 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE id BETWEEN 1 AND 10
-
-  0.001705 seconds (16 allocations: 576 bytes)
-
-10-element Array{App.Article,1}:
-...
-
-julia> SearchLight.find(Article, SQLWhereEntity[SQLWhereExpression("id BETWEEN ? AND ?", [1, 10]), SQLWhereExpression("id >= 5")])
-
-2016-11-28T23:03:33.88 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE id BETWEEN 1 AND 10 AND id >= 5
-
-  0.003400 seconds (1.23 k allocations: 52.688 KB)
-
-6-element Array{App.Article,1}:
-...
-```
 """
-@inline function find(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
+@inline function find(m::Type{T}, w::SQLWhereEntity;
+                      order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [w], order = order))
 end
-@inline function find(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
+
+
+"""
+"""
+@inline function find(m::Type{T}, w::Vector{SQLWhereEntity};
+                      order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = w, order = order))
 end
 
 
 """
 """
-@inline function find(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
+@inline function find(m::Type{T}, qp::QueryBuilder.QueryPart,
+                      j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   find(m, qp.query, j)
 end
 
 
 """
-    find_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Vector{T}
-    find_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Vector{T}
-    find_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Vector{T}
-
-Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using the `column_name` and the `value`.
-Returns the resultset as a `Vector{T<:AbstractModel}`.
-
-# Examples:
-```julia
-julia> SearchLight.find_by(Article, :slug, "cupiditate-velit-repellat-dolorem-nobis")
-
-2016-11-25T22:45:19.157 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE TRUE AND ("slug" = 'cupiditate-velit-repellat-dolorem-nobis')
-
-  0.000802 seconds (16 allocations: 576 bytes)
-
-1-element Array{App.Article,1}:
-...
-
-julia> SearchLight.find_by(Article, SQLWhereExpression("slug LIKE ?", "%dolorem%"))
-
-2016-11-25T23:15:52.5730000000000001 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE TRUE AND slug LIKE '%dolorem%'
-
-  0.000782 seconds (16 allocations: 576 bytes)
-
-1-element Array{App.Article,1}:
-...
-```
 """
-@inline function find_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
-  find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order))
+@inline function find(m::Type{T};
+                      order = SQLOrder(primary_key_name(disposable_instance(m))),
+                      limit = SQLLimit(),
+                      where_conditions...)::Vector{T} where {T<:AbstractModel}
+  find(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions], order = order, limit = limit))
 end
-@inline function find_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
-  find_by(m, SQLColumn(column_name), SQLInput(value), order = order)
-end
-@inline function find_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
-  find(m, SQLQuery(where = [sql_expression], order = order))
-end
-@inline function find_by(m::Type{T}, qp::QueryBuilder.QueryPart)::Vector{T} where {T<:AbstractModel}
-  find(m, qp.query.where)
-end
-
-const findby = find_by
 
 
 function onereduce(collection::Vector{T})::Union{Nothing,T} where {T<:AbstractModel}
@@ -298,83 +250,10 @@ end
 
 
 """
-    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(m()._id))::Union{Nothing,T}
-    find_one_by{T<:AbstractModel}(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(m()._id))::Union{Nothing,T}
-    find_one_by{T<:AbstractModel}(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(m()._id))::Union{Nothing,T}
-
-Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using the `column_name` and the `value`
-or the `sql_expression`.
-Returns the first result as a `Union{Nothing,T} where {T<:AbstractModel}`.
-
-# Examples:
-```julia
-julia> SearchLight.find_one_by(Article, :title, "Cupiditate velit repellat dolorem nobis.")
-
-2016-11-25T23:43:13.969 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("title" = 'Cupiditate velit repellat dolorem nobis.')
-
-  0.002319 seconds (1.23 k allocations: 52.688 KB)
-...
-
-julia> SearchLight.find_one_by(Article, SQLWhereExpression("slug LIKE ?", "%nobis"))
-
-2016-11-25T23:51:40.934 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE slug LIKE '%nobis'
-
-  0.001152 seconds (16 allocations: 576 bytes)
-...
-
-julia> SearchLight.find_one_by(Article, SQLWhereExpression("title LIKE ?", "%u%"), order = SQLOrder(:updated_at, :desc))
-
-2016-11-26T23:00:15.638 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE title LIKE '%u%' ORDER BY articles.updated_at DESC LIMIT 1
-
-  0.000891 seconds (16 allocations: 576 bytes)
-
-julia> SearchLight.find_one_by(Article, :title, "Id soluta officia quis quis incidunt.", order = SQLOrder(:updated_at, :desc))
-
-2016-11-26T23:03:12.311 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("title" = 'Id soluta officia quis quis incidunt.') ORDER BY articles.updated_at DESC LIMIT 1
-
-  0.003903 seconds (1.23 k allocations: 52.688 KB)
-```
 """
-@inline function find_one_by(m::Type{T}, column_name::SQLColumn, value::SQLInput; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
-  find(m, SQLQuery(where = [SQLWhere(column_name, value)], order = order, limit = 1)) |> onereduce
+@inline function findone(m::Type{T}; filters...)::Union{Nothing,T} where {T<:AbstractModel}
+  find(m; filters...) |> onereduce
 end
-@inline function find_one_by(m::Type{T}, column_name::Any, value::Any; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
-  find_one_by(m, SQLColumn(column_name), SQLInput(value), order = order) |> onereduce
-end
-@inline function find_one_by(m::Type{T}, sql_expression::SQLWhereExpression; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
-  find(m, SQLQuery(where = [sql_expression], order = order, limit = 1)) |> onereduce
-end
-@inline function find_one_by(m::Type{T}, qp::QueryBuilder.QueryPart; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
-  qp.query.limit = 1
-
-  find(m, qp.query)  |> onereduce
-end
-
-const findoneby = find_one_by
-
-
-"""
-    find_one{T<:AbstractModel}(m::Type{T}, value::Any)::Union{Nothing,T}
-
-Executes a SQL `SELECT` query against the database, applying a `WHERE` filter using
-`SearchLight`s `_id` column and the `value`.
-Returns the result as a `Union{Nothing,T} where {T<:AbstractModel}`.
-
-# Examples
-```julia
-julia> SearchLight.find_one(Article, 1)
-
-2016-11-26T22:29:11.443 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 1) ORDER BY articles.id ASC LIMIT 1
-
-  0.000754 seconds (16 allocations: 576 bytes)
-```
-"""
-@inline function find_one(m::Type{T}, value::Any)::Union{Nothing,T} where {T<:AbstractModel}
-  _m::T = disposable_instance(m)
-  find_one_by(m, SQLColumn(to_fully_qualified(primary_key_name(_m), table_name(_m))), SQLInput(value))
-end
-
-const findone = find_one
 
 
 """
@@ -410,26 +289,23 @@ end
 
 
 """
-    rand_one{T<:AbstractModel}(m::Type{T})::Union{Nothing,T}
+    randone{T<:AbstractModel}(m::Type{T})::Union{Nothing,T}
 
 Similar to `SearchLight.rand` -- returns one random instance of {T<:AbstractModel}.
 
 # Examples
 ```julia
-julia> SearchLight.rand_one(Article)
+julia> SearchLight.randone(Article)
 
 2016-11-26T22:46:11.47100000000000003 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" ORDER BY random() ASC LIMIT 1
 
   0.001087 seconds (16 allocations: 576 bytes)
 ...
-)
 ```
 """
-@inline function rand_one(m::Type{T})::Union{Nothing,T} where {T<:AbstractModel}
+@inline function randone(m::Type{T})::Union{Nothing,T} where {T<:AbstractModel}
   SearchLight.rand(m, limit = 1) |> onereduce
 end
-
-const randone = rand_one
 
 
 """
@@ -588,7 +464,7 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
 
   id === nothing && throw(Exceptions.UnretrievedModelException(typeof(m), id))
 
-  n = findone(typeof(m), id)
+  n = findone(typeof(m); (Symbol(primary_key_name(m))=>id, )...)
 
   n === nothing && throw(Exceptions.UnretrievedModelException(typeof(m), id))
 
@@ -848,7 +724,7 @@ App.Article
 ```
 """
 function createorupdateby(m::T, property::Union{Symbol,SQLColumn,String}, value::Any; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  existing = find_one_by(typeof(m), property, value)
+  existing = findoneby(typeof(m), property, value)
 
   if existing !== nothing
     skip_update && return existing
@@ -887,14 +763,14 @@ end
 
 
 """
-    find_one_by_or_create{T<:AbstractModel}(m::Type{T}, property::Any, value::Any)::T
+    findoneby_or_create{T<:AbstractModel}(m::Type{T}, property::Any, value::Any)::T
 
 Looks up `m` by `property` and `value`. If it exists, it is returned.
 If not, a new instance is created, `property` is set to `value` and the instance is returned.
 
 # Examples
 ```julia
-julia> SearchLight.find_one_by_or_create(Article, :slug, SearchLight.find_one!!(Article, 61).slug)
+julia> SearchLight.findoneby_or_create(Article, :slug, SearchLight.findone!!(Article, 61).slug)
 
 2016-11-28T22:31:56.768 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 61) ORDER BY articles.id ASC LIMIT 1
 
@@ -908,7 +784,7 @@ App.Article
 ...
 
 
-julia> SearchLight.find_one_by_or_create(Article, :slug, "foo-bar")
+julia> SearchLight.findoneby_or_create(Article, :slug, "foo-bar")
 
 2016-11-28T22:32:19.514 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("slug" = 'foo-bar') ORDER BY articles.id ASC LIMIT 1
 
@@ -918,8 +794,8 @@ App.Article
 ...
 ```
 """
-@inline function find_one_by_or_create(m::Type{T}, property::Any, value::Any)::T where {T<:AbstractModel}
-  lookup = find_one_by(m, SQLColumn(property), SQLInput(value))
+@inline function findoneby_or_create(m::Type{T}, property::Any, value::Any)::T where {T<:AbstractModel}
+  lookup = findoneby(m, SQLColumn(property), SQLInput(value))
   lookup !== nothing && return lookup
 
   _m::T = m()
@@ -927,8 +803,6 @@ App.Article
 
   _m
 end
-
-const findonebyorcreate = find_one_by_or_create
 
 
 #
@@ -1545,7 +1419,7 @@ Applies `on_save` callback if defined.
 
 # Examples
 ```julia
-julia> SearchLight.to_sqlinput(SearchLight.find_one!!(User, 1), :email, "adrian@example.com'; DROP users;")
+julia> SearchLight.to_sqlinput(SearchLight.findone(User, 1), :email, "adrian@example.com'; DROP users;")
 
 2016-12-23T15:09:27.166 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id" WHERE ("users"."id" = 1) ORDER BY users.id ASC LIMIT 1
 
@@ -1613,7 +1487,7 @@ Deletes the database row correspoding to `m` and returns a copy of `m` that is n
 
 # Examples
 ```julia
-julia> SearchLight.delete(SearchLight.find_one!!(Article, 61))
+julia> SearchLight.delete(SearchLight.findone(Article, 61))
 
 2016-12-23T15:29:26.997 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("articles"."id" = 61) ORDER BY articles.id ASC LIMIT 1
 
@@ -1864,7 +1738,7 @@ Returns wheter or not the model object is persisted to the database.
 julia> SearchLight.ispersisted(User())
 false
 
-julia> SearchLight.ispersisted(SearchLight.find_one!!(User, 1))
+julia> SearchLight.ispersisted(SearchLight.findone(User, 1))
 
 2016-12-23T16:44:24.805 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id" WHERE ("users"."id" = 1) ORDER BY users.id ASC LIMIT 1
 
@@ -1889,7 +1763,7 @@ The `fully_qualified` param will prepend the name of the table and add an automa
 
 # Examples
 ```julia
-julia> SearchLight.persistable_fields(SearchLight.find_one!!(User, 1))
+julia> SearchLight.persistable_fields(SearchLight.findone(User, 1))
 
 2016-12-23T16:48:44.857 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id" WHERE ("users"."id" = 1) ORDER BY users.id ASC LIMIT 1
 
@@ -1907,7 +1781,7 @@ julia> SearchLight.persistable_fields(SearchLight.find_one!!(User, 1))
  "role_id"
  "updated_at"
 
- julia> SearchLight.persistable_fields(SearchLight.find_one!!(User, 1), fully_qualified = true)
+ julia> SearchLight.persistable_fields(SearchLight.findone(User, 1), fully_qualified = true)
 
 2016-12-23T16:49:19.066 - info: SQL QUERY: SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id" WHERE ("users"."id" = 1) ORDER BY users.id ASC LIMIT 1
 
@@ -2005,7 +1879,7 @@ Gets the ModelValidator object defined for `m` wrapped in a Union{Nothing,ModelV
 
 # Examples
 ```julia
-julia> SearchLight.rand_one!!(Article) |> SearchLight.validator
+julia> SearchLight.randone(Article) |> SearchLight.validator
 
 Union{Nothing,SearchLight.ModelValidator}(
 SearchLight.ModelValidator
@@ -2050,7 +1924,7 @@ Strips the table name associated with the model from a fully qualified alias col
 
 # Examples
 ```julia
-julia> SearchLight.strip_table_name(SearchLight.rand_one!!(Article), :articles_updated_at)
+julia> SearchLight.strip_table_name(SearchLight.randone(Article), :articles_updated_at)
 :updated_at
 ```
 """
@@ -2067,10 +1941,10 @@ Returns a `Bool` whether or not `f` represents a fully qualified column name ali
 
 # Examples
 ```julia
-julia> SearchLight.is_fully_qualified(SearchLight.rand_one!!(Article), :articles_updated_at)
+julia> SearchLight.is_fully_qualified(SearchLight.randone(Article), :articles_updated_at)
 true
 
-julia> SearchLight.is_fully_qualified(SearchLight.rand_one!!(Article), :users_updated_at)
+julia> SearchLight.is_fully_qualified(SearchLight.randone(Article), :users_updated_at)
 false
 ```
 """
@@ -2109,10 +1983,10 @@ Otherwise it returns `f`.
 
 # Examples
 ```julia
-julia> SearchLight.from_fully_qualified(SearchLight.rand_one!!(Article), :articles_updated_at)
+julia> SearchLight.from_fully_qualified(SearchLight.randone(Article), :articles_updated_at)
 :updated_at
 
-julia> SearchLight.from_fully_qualified(SearchLight.rand_one!!(Article), :foo_bar)
+julia> SearchLight.from_fully_qualified(SearchLight.randone(Article), :foo_bar)
 :foo_bar
 ```
 """
@@ -2194,7 +2068,7 @@ Returns the fully qualified SQL column name corresponding to the column `v` and 
 
 # Examples
 ```julia
-julia> SearchLight.to_fully_qualified(SearchLight.rand_one!!(Article), "updated_at")
+julia> SearchLight.to_fully_qualified(SearchLight.randone(Article), "updated_at")
 "articles.updated_at"
 ```
 """
@@ -2217,7 +2091,7 @@ Takes a model `m` and a Vector{Symbol} corresponding to unqualified SQL column n
 
 # Examples
 ```julia
-julia> SearchLight.to_sql_column_names(SearchLight.rand_one!!(Article), Symbol[:updated_at, :deleted])
+julia> SearchLight.to_sql_column_names(SearchLight.randone(Article), Symbol[:updated_at, :deleted])
 2-element Array{Symbol,1}:
  :articles_updated_at
  :articles_deleted
