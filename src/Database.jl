@@ -1,7 +1,7 @@
 module Database
 
-using Revise
-using YAML, DataFrames, Logging
+import Revise
+import YAML, DataFrames, Logging
 using SearchLight, SearchLight.Configuration
 
 
@@ -170,19 +170,8 @@ end
 """
 
 """
-@inline function relation_to_sql(m::T, rel::Tuple{SQLRelation,Symbol})::String where {T<:AbstractModel}
-  DatabaseAdapter.relation_to_sql(m, rel)
-end
-
-
-"""
-
-"""
-@inline function to_find_sql(m::Type{T}, q::SQLQuery, joins::Vector{SQLJoin{N}})::String where {T<:AbstractModel, N<:AbstractModel}
+@inline function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   DatabaseAdapter.to_find_sql(m, q, joins)
-end
-@inline function to_find_sql(m::Type{T}, q::SQLQuery)::String where {T<:AbstractModel}
-  DatabaseAdapter.to_find_sql(m, q)
 end
 
 const to_fetch_sql = to_find_sql
@@ -191,7 +180,7 @@ const to_fetch_sql = to_find_sql
 """
 
 """
-@inline function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:AbstractModel} # upsert strateygy = :none | :error | :ignore | :update
+@inline function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.to_store_sql(m, conflict_strategy = conflict_strategy)
 end
 
@@ -199,7 +188,7 @@ end
 """
 
 """
-@inline function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
+@inline function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.delete_all(m, truncate = truncate, reset_sequence = reset_sequence, cascade = cascade)
 end
 
@@ -207,7 +196,7 @@ end
 """
 
 """
-@inline function delete(m::T)::T where {T<:AbstractModel}
+@inline function delete(m::T)::T where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.delete(m)
 end
 
@@ -215,7 +204,7 @@ end
 """
 
 """
-@inline function count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
+@inline function count(m::Type{T}, q::SearchLight.SQLQuery = SearchLight.SQLQuery())::Int where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.count(m, q)
 end
 
@@ -223,7 +212,7 @@ end
 """
 
 """
-@inline function update_query_part(m::T)::String where {T<:AbstractModel}
+@inline function update_query_part(m::T)::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.update_query_part(m)
 end
 
@@ -231,33 +220,14 @@ end
 """
 
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
+@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.to_select_part(m, cols, joins)
 end
 """
 
 """
-function _to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
+function _to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
   _m::T = m()
-
-  joined_tables = []
-
-  if has_relation(_m, RELATION_HAS_ONE)
-    rels = _m.has_one
-    joined_tables = vcat(joined_tables, map(x -> is_lazy(x) ? nothing : (x.model_name)(), rels))
-  end
-
-  if has_relation(_m, RELATION_HAS_MANY)
-    rels = _m.has_many
-    joined_tables = vcat(joined_tables, map(x -> is_lazy(x) ? nothing : (x.model_name)(), rels))
-  end
-
-  if has_relation(_m, RELATION_BELONGS_TO)
-    rels = _m.belongs_to
-    joined_tables = vcat(joined_tables, map(x -> is_lazy(x) ? nothing : (x.model_name)(), rels))
-  end
-
-  filter!(x -> x != nothing, joined_tables)
 
   if ! isempty(cols)
     table_columns = []
@@ -269,17 +239,10 @@ function _to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])
 
     return join(table_columns, ", ")
   else
-    table_columns = join(to_fully_qualified_sql_column_names(_m, persistable_fields(_m), escape_columns = true), ", ")
-    table_columns = isempty(table_columns) ? String[] : vcat(table_columns, map(x -> prepare_column_name(x, _m), columns_from_joins(joins)))
+    tbl_cols = join(SearchLight.to_fully_qualified_sql_column_names(_m, SearchLight.persistable_fields(_m), escape_columns = true), ", ")
+    table_columns = isempty(tbl_cols) ? String[] : vcat(tbl_cols, map(x -> prepare_column_name(x, _m), columns_from_joins(joins)))
 
-    related_table_columns = String[]
-    for rels in map(x -> to_fully_qualified_sql_column_names(x, persistable_fields(x), escape_columns = true), joined_tables)
-      for col in rels
-        push!(related_table_columns, col)
-      end
-    end
-
-    return join([table_columns ; related_table_columns], ", ")
+    return join(table_columns, ", ")
   end
 end
 
@@ -287,7 +250,7 @@ end
 """
 
 """
-@inline function to_from_part(m::Type{T})::String where {T<:AbstractModel}
+@inline function to_from_part(m::Type{T})::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.to_from_part(m)
 end
 
@@ -295,10 +258,7 @@ end
 """
 
 """
-@inline function to_where_part(m::Type{T}, w::Vector{SQLWhereEntity}, scopes::Vector{Symbol})::String where {T<:AbstractModel}
-  DatabaseAdapter.to_where_part(m, w, scopes)
-end
-@inline function to_where_part(w::Vector{SQLWhereEntity})::String
+@inline function to_where_part(w::Vector{SearchLight.SQLWhereEntity})::String
   DatabaseAdapter.to_where_part(w)
 end
 
@@ -306,24 +266,7 @@ end
 """
 
 """
-@inline function required_scopes(m::Type{T})::Vector{SQLWhereEntity} where {T<:AbstractModel}
-  s = scopes(m)
-  haskey(s, :required) ? s[:required] : SQLWhereEntity[]
-end
-
-
-"""
-
-"""
-@inline function scopes(m::Type{T})::Dict{Symbol,Vector{SQLWhereEntity}} where {T<:AbstractModel}
-  in(:scopes, fieldnames(m)) ? getfield(m()::T, :scopes) :  Dict{Symbol,Vector{SQLWhereEntity}}()
-end
-
-
-"""
-
-"""
-@inline function to_order_part(m::Type{T}, o::Vector{SQLOrder})::String where {T<:AbstractModel}
+@inline function to_order_part(m::Type{T}, o::Vector{SearchLight.SQLOrder})::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.to_order_part(m, o)
 end
 
@@ -331,39 +274,39 @@ end
 """
 
 """
-@inline function to_group_part(g::Vector{SQLColumn}) :: String
-  DatabaseAdapter.to_group_part(g)
+@inline function to_group_part(group::Vector{SearchLight.SQLColumn}) :: String
+  DatabaseAdapter.to_group_part(group)
 end
 
 
 """
 
 """
-@inline function to_limit_part(l::SQLLimit) :: String
-  DatabaseAdapter.to_limit_part(l)
+@inline function to_limit_part(limit::SearchLight.SQLLimit) :: String
+  DatabaseAdapter.to_limit_part(limit)
 end
 
 
 """
 
 """
-@inline function to_offset_part(o::Int) :: String
-  DatabaseAdapter.to_offset_part(o)
+@inline function to_offset_part(offset::Int) :: String
+  DatabaseAdapter.to_offset_part(offset)
 end
 
 
 """
 
 """
-@inline function to_having_part(h::Vector{SQLHaving}) :: String
-  DatabaseAdapter.to_having_part(h)
+@inline function to_having_part(having::Vector{SearchLight.SQLHaving}) :: String
+  DatabaseAdapter.to_having_part(having)
 end
 
 
 """
 
 """
-@inline function to_join_part(m::Type{T}, joins = SQLJoin[])::String where {T<:AbstractModel}
+@inline function to_join_part(m::Type{T}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.to_join_part(m, joins)
 end
 
@@ -373,8 +316,8 @@ end
 
 Extracts columns from joins param and adds to be used for the SELECT part
 """
-function columns_from_joins(joins::Vector{SQLJoin})::Vector{SQLColumn}
-  jcols = SQLColumn[]
+function columns_from_joins(joins::Vector{SearchLight.SQLJoin})::Vector{SearchLight.SQLColumn}
+  jcols = SearchLight.SQLColumn[]
   for j in joins
     jcols = vcat(jcols, j.columns)
   end
@@ -386,13 +329,13 @@ end
 """
 
 """
-function prepare_column_name(column::SQLColumn, _m::T)::String where {T<:AbstractModel}
+function prepare_column_name(column::SearchLight.SQLColumn, _m::T)::String where {T<:SearchLight.AbstractModel}
   if column.raw
     column.value |> string
   else
     column_data::Dict{Symbol,Any} = SearchLight.from_literal_column_name(column.value)
     if ! haskey(column_data, :table_name)
-      column_data[:table_name] = table_name(_m)
+      column_data[:table_name] = SearchLight.table_name(_m)
     end
     if ! haskey(column_data, :alias)
       column_data[:alias] = ""
@@ -406,11 +349,8 @@ end
 """
 
 """
-@inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
+@inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.rand(m, limit = limit)
-end
-@inline function rand(m::Type{T}, scopes::Vector{Symbol}; limit = 1)::Vector{T} where {T<:AbstractModel}
-  DatabaseAdapter.rand(m, scopes, limit = limit)
 end
 
 

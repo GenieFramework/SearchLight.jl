@@ -3,15 +3,12 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-using Millboard, Dates, Nullables, Logging
+import Revise
+import Millboard, Dates, Logging
 using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Database
-
 import Base.showerror
 
 
-"""
-
-"""
 mutable struct DatabaseMigration # todo: rename the "migration_" prefix for the fields
   migration_hash::String
   migration_file_name::String
@@ -19,13 +16,21 @@ mutable struct DatabaseMigration # todo: rename the "migration_" prefix for the 
 end
 
 
-"""
-
-"""
-mutable struct IrreversibleMigration <: Exception
+struct IrreversibleMigrationException <: Exception
   migration_name::Symbol
 end
-Base.showerror(io::IO, e::IrreversibleMigration) = print(io, "Migration $(e.migration_name) is not reversible")
+Base.showerror(io::IO, e::IrreversibleMigrationException) = print(io, "Migration $(e.migration_name) is not reversible")
+
+
+struct ExistingMigrationException <: Exception
+  migration_name::Union{Symbol,String}
+end
+Base.showerror(io::IO, e::ExistingMigrationException) = print(io, "Migration $(e.migration_name) already exists")
+
+struct MigrationNotFoundException <: Exception
+  migration_module::String
+end
+Base.showerror(io::IO, e::MigrationNotFoundException) = print(io, "Migration $(e.migration_module) can not be found")
 
 
 """
@@ -36,7 +41,7 @@ Creates a new default migration file and persists it to disk in the configured m
 function new_table(migration_name::String, resource::String) :: Nothing
   mfn = migration_file_name(migration_name)
 
-  ispath(mfn) && error("Migration file already exists")
+  ispath(mfn) && throw(ExistingMigrationException(migration_name))
   ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
@@ -56,7 +61,7 @@ const newtable = new_table
 function new(migration_name::String) :: Nothing
   mfn = migration_file_name(migration_name)
 
-  ispath(mfn) && error("Migration file already exists")
+  ispath(mfn) && throw(ExistingMigrationException(migration_name))
   ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
@@ -90,7 +95,7 @@ Computes the name of a new migration file.
 function migration_file_name(migration_name::String) :: String
   joinpath(SearchLight.config.db_migrations_folder, migration_hash() * "_" * migration_name * ".jl")
 end
-function migration_file_name(cmd_args::Dict{String,Any}, config::Configuration.Settings) :: String
+function migration_file_name(cmd_args::Dict{String,Any}, config::SearchLight.Configuration.Settings) :: String
   joinpath(config.db_migrations_folder, migration_hash() * "_" * cmd_args["migration:new"] * ".jl")
 end
 
@@ -143,11 +148,9 @@ Runs up the migration corresponding to `migration_module_name`.
 """
 function up(migration_module_name::String; force::Bool = false) :: Nothing
   migration = migration_by_module_name(migration_module_name)
-  if ! isnull(migration)
-    run_migration(Base.get(migration), :up, force = force)
-  else
-    error("Migration $migration_module_name not found")
-  end
+  migration !== nothing ?
+    run_migration(migration, :up, force = force) :
+    throw(MigrationNotFoundException(migration_module_name))
 end
 function up_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Nothing
   up(migration_module_name |> string, force = force)
@@ -162,11 +165,9 @@ Runs down the migration corresponding to `migration_module_name`.
 """
 function down(migration_module_name::String; force::Bool = false) :: Nothing
   migration = migration_by_module_name(migration_module_name)
-  if ! isnull(migration)
-    run_migration(Base.get(migration), :down, force = force)
-  else
-    error("Migration $migration_module_name not found")
-  end
+  migration !== nothing ?
+    run_migration(migration, :down, force = force) :
+    throw(MigrationNotFoundException(migration_module_name))
 end
 function down_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Nothing
   down(migration_module_name |> string, force = force)
@@ -174,20 +175,21 @@ end
 
 
 """
-    migration_by_module_name(migration_module_name::String) :: Nullable{DatabaseMigration}
+    migration_by_module_name(migration_module_name::String) :: Union{Nothing,DatabaseMigration}
 
 Computes the migration that corresponds to `migration_module_name`.
 """
-function migration_by_module_name(migration_module_name::String) :: Nullable{DatabaseMigration}
+function migration_by_module_name(migration_module_name::String) :: Union{Nothing,DatabaseMigration}
   ids, migrations = all_migrations()
+
   for id in ids
     migration = migrations[id]
     if migration.migration_module_name == migration_module_name
-      return Nullable(migration)
+      return migration
     end
   end
 
-  Nullable()
+  nothing
 end
 
 
@@ -293,7 +295,7 @@ List of all migrations that are `up`.
 function upped_migrations() :: Vector{String}
   result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC", system_query = true)
 
-  String[string(x) for x = result[:version]]
+  String[string(x) for x = result[!, :version]]
 end
 
 
@@ -493,7 +495,7 @@ const removeindexbyname = remove_index_by_name
 
 """
 function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
-  Migration.remove_index_by_name(string(table_name), Database.index_name(string(table_name), string(column_name)))
+  Migration.remove_index_by_name(string(table_name), SearchLight.Database.index_name(string(table_name), string(column_name)))
 end
 
 const removeindex = remove_index
@@ -529,7 +531,7 @@ end
 PostgreSQL specific.
 """
 function constraint(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  "CONSTRAINT $( index_name(table_name, column_name) )"
+  string("CONSTRAINT ", SearchLight.index_name(table_name, column_name))
 end
 
 
@@ -538,7 +540,7 @@ end
 PostgreSQL specific.
 """
 function nextval(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  "NEXTVAL('$( sequence_name(table_name, column_name) )')"
+  "NEXTVAL('$(sequence_name(table_name, column_name) )')"
 end
 
 

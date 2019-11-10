@@ -5,24 +5,28 @@ import Base.convert
 import Base.length
 import Base.==
 
-using Dates, Reexport
-@reexport using Nullables
+import Dates
 
-export DbId, SQLType, AbstractModel, ModelValidator
+export DbId, SQLType, AbstractModel
 export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
 export SQLWhere, SQLWhereExpression, SQLWhereEntity, SQLLimit, SQLOrder, SQLQuery, SQLRaw
-export SQLRelation, SQLRelationData
-export SQLJoin, SQLOn, SQLJoinType, SQLHaving, SQLScope
+export SQLJoin, SQLOn, SQLJoinType, SQLHaving
 
-export is_lazy, @sql_str
+export @sql_str
 
 abstract type SearchLightAbstractType end
 abstract type SQLType <: SearchLightAbstractType end
 abstract type AbstractModel <: SearchLightAbstractType end
 
-string(io::IO, t::T) where {T<:SearchLightAbstractType} = "$(typeof(t)) <: $(supertype(typeof(t)))"
-print(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, "$(typeof(t)) <: $(supertype(typeof(t)))")
-show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabstracttype_to_print(t))
+function Base.print(io::IO, t::T) where {T<:SearchLightAbstractType}
+  props = []
+  for (k,v) in to_string_dict(t)
+    push!(props, "$k=$v")
+  end
+  print(io, string("$(typeof(t))(", join(props, ','), ")"))
+end
+
+Base.show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabstracttype_to_print(t))
 
 """
     searchlightabstracttype_to_print{T<:SearchLightAbstractType}(m::T) :: String
@@ -30,18 +34,17 @@ show(io::IO, t::T) where {T<:SearchLightAbstractType} = print(io, searchlightabs
 Pretty printing of SearchLight types.
 """
 function searchlightabstracttype_to_print(m::T) :: String where {T<:SearchLightAbstractType}
-  output = "\n" * "$(typeof(m))" * "\n"
-  output *= string(Millboard.table(to_string_dict(m))) * "\n"
-
-  output
+  string(typeof(m), "\n", Millboard.table(to_string_dict(m)), "\n")
 end
 
-const DbId = Nullable{Union{Int32,Int64,String}}
+mutable struct DbId
+  value::Union{Nothing,Int32,Int64,String}
+end
+DbId() = DbId(nothing)
 
-convert(::Type{Nullable{DbId}}, v::Number) = Nullable{DbId}(DbId(v))
-convert(::Type{Nullable{DbId}}, v::String) = Nullable{DbId}(DbId(v))
+Base.convert(::Type{DbId}, v::Union{Number,String}) = DbId(v)
 
-Base.show(io::IO, dbid::DbId) = print(io, (isnull(dbid) ? "NULL" : string(Base.get(dbid))))
+Base.show(io::IO, dbid::DbId) = print(io, (dbid.value === nothing ? "NULL" : string(dbid.value)))
 
 
 #
@@ -76,7 +79,7 @@ mutable struct SQLInput <: SQLType
   raw::Bool
   SQLInput(v::Union{String,Real}; escaped = false, raw = false) = new(v, escaped, raw)
 end
-SQLInput(a::Date) = string(a) |> SQLInput
+SQLInput(a::Dates.Date) = string(a) |> SQLInput
 SQLInput(a::Vector{T}) where {T} = map(x -> SQLInput(x), a)
 SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
@@ -84,7 +87,6 @@ SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
 SQLInput(n::Nothing) = SQLInput("NULL", escaped = true, raw = true)
 SQLInput(a::Any) = string(a) |> SQLInput
-SQLInput(n::Nullable) = isnull(n) ? SQLInput(nothing) : SQLInput(get(n))
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
 
@@ -100,16 +102,9 @@ show(io::IO, s::SQLInput) = print(io, string(s))
 
 convert(::Type{SQLInput}, r::Real) = SQLInput(parse(r))
 convert(::Type{SQLInput}, s::Symbol) = SQLInput(string(s))
-convert(::Type{SQLInput}, d::DateTime) = SQLInput(string(d))
+convert(::Type{SQLInput}, d::Dates.DateTime) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Date) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Time) = SQLInput(string(d))
-function convert(::Type{SQLInput}, n::Nullable{T}) where {T}
-  if isnull(n)
-    SQLInput(nothing)
-  else
-    Base.get(n) |> SQLInput
-  end
-end
 
 
 """
@@ -362,24 +357,25 @@ convert(::Type{SQLWhereEntity}, s::String) = SQLWhereExpression(s);
 const SQLLimit_ALL = "ALL"
 export SQLLimit_ALL
 
+struct UnparsableSQLLimitException <: Exception
+  value
+end
+Base.showerror(io::IO, e::UnparsableSQLLimitException) = print(io, "Can't parse SQLLimit value $(e.value)")
 
 """
 Wrapper around SQL `limit` operator.
 """
 struct SQLLimit <: SQLType
-  value::Union{Int, String}
+  value::Union{Int,String}
   SQLLimit(v::Int) = new(v)
+
   function SQLLimit(v::String)
     v = strip(uppercase(v))
     if v == SQLLimit_ALL
       return new(SQLLimit_ALL)
     else
       i = tryparse(Int, v)
-      if isnull(i)
-        error("Can't parse SQLLimit value")
-      else
-        return new(Base.get(i))
-      end
+      i === nothing ? throw(UnparsableSQLLimitException(v)) : i
     end
   end
 end
@@ -456,6 +452,11 @@ end
 # SQLJoin - SQLJoinType
 #
 
+struct InvalidJoinTypeException <: Exception
+  jointype::String
+end
+
+Base.showerror(io::IO, e::InvalidJoinTypeException) = print(io, "Invalid join type $(e.jointype)")
 
 """
 Wrapper around the various types of SQL `join` (`left`, `right`, `inner`, etc).
@@ -469,8 +470,8 @@ struct SQLJoinType <: SQLType
     if in(t, accepted_values)
       new(uppercase(t))
     else
-      error("""Invalid join type - accepted options are $(join(accepted_values, ", "))""")
-      new("INNER")
+      @error  """Accepted JOIN types are $(join(accepted_values, ", "))"""
+      throw(InvalidJoinTypeException(t))
     end
   end
 end
@@ -503,6 +504,7 @@ SQLJoin(model_name::Type{T},
         where = SQLWhereEntity[],
         natural = false,
         columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin{T}(model_name, on, join_type, outer, where, natural, columns)
+
 SQLJoin(model_name::Type{T},
         on_column_1::Union{String,SQLColumn},
         on_column_2::Union{String,SQLColumn};
@@ -511,6 +513,7 @@ SQLJoin(model_name::Type{T},
         where = SQLWhereEntity[],
         natural = false,
         columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin(model_name, SQLOn(on_column_1, on_column_2), join_type = join_type, outer = outer, where = where, natural = natural, columns = columns)
+
 function string(j::SQLJoin)
   _m = j.model_name()
   sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(Util.add_quotes(_m._table_name)) $(string(j.on)) """
@@ -537,8 +540,7 @@ convert(::Type{Vector{SQLJoin}}, j::SQLJoin) = [j]
               offset  = 0,
               order   = SQLOrder[],
               group   = SQLColumn[],
-              having  = SQLWhereEntity[],
-              scopes  = Symbol[] )
+              having  = SQLWhereEntity[])
 
 Returns a new instance of SQLQuery.
 
@@ -566,8 +568,6 @@ SearchLight.SQLQuery
 |         |                                      |       key |   value | |
 |   order |                                                 +========... |
 +---------+--------------------------------------------------------------+
-|  scopes |                                                     Symbol[] |
-+---------+--------------------------------------------------------------+
 |         |  Union{SearchLight.SQLWhere,SearchLight.SQLWhereExpression}[ |
 |         |                               SearchLight.SQLWhereExpression |
 |   where |                                                 +========... |
@@ -582,53 +582,10 @@ mutable struct SQLQuery <: SQLType
   order::Vector{SQLOrder}
   group::Vector{SQLColumn}
   having::Vector{SQLWhereEntity}
-  scopes::Vector{Symbol}
 
   SQLQuery(;  columns = SQLColumn[], where = SQLWhereEntity[], limit = SQLLimit("ALL"), offset = 0,
-              order = SQLOrder[], group = SQLColumn[], having = SQLWhereEntity[], scopes = Symbol[]) =
-    new(columns, where, limit, offset, order, group, having, scopes)
+              order = SQLOrder[], group = SQLColumn[], having = SQLWhereEntity[]) =
+    new(columns, where, limit, offset, order, group, having)
 end
 
 string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)
-
-
-#
-# SQLRelation
-#
-
-"""
-Represents the data contained by a SQL relation.
-"""
-mutable struct SQLRelationData{T<:AbstractModel} <: SQLType
-  collection::Vector{T}
-
-  SQLRelationData{T}(collection::Vector{T}) where {T<:AbstractModel} = new(collection)
-end
-SQLRelationData(collection::Vector{T}) where {T<:AbstractModel} = SQLRelationData{T}(collection)
-SQLRelationData(m::T) where {T<:AbstractModel} = SQLRelationData{T}([m])
-
-
-"""
-Defines the relation between two models, as reflected by the relation of their underlying SQL tables.
-"""
-mutable struct SQLRelation{T<:AbstractModel} <: SQLType
-  model_name::Type{T}
-  eagerness::Symbol
-  data::Nullable{SQLRelationData}
-  join::Nullable{SQLJoin}
-  where::Nullable{SQLWhereEntity}
-
-  SQLRelation{T}(model_name::Type{T}, eagerness, data, join, where) where {T<:AbstractModel} = new(model_name, eagerness, data, join, where)
-end
-SQLRelation(model_name::Type{T};
-            eagerness = RELATION_EAGERNESS_LAZY,
-            data = Nullable{SQLRelationData}(),
-            join = Nullable{SQLJoin}(),
-            where = Nullable{SQLWhereEntity}()) where {T<:AbstractModel} = SQLRelation{T}(model_name, eagerness, data, join, where)
-
-function lazy(r::SQLRelation)
-  r.eagerness == RELATION_EAGERNESS_LAZY
-end
-function is_lazy(r::SQLRelation)
-  lazy(r)
-end
