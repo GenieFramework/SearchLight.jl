@@ -311,7 +311,7 @@ end
 
 """
 @inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
-  "SELECT " * SearchLight.Database._to_select_part(m, cols, (joins === nothing ? SearchLight.SQLJoin[] : joins))
+  "SELECT " * SearchLight.Database._to_select_part(m, cols, joins)
 end
 
 

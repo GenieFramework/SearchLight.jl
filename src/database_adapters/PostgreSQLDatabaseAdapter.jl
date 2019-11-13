@@ -299,7 +299,7 @@ end
 """
 
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
+@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   "SELECT " * SearchLight.Database._to_select_part(m, cols, joins)
 end
 
@@ -372,7 +372,9 @@ end
 """
 
 """
-function to_join_part(m::Type{T}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
+function to_join_part(m::Type{T}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+  joins === nothing && return ""
+
   _m::T = m()
   join_part = ""
 

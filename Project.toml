@@ -1,7 +1,7 @@
 name = "SearchLight"
 uuid = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
 authors = ["Adrian Salceanu <e@essenciary.com>"]
-version = "0.14.0"
+version = "0.14.1"
 
 [deps]
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"

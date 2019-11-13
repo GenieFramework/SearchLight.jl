@@ -794,12 +794,14 @@ App.Article
 ...
 ```
 """
-@inline function findoneby_or_create(m::Type{T}, property::Any, value::Any)::T where {T<:AbstractModel}
-  lookup = findoneby(m, SQLColumn(property), SQLInput(value))
+@inline function findone_or_create(m::Type{T}; filters...)::T where {T<:AbstractModel}
+  lookup = findone(m; filters...)
   lookup !== nothing && return lookup
 
   _m::T = m()
-  setfield!(_m, Symbol(is_fully_qualified(string(property)) ? from_fully_qualified(string(property))[end] : property), value)
+  for (property, value) in filters
+    setfield!(_m, Symbol(is_fully_qualified(string(property)) ? from_fully_qualified(string(property))[end] : property), value)
+  end
 
   _m
 end
@@ -1083,7 +1085,7 @@ end
 
 
 """
-    to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}[, joins = SQLJoin[] ])::String
+    to_select_part{T<:AbstractModel}(m::Type{T}, cols::Vector{SQLColumn}[, joins])::String
     to_select_part{T<:AbstractModel}(m::Type{T}, c::SQLColumn)::String
     to_select_part{T<:AbstractModel}(m::Type{T}, c::String)::String
     to_select_part{T<:AbstractModel}(m::Type{T})::String
@@ -1107,7 +1109,7 @@ julia> SearchLight.to_select_part(Article, SQLColumn[:id, :slug, :title])
 "SELECT articles.id AS articles_id, articles.slug AS articles_slug, articles.title AS articles_title"
 ```
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins = SQLJoin[])::String where {T<:AbstractModel}
+@inline function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   Database.to_select_part(m, cols, joins)
 end
 @inline function to_select_part(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
@@ -1230,7 +1232,7 @@ end
 
 
 """
-    to_join_part{T<:AbstractModel}(m::Type{T}[, joins = SQLJoin[] ])::String
+    to_join_part{T<:AbstractModel}(m::Type{T}[, joins])::String
 
 Generates the JOIN part of the SQL query.
 
@@ -1277,7 +1279,7 @@ julia> SearchLight.to_join_part(User, [j])
 "  INNER  JOIN "roles"  ON "users"."role_id" = "roles"."id"  WHERE role_id > 10"
 ```
 """
-@inline function to_join_part(m::Type{T}, joins = SQLJoin[])::String where {T<:AbstractModel}
+@inline function to_join_part(m::Type{T}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   Database.to_join_part(m, joins)
 end
 

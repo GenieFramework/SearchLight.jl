@@ -220,13 +220,13 @@ end
 """
 
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
+@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   DatabaseAdapter.to_select_part(m, cols, joins)
 end
 """
 
 """
-function _to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
+function _to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   _m::T = m()
 
   if ! isempty(cols)
@@ -306,7 +306,7 @@ end
 """
 
 """
-@inline function to_join_part(m::Type{T}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
+@inline function to_join_part(m::Type{T}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   DatabaseAdapter.to_join_part(m, joins)
 end
 
@@ -316,8 +316,11 @@ end
 
 Extracts columns from joins param and adds to be used for the SELECT part
 """
-function columns_from_joins(joins::Vector{SearchLight.SQLJoin})::Vector{SearchLight.SQLColumn}
+function columns_from_joins(joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{SearchLight.SQLColumn} where {N<:Union{Nothing,SearchLight.AbstractModel}}
   jcols = SearchLight.SQLColumn[]
+
+  joins === nothing && return jcols
+
   for j in joins
     jcols = vcat(jcols, j.columns)
   end

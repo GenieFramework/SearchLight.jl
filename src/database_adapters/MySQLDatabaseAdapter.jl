@@ -167,21 +167,25 @@ julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Data
 """
 @inline function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
   try
-    result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
-      DB_ADAPTER.Query(conn, sql)  |> DataFrames.DataFrame
+    _result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
+      DB_ADAPTER.Query(conn, sql)
     else
       @info sql
-      @time DB_ADAPTER.Query(conn, sql) |> DataFrames.DataFrame
+      @time DB_ADAPTER.Query(conn, sql)
     end
 
-    isempty(result) && startswith(sql, "INSERT ") ?
-      DataFrames.DataFrame(SearchLight.LAST_INSERT_ID_LABEL => last_insert_id(conn)) :
-        result
+    result = if startswith(sql, "INSERT ")
+      DataFrames.DataFrame(SearchLight.LAST_INSERT_ID_LABEL => last_insert_id(conn))
+    elseif startswith(sql, "ALTER ") || startswith(sql, "CREATE ") || startswith(sql, "DROP ") || startswith(sql, "DELETE ")
+      DataFrames.DataFrame(:result => "OK")
+    else
+      DataFrames.DataFrame(_result)
+    end
   catch ex
     @error """MySQL error when running "$(escape_string(sql))" """
 
     if isa(ex, MySQL.MySQLInternalError) && (ex.errno == 2013 || ex.errno == 2006)
-      @warn ex
+      @warn ex, " ...Attempting reconnection"
       query(sql, suppress_output, SearchLight.Database.connect())
     else
       rethrow(ex)
@@ -193,7 +197,7 @@ end
 """
 """
 @inline function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
-  sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(m, q.where)) " *
+  sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(q.where)) " *
                       "$(to_group_part(q.group)) $(to_having_part(q.having)) $(to_order_part(m, q.order)) " *
                       "$(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
   replace(sql, r"\s+"=>" ")
@@ -280,7 +284,7 @@ end
 
 """
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins = SearchLight.SQLJoin[])::String where {T<:SearchLight.AbstractModel}
+@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   "SELECT " * SearchLight.Database._to_select_part(m, cols, joins)
 end
 
@@ -346,7 +350,9 @@ end
 
 """
 """
-function to_join_part(m::Type{T}, joins = SearchLight.[])::String where {T<:SearchLight.AbstractModel}
+function to_join_part(m::Type{T}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+  joins === nothing && return ""
+
   _m::T = m()
   join_part = ""
 
@@ -367,14 +373,14 @@ end
 """
 """
 @inline function create_table_sql(f::Function, name::String, options::String = "") :: String
-  "CREATE TABLE $name (" * join(f()::Vector{String}, ", ") * ") $options" |> strip
+  "CREATE TABLE `$name` (" * join(f()::Vector{String}, ", ") * ") $options" |> strip
 end
 
 
 """
 """
 function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false)::String
-  "$name $(TYPE_MAPPINGS[column_type] |> string) " *
+  "`$name` $(TYPE_MAPPINGS[column_type] |> string) " *
     (isa(limit, Int) || isa(limit, String) ? "($limit)" : "") *
     (default === nothing ? "" : " DEFAULT $default ") *
     (not_null ? " NOT NULL " : "") *
@@ -385,7 +391,7 @@ end
 """
 """
 @inline function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
-  "$name INT NOT NULL AUTO_INCREMENT PRIMARY KEY $options"
+  "`$name` INT NOT NULL AUTO_INCREMENT PRIMARY KEY $options"
 end
 
 
@@ -393,35 +399,35 @@ end
 """
 @inline function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
   name = isempty(name) ? SearchLight.Database.index_name(table_name, column_name) : name
-  "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
+  "CREATE $(unique ? "UNIQUE" : "") INDEX `$(name)` ON `$table_name` (`$column_name`)"
 end
 
 
 """
 """
 @inline function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: String
-  "ALTER TABLE $table_name ADD $(column_sql(name, column_type, default = default, limit = limit, not_null = not_null))"
+  "ALTER TABLE `$table_name` ADD $(column_sql(name, column_type, default = default, limit = limit, not_null = not_null))"
 end
 
 
 """
 """
 @inline function drop_table_sql(name::String) :: String
-  "DROP TABLE $name"
+  "DROP TABLE `$name`"
 end
 
 
 """
 """
-@inline function remove_column_sql(table_name::String, name::String, options::String = "") :: Nothing
-  "ALTER TABLE $table_name DROP COLUMN $name $options"
+@inline function remove_column_sql(table_name::String, name::String, options::String = "") :: String
+  "ALTER TABLE `$table_name` DROP COLUMN `$name` $options"
 end
 
 
 """
 """
 @inline function remove_index_sql(table_name::String, name::String, options::String = "") :: String
-  "DROP INDEX $name $options"
+  "DROP INDEX `$name` ON `$table_name` $options"
 end
 
 

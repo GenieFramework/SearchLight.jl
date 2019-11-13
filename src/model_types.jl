@@ -38,9 +38,10 @@ function searchlightabstracttype_to_print(m::T) :: String where {T<:SearchLightA
 end
 
 mutable struct DbId
-  value::Union{Nothing,Int32,Int64,String}
+  value::Union{Nothing,Int,String}
 end
 DbId() = DbId(nothing)
+DbId(id::Number) = DbId(Int(id))
 
 Base.convert(::Type{DbId}, v::Union{Number,String}) = DbId(v)
 
