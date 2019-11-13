@@ -114,14 +114,8 @@ Sets up the DB tables used by SearchLight.
 end
 
 
-@inline function escape_column_name(c::String)
-  result =  try
-              DatabaseAdapter.escape_column_name(c, CONNECTION)::String
-            catch ex
-              @error ex
-            end
-
-  result
+@inline function escape_column_name(c::String) :: String
+  DatabaseAdapter.escape_column_name(c, CONNECTION)
 end
 
 

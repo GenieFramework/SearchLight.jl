@@ -176,7 +176,7 @@ julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Data
 
     result = if startswith(sql, "INSERT ")
       DataFrames.DataFrame(SearchLight.LAST_INSERT_ID_LABEL => last_insert_id(conn))
-    elseif startswith(sql, "ALTER ") || startswith(sql, "CREATE ") || startswith(sql, "DROP ") || startswith(sql, "DELETE ")
+    elseif startswith(sql, "ALTER ") || startswith(sql, "CREATE ") || startswith(sql, "DROP ") || startswith(sql, "DELETE ") || startswith(sql, "UPDATE ")
       DataFrames.DataFrame(:result => "OK")
     else
       DataFrames.DataFrame(_result)
