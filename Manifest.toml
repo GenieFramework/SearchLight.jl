@@ -16,9 +16,9 @@ uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
 version = "0.5.8"
 
 [[CEnum]]
-git-tree-sha1 = "5a2679abe17f5e70d90753940dcb7f15e61369d4"
+git-tree-sha1 = "62847acab40e6855a9b5905ccb99c2b5cf6b3ebb"
 uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
-version = "0.1.2"
+version = "0.2.0"
 
 [[CategoricalArrays]]
 deps = ["Compat", "DataAPI", "Future", "JSON", "Missings", "Printf", "Reexport", "Unicode"]
@@ -163,9 +163,9 @@ uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[LibPQ]]
 deps = ["BinaryProvider", "CEnum", "Dates", "Decimals", "DocStringExtensions", "FileWatching", "IterTools", "LayerDicts", "Libdl", "Memento", "OffsetArrays", "Tables", "TimeZones"]
-git-tree-sha1 = "3843a1238b97235567a163bb48f7747a12a8ab12"
+git-tree-sha1 = "fbbe132d6ace6ad0a74a5b7f670405b1bbbd7398"
 uuid = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"
-version = "0.11.2"
+version = "1.0.2"
 
 [[Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
@@ -179,9 +179,9 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[LoweredCodeUtils]]
 deps = ["JuliaInterpreter"]
-git-tree-sha1 = "ea065f38cccb556b4eabe43b3b3b91e1c67cbffd"
+git-tree-sha1 = "b995265a1228701da0d7313a097e33bca46c8f90"
 uuid = "6f1432cf-f94c-5a45-995e-cdbf5db27b0b"
-version = "0.3.8"
+version = "0.4.1"
 
 [[Markdown]]
 deps = ["Base64"]
@@ -270,9 +270,9 @@ version = "0.2.0"
 
 [[Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "UUIDs", "Unicode"]
-git-tree-sha1 = "301706196827bdcc045658fc6df3e52fd3d76f83"
+git-tree-sha1 = "0d9092e63eb112b1ada52fc57abebf0c6cc83f42"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "2.2.2"
+version = "2.3.0"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
@@ -337,9 +337,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TimeZones]]
 deps = ["Dates", "EzXML", "Mocking", "Printf", "Serialization", "Unicode"]
-git-tree-sha1 = "0271dc890dd1447da1568510937bd5b3a6b51b58"
+git-tree-sha1 = "4d2d681e1dd715fdaa47d31a7208cead357bb357"
 uuid = "f269a46b-ccf7-5d73-abea-4c690281aa53"
-version = "0.9.2"
+version = "0.10.2"
 
 [[URIParser]]
 deps = ["Test", "Unicode"]
