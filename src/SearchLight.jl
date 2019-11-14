@@ -38,7 +38,7 @@ import Base.rand, Base.all, Base.count
 export find, findone
 export rand, randone
 export all, count # min, max, mean, median
-export findoneby_or_create, createwith, createorupdateby, createorupdate
+export findoneby_or_create, createwith, updateby_or_create, update_or_create
 export save, save!, save!!, updatewith, updatewith!!
 export deleteall, delete
 export validator
@@ -527,45 +527,8 @@ end
 
 
 """
-    update_with!{T<:AbstractModel}(m::T, w::T)::T
-    update_with!{T<:AbstractModel}(m::T, w::Dict)::T
-
-Copies the data from `w` into the corresponding properties in `m`. Returns `m`.
-
-# Examples
-```julia
-julia> a = Articles.random()
-App.Article
-...
-
-julia> b = Article()
-App.Article
-...
-
-julia> SearchLight.update_with!(b, a)
-App.Article
-
-julia> b
-App.Article
-
-julia> d = Articles.random() |> SearchLight.to_dict
-Dict{String,Any} with 7 entries:
-  "summary"      => "Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culp"
-  "content"      => "Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..Culpa quam quod. Iusto..…"
-  "id"           => #NULL
-  "title"        => "Minima. Eius. Velit. Sunt ducimus cumque eveniet..Minima. Eius. Velit. Sunt ducimus cumque eveniet.."
-  "updated_at"   => 2016-11-27T23:17:55.379
-  "slug"         => "minima-eius-velit-sunt-ducimus-cumque-evenietminima-eius-velit-sunt-ducimus-cumque-eveniet"
-  "published_at" => #NULL
-
-julia> a = Article()
-App.Article
-
-julia> SearchLight.update_with!(a, d)
-App.Article
-```
 """
-@inline function update_with!(m::T, w::T)::T where {T<:AbstractModel}
+@inline function updatewith!(m::T, w::T)::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
     ( startswith(string(fieldname), "_") || string(fieldname) == primary_key_name(m) ) && continue
     setfield!(m, fieldname, getfield(w, fieldname))
@@ -573,7 +536,7 @@ App.Article
 
   m
 end
-function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
+function updatewith!(m::T, w::Dict)::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
     ( startswith(string(fieldname), "_") || string(fieldname) == primary_key_name(m) ) && continue
 
@@ -619,112 +582,26 @@ function update_with!(m::T, w::Dict)::T where {T<:AbstractModel}
   m
 end
 
-const updatewith = update_with!
-
 
 """
-    update_with!!{T<:AbstractModel}(m::T, w::Union{T,Dict})::T
-
-Similar to `update_with` but also calls `save!!` on `m`.
-
-# Examples
-```julia
-julia> d = Articles.random() |> SearchLight.to_dict
-Dict{String,Any} with 7 entries:
-  "summary"      => "Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae"
-  "content"      => "Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excep…"
-  "id"           => #NULL
-  "title"        => "Impedit ut nulla sed. Sint sed dolorum quas beatae aspernatur..Impedit ut nulla sed. Sint sed dolorum quas beatae aspernatur.."
-  "updated_at"   => 2016-11-27T23:24:20.062
-  "slug"         => "impedit-ut-nulla-sed-sint-sed-dolorum-quas-beatae-aspernaturimpedit-ut-nulla-sed-sint-sed-dolorum-quas-beatae-aspernatur"
-  "published_at" => #NULL
-
-julia> a = Article()
-App.Article
-
-julia> SearchLight.update_with!!(a, d)
-
-2016-11-27T23:24:31.105 - info: SQL QUERY: INSERT INTO articles ( "title", "summary", "content", "updated_at", "published_at", "slug" ) VALUES ( 'Impedit ut nulla sed. Sint sed dolorum quas beatae aspernatur..Impedit ut nulla sed. Sint sed dolorum quas beatae aspernatur..', 'Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae', 'Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..Suscipit beatae vitae. Eum accusamus ad. Nostrum nam excepturi rerum suscipit..', '2016-11-27T23:24:20.062', NULL, 'impedit-ut-nulla-sed-sint-sed-dolorum-quas-beatae-aspernaturimpedit-ut-nulla-sed-sint-sed-dolorum-quas-beatae-aspernatur' ) RETURNING id
-
-  0.008251 seconds (12 allocations: 416 bytes)
-
-2016-11-27T23:24:32.274 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 60) ORDER BY articles.id ASC LIMIT 1
-
-  0.003159 seconds (1.23 k allocations: 52.688 KB)
-
-App.Article
-```
 """
-@inline function update_with!!(m::T, w::Union{T,Dict})::T where {T<:AbstractModel}
-  SearchLight.save!!(update_with!(m, w))
+@inline function updatewith!!(m::T, w::Union{T,Dict})::T where {T<:AbstractModel}
+  SearchLight.save!!(updatewith!(m, w))
 end
 
-const updatewith!! = update_with!!
-
 
 """
 
 """
-@inline function create_with(m::Type{T}, w::Dict)::T where {T<:AbstractModel}
-  update_with!(m(), w)
+@inline function createwith(m::Type{T}, w::Dict)::T where {T<:AbstractModel}
+  updatewith!(m(), w)
 end
 
-const createwith = create_with
-
 
 """
-    update_by_or_create!!{T<:AbstractModel}(m::T, property::Symbol[, value::Any]; ignore = Symbol[], skip_update = false)::T
-
-Looks up `m` by `property` and `value`. If value is not provided, it uses the corresponding value of `m`.
-If `m` is already persisted, it gets updated. If not, it is persisted as a new row.
-If values are provided for `ignore`, the corresponding properties (fields) of `m` will not be updated.
-If `skip_update` is `true` and `m` is already persisted, no update will be performed, and the originally persisted `m` will be returned.
-
-# Examples
-```julia
-julia> a = Articles.random()
-App.Article
-
-
-julia> SearchLight.update_by_or_create!!(a, :slug)
-
-2016-11-28T22:19:39.094 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("slug" = 'neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-aut') ORDER BY articles.id ASC LIMIT 1
-
-  0.019534 seconds (1.23 k allocations: 52.688 KB)
-
-2016-11-28T22:19:40.056 - info: SQL QUERY: INSERT INTO articles ( "title", "summary", "content", "updated_at", "published_at", "slug" ) VALUES ( 'Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi autem ut asperiores..Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi aut', 'Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam no', 'Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..', '2016-11-28T22:18:48.723', NULL, 'neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-aut' ) RETURNING id
-
-  0.008992 seconds (12 allocations: 416 bytes)
-
-2016-11-28T22:19:40.158 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 61) ORDER BY articles.id ASC LIMIT 1
-
-  0.000747 seconds (16 allocations: 576 bytes)
-
-App.Article
-
-julia> a.summary = Faker.paragraph() ^ 2
-"Similique sunt. Cupiditate eligendi..Similique sunt. Cupiditate eligendi.."
-
-julia> SearchLight.update_by_or_create!!(a, :slug)
-
-2016-11-28T22:22:22.488 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("slug" = 'neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-aut') ORDER BY articles.id ASC LIMIT 1
-
-  0.000949 seconds (16 allocations: 576 bytes)
-
-2016-11-28T22:22:22.556 - info: SQL QUERY: UPDATE articles SET  "id" = 61, "title" = 'Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi autem ut asperiores..Neque repudiandae sit vel. Laudantium laboriosam in. Esse modi aut', "summary" = 'Similique sunt. Cupiditate eligendi..Similique sunt. Cupiditate eligendi..', "content" = 'Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..Pariatur maiores. Amet numquam ullam nostrum est. Excepturi..', "updated_at" = '2016-11-28T22:18:48.723', "published_at" = NULL, "slug" = 'neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-aut' WHERE articles.id = '61' RETURNING id
-
-  0.009145 seconds (12 allocations: 416 bytes)
-
-2016-11-28T22:22:22.5670000000000001 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 61) ORDER BY articles.id ASC LIMIT 1
-
-  0.000741 seconds (16 allocations: 576 bytes)
-
-App.Article
-...
-```
 """
-function createorupdateby(m::T, property::Union{Symbol,SQLColumn,String}, value::Any; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  existing = findoneby(typeof(m), property, value)
+function updateby_or_create(m::T; ignore = Symbol[], skip_update = false, filters...)::T where {T<:AbstractModel}
+  existing = findoneby(typeof(m), filters...)
 
   if existing !== nothing
     skip_update && return existing
@@ -740,59 +617,22 @@ function createorupdateby(m::T, property::Union{Symbol,SQLColumn,String}, value:
     return SearchLight.save!!(m)
   end
 end
-function createorupdateby(m::T, property::Union{Symbol,SQLColumn,String}; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  isa(property, String) && occursin(r"(.+)\.(.+)", property) && (property = SQLColumn(property))
-  createorupdateby(m, property, getfield(m, isa(property, SQLColumn) ? Symbol(property.column_name) : Symbol(property)), ignore = ignore, skip_update = skip_update)
-end
-function createorupdateby(m::T)::T where {T<:AbstractModel}
-  createorupdateby(m)
-end
 
 
 """
-    createorupdate{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false)::T
+    update_or_create{T<:AbstractModel}(m::T; ignore = Symbol[], skip_update = false)::T
 
 Looks up `m` by `id` as configured in `_id`.
 If `m` is already persisted, it gets updated. If not, it is persisted as a new row.
 If values are provided for `ignore`, the corresponding properties (fields) of `m` will not be updated.
 If `skip_update` is `true` and `m` is already persisted, no update will be performed, and the originally persisted `m` will be returned.
 """
-@inline function createorupdate(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  createorupdateby(m, Symbol(primary_key_name(m)), getfield(m, Symbol(primary_key_name(m))), ignore = ignore, skip_update = skip_update)
+@inline function update_or_create(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+  updateby_or_create(m; ignore = ignore, skip_update = skip_update, NamedTuple{ (Symbol(primary_key_name(m)),) }( (getfield(m, Symbol(primary_key_name(m))),) )...)
 end
 
 
 """
-    findoneby_or_create{T<:AbstractModel}(m::Type{T}, property::Any, value::Any)::T
-
-Looks up `m` by `property` and `value`. If it exists, it is returned.
-If not, a new instance is created, `property` is set to `value` and the instance is returned.
-
-# Examples
-```julia
-julia> SearchLight.findoneby_or_create(Article, :slug, SearchLight.findone!!(Article, 61).slug)
-
-2016-11-28T22:31:56.768 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("id" = 61) ORDER BY articles.id ASC LIMIT 1
-
-  0.003430 seconds (1.23 k allocations: 52.688 KB)
-
-2016-11-28T22:31:59.897 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("slug" = 'neque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-autem-ut-asperioresneque-repudiandae-sit-vel-laudantium-laboriosam-in-esse-modi-aut') ORDER BY articles.id ASC LIMIT 1
-
-  0.001069 seconds (16 allocations: 576 bytes)
-
-App.Article
-...
-
-
-julia> SearchLight.findoneby_or_create(Article, :slug, "foo-bar")
-
-2016-11-28T22:32:19.514 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE ("slug" = 'foo-bar') ORDER BY articles.id ASC LIMIT 1
-
-  0.000909 seconds (16 allocations: 576 bytes)
-
-App.Article
-...
-```
 """
 @inline function findone_or_create(m::Type{T}; filters...)::T where {T<:AbstractModel}
   lookup = findone(m; filters...)
@@ -813,39 +653,6 @@ end
 
 
 """
-   to_models{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame)::Vector{T}
-
-Converts a DataFrame `df` to a Vector{T}
-
-# Examples
-```julia
-julia> sql = SearchLight.to_fetch_sql(Article, SQLQuery(limit = 1))
-"SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" LIMIT 1"
-
-julia> df = SearchLight.query(sql)
-
-2016-12-22T12:18:53.091 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" LIMIT 1
-
-  0.000637 seconds (16 allocations: 576 bytes)
-1×7 DataFrames.DataFrame
-│ Row │ articles_id │ articles_title                                     │ articles_summary                                                                          │
-├─────┼─────────────┼────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1   │ 4           │ "Possimus sit cum nesciunt doloribus dignissimos." │ "Similique.\nUt debitis qui perferendis.\nVoluptatem qui recusandae ut itaque voluptas.\nSunt." │
-
-│ Row │ articles_content                                                                                                                                                                                                                            │ articles_updated_at       │ articles_published_at │
-├─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────────────────────┼───────────────────────┤
-│ 1   │ "Hic. Est aut officia perspiciatis. Et non est dolor autem..\nAliquid dolores quo aut. Aperiam explicabo..\nItaque molestias facere. Aliquam quam est commodi quod ut. Recusandae consequatur voluptatem. Dolorem qui consectetur dicta modi.." │ "2016-09-27 07:49:59.098" │ NA                    │
-
-│ Row │ articles_slug                                     │
-├─────┼───────────────────────────────────────────────────┤
-│ 1   │ "possimus-sit-cum-nesciunt-doloribus-dignissimos" │
-
-julia> objects = SearchLight.to_models(Article, df)
-1-element Array{App.Article,1}:
-
-App.Article
-...
-```
 """
 function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:AbstractModel}
   models = OrderedCollections.OrderedDict{DbId,T}()
@@ -873,54 +680,6 @@ end
 
 
 """
-    to_model{T<:AbstractModel}(m::Type{T}, row::DataFrames.DataFrameRow)
-
-Converts a DataFrame row to a SearchLight model instance.
-
-# Examples
-```julia
-julia> sql = SearchLight.to_find_sql(Article, SQLQuery(limit = 1))
-"SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" LIMIT 1"
-
-julia> df = SearchLight.query(sql)
-
-2016-12-22T13:25:47.34 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" LIMIT 1
-
-  0.002099 seconds (1.23 k allocations: 52.688 KB)
-1×7 DataFrames.DataFrame
-│ Row │ articles_id │ articles_title                                     │ articles_summary                                                                          │
-├─────┼─────────────┼────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────┤
-│ 1   │ 4           │ "Possimus sit cum nesciunt doloribus dignissimos." │ "Similique.\nUt debitis qui perferendis.\nVoluptatem qui recusandae ut itaque voluptas.\nSunt." │
-
-│ Row │ articles_content                                                                                                                                                                                                                            │ articles_updated_at       │ articles_published_at │
-├─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼───────────────────────────┼───────────────────────┤
-│ 1   │ "Hic. Est aut officia perspiciatis. Et non est dolor autem..\nAliquid dolores quo aut. Aperiam explicabo..\nItaque molestias facere. Aliquam quam est commodi quod ut. Recusandae consequatur voluptatem. Dolorem qui consectetur dicta modi.." │ "2016-09-27 07:49:59.098" │ NA                    │
-
-│ Row │ articles_slug                                     │
-├─────┼───────────────────────────────────────────────────┤
-│ 1   │ "possimus-sit-cum-nesciunt-doloribus-dignissimos" │
-
-julia> dfr = DataFrames.DataFrameRow(df, 1)
-DataFrameRow (row 1)
-articles_id            4
-articles_title         Possimus sit cum nesciunt doloribus dignissimos.
-articles_summary       Similique.
-Ut debitis qui perferendis.
-Voluptatem qui recusandae ut itaque voluptas.
-Sunt.
-articles_content       Hic. Est aut officia perspiciatis. Et non est dolor autem..
-Aliquid dolores quo aut. Aperiam explicabo..
-Itaque molestias facere. Aliquam quam est commodi quod ut. Recusandae consequatur voluptatem. Dolorem qui consectetur dicta modi..
-articles_updated_at    2016-09-27 07:49:59.098
-articles_published_at  NA
-articles_slug          possimus-sit-cum-nesciunt-doloribus-dignissimos
-
-
-julia> SearchLight.to_model(Article, dfr)
-
-App.Article
-...
-```
 """
 function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
   _m::T = m()
@@ -996,39 +755,6 @@ end
 
 
 """
-    to_model!!{T<:AbstractModel}(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::T
-
-Gets the DataFrameRow instance at `row_index` and converts it into an instance of model `T`.
-
-# Examples
-```julia
-julia> df = SearchLight.query(SearchLight.to_find_sql(Article, SQLQuery(where = [SQLWhereExpression("id = 11")])))
-
-2016-12-22T13:47:06.929 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE id = 11
-
-  0.000649 seconds (16 allocations: 576 bytes)
-
-1×7 DataFrames.DataFrame
-...
-
-julia> SearchLight.to_model!!(Article, df)
-
-App.Article
-...
-
-julia> df = SearchLight.query(SearchLight.to_find_sql(Article, SQLQuery(where = [SQLWhereExpression("title = '--- this article does not exist --'")])))
-
-2016-12-22T13:48:56.781 - info: SQL QUERY: SELECT "articles"."id" AS "articles_id", "articles"."title" AS "articles_title", "articles"."summary" AS "articles_summary", "articles"."content" AS "articles_content", "articles"."updated_at" AS "articles_updated_at", "articles"."published_at" AS "articles_published_at", "articles"."slug" AS "articles_slug" FROM "articles" WHERE title = '--- this article does not exist --'
-
-  0.000724 seconds (16 allocations: 576 bytes)
-
-0×7 DataFrames.DataFrame
-
-julia> SearchLight.to_model!!(Article, df)
------- BoundsError ---------------------
-...
-BoundsError: attempt to access 0-element BitArray{1} at index [1]
-```
 """
 @inline function to_model!!(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::T where {T<:AbstractModel}
   dfr = DataFrames.DataFrameRow(df, row_index)
