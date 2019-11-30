@@ -326,8 +326,8 @@ julia> SearchLight.all(Article)
 ...
 ```
 """
-@inline function all(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
-  find(m, SQLQuery(order = order, limit = limit, offset = offset))
+@inline function all(m::Type{T}; columns::Vector{SQLColumn} = SQLColumn[], order = SQLOrder(primary_key_name(disposable_instance(m))), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
+  find(m, SQLQuery(columns = columns, order = order, limit = limit, offset = offset))
 end
 @inline function all(m::Type{T}, query::SQLQuery)::Vector{T} where {T<:AbstractModel}
   find(m, query)

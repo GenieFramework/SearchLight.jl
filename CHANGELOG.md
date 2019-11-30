@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.15.1 - 2019-11-30
+
+* extended `all` to support the `columns` keyword argument.
+* deps update
+
 ## v0.15.0 - 2019-11-15
 
 * fixed issue with incorrect `to_join_part` declaration
