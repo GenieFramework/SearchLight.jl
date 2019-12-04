@@ -38,8 +38,8 @@ import Base.rand, Base.all, Base.count
 export find, findone
 export rand, randone
 export all, count # min, max, mean, median
-export findoneby_or_create, createwith, updateby_or_create, update_or_create
-export save, save!, save!!, updatewith, updatewith!!
+export findone_or_create, createwith, updateby_or_create, update_or_create
+export save, save!, save!!, updatewith!, updatewith!!
 export deleteall, delete
 export validator
 
@@ -601,7 +601,7 @@ end
 """
 """
 function updateby_or_create(m::T; ignore = Symbol[], skip_update = false, filters...)::T where {T<:AbstractModel}
-  existing = findoneby(typeof(m), filters...)
+  existing = findone(typeof(m), filters...)
 
   if existing !== nothing
     skip_update && return existing

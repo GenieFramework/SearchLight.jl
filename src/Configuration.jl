@@ -86,8 +86,8 @@ function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
                           include(db_settings_file)
                         end
 
-  if  haskey(db_conn_data, "env") && db_conn_data["env"] != nothing
-    ENV["SEARCHLIGHT_ENV"] =  if db_conn_data["env"] == """ENV["GENIE_ENV"]"""
+  if  haskey(db_conn_data, "env") && db_conn_data["env"] !== nothing
+    ENV["SEARCHLIGHT_ENV"] =  if strip(uppercase(string(db_conn_data["env"]))) == """ENV["GENIE_ENV"]"""
                                 ENV["GENIE_ENV"]
                               else
                                 db_conn_data["env"]
@@ -96,11 +96,18 @@ function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
     SearchLight.config.app_env = ENV["SEARCHLIGHT_ENV"]
   end
 
-  if  haskey(db_conn_data, SearchLight.config.app_env) && haskey(db_conn_data[SearchLight.config.app_env], "config") &&
-      db_conn_data[SearchLight.config.app_env]["config"] != nothing && isa(db_conn_data[SearchLight.config.app_env]["config"], Dict)
-    for (k, v) in db_conn_data[SearchLight.config.app_env]["config"]
-      setfield!(SearchLight.config, Symbol(k), ((isa(v, String) && startswith(v, ":")) ? Symbol(v[2:end]) : v) )
-    end
+  if  haskey(db_conn_data, SearchLight.config.app_env)
+      if haskey(db_conn_data[SearchLight.config.app_env], "config") && isa(db_conn_data[SearchLight.config.app_env]["config"], Dict)
+        for (k, v) in db_conn_data[SearchLight.config.app_env]["config"]
+          setfield!(SearchLight.config, Symbol(k), ((isa(v, String) && startswith(v, ":")) ? Symbol(v[2:end]) : v) )
+        end
+      end
+
+      if ! haskey(db_conn_data[SearchLight.config.app_env], "options") || ! isa(db_conn_data[SearchLight.config.app_env]["options"], Dict)
+        db_conn_data[SearchLight.config.app_env]["options"] = Dict{String,String}()
+      # elseif haskey(db_conn_data[SearchLight.config.app_env], "options") && isa(db_conn_data[SearchLight.config.app_env]["options"], Dict)
+      #     db_conn_data[SearchLight.config.app_env]["options"] = Dict(Symbol(k) => string(v) for (k,v) in db_conn_data[SearchLight.config.app_env]["options"])
+      end
   end
 
   return  if haskey(db_conn_data, SearchLight.config.app_env)

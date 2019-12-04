@@ -54,9 +54,10 @@ end
 Connects to the database and returns a handle.
 """
 @inline function connect(conn_data::Dict) :: DatabaseHandle
-    MySQL.connect(conn_data["host"], conn_data["username"], get(conn_data, "password", ""),
+    MySQL.connect(conn_data["host"], conn_data["username"], get(conn_data, "password", "");
                   db    = conn_data["database"],
-                  port  = get(conn_data, "port", 3306))
+                  port  = get(conn_data, "port", 3306),
+                  opts  = Dict(getfield(MySQL.API, Symbol(k))=>v for (k,v) in conn_data["options"]))
 end
 
 

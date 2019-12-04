@@ -498,6 +498,7 @@ struct SQLJoin{T<:AbstractModel} <: SQLType
   natural::Bool
   columns::Vector{SQLColumns}
 end
+
 SQLJoin(model_name::Type{T},
         on::SQLOn;
         join_type = SQLJoinType("INNER"),

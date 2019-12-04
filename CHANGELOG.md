@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.15.2 - 2019-12-04
+
+* added support for `options` in the db connection data - this is passed to the database adapter
+* deps update
+
 ## v0.15.1 - 2019-11-30
 
 * extended `all` to support the `columns` keyword argument.
