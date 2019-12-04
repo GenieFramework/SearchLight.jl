@@ -113,14 +113,14 @@ julia> DataFrame(Article, SQLQuery(limit = 5))
 ...
 ```
 """
-@inline function DataFrames.DataFrame(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{AbstractModel,Nothing}}
+function DataFrames.DataFrame(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{AbstractModel,Nothing}}
   query(sql(m, q, j))::DataFrames.DataFrame
 end
 
 
 """
 """
-@inline function DataFrames.DataFrame(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
+function DataFrames.DataFrame(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
   DataFrame(m, SQLQuery(order = order))
 end
 
@@ -152,28 +152,28 @@ julia> DataFrame(Article, SQLWhereEntity[SQLWhereExpression("id BETWEEN ? AND ?"
 ...
 ```
 """
-@inline function DataFrames.DataFrame(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
+function DataFrames.DataFrame(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
   DataFrame(m, SQLQuery(where = [w], order = order))
 end
 
 
 """
 """
-@inline function DataFrames.DataFrame(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
+function DataFrames.DataFrame(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(primary_key_name(disposable_instance(m))))::DataFrames.DataFrame where {T<:AbstractModel}
   DataFrame(m, SQLQuery(where = w, order = order))
 end
 
 
 """
 """
-@inline function DataFrames.DataFrame(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
+function DataFrames.DataFrame(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   DataFrame(m, qp.query, j)
 end
 
 
 """
 """
-@inline function DataFrames.DataFrame(args...)::DataFrames.DataFrame
+function DataFrames.DataFrame(args...)::DataFrames.DataFrame
   DataFrame(args...)
 end
 
@@ -205,14 +205,14 @@ julia> SearchLight.find(Article)
 ...
 ```
 """
-@inline function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
+function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   to_models(m, DataFrame(m, q, j))
 end
 
 
 """
 """
-@inline function find(m::Type{T}, w::SQLWhereEntity;
+function find(m::Type{T}, w::SQLWhereEntity;
                       order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [w], order = order))
 end
@@ -220,7 +220,7 @@ end
 
 """
 """
-@inline function find(m::Type{T}, w::Vector{SQLWhereEntity};
+function find(m::Type{T}, w::Vector{SQLWhereEntity};
                       order = SQLOrder(primary_key_name(disposable_instance(m))))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = w, order = order))
 end
@@ -228,7 +228,7 @@ end
 
 """
 """
-@inline function find(m::Type{T}, qp::QueryBuilder.QueryPart,
+function find(m::Type{T}, qp::QueryBuilder.QueryPart,
                       j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   find(m, qp.query, j)
 end
@@ -236,7 +236,7 @@ end
 
 """
 """
-@inline function find(m::Type{T};
+function find(m::Type{T};
                       order = SQLOrder(primary_key_name(disposable_instance(m))),
                       limit = SQLLimit(),
                       where_conditions...)::Vector{T} where {T<:AbstractModel}
@@ -251,7 +251,7 @@ end
 
 """
 """
-@inline function findone(m::Type{T}; filters...)::Union{Nothing,T} where {T<:AbstractModel}
+function findone(m::Type{T}; filters...)::Union{Nothing,T} where {T<:AbstractModel}
   find(m; filters...) |> onereduce
 end
 
@@ -283,7 +283,7 @@ julia> SearchLight.rand(Article, limit = 3)
 ...
 ```
 """
-@inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
+function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   Database.rand(m, limit = limit)
 end
 
@@ -303,7 +303,7 @@ julia> SearchLight.randone(Article)
 ...
 ```
 """
-@inline function randone(m::Type{T})::Union{Nothing,T} where {T<:AbstractModel}
+function randone(m::Type{T})::Union{Nothing,T} where {T<:AbstractModel}
   SearchLight.rand(m, limit = 1) |> onereduce
 end
 
@@ -326,30 +326,30 @@ julia> SearchLight.all(Article)
 ...
 ```
 """
-@inline function all(m::Type{T}; columns::Vector{SQLColumn} = SQLColumn[], order = SQLOrder(primary_key_name(disposable_instance(m))), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
+function all(m::Type{T}; columns::Vector{SQLColumn} = SQLColumn[], order = SQLOrder(primary_key_name(disposable_instance(m))), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(columns = columns, order = order, limit = limit, offset = offset))
 end
-@inline function all(m::Type{T}, query::SQLQuery)::Vector{T} where {T<:AbstractModel}
+function all(m::Type{T}, query::SQLQuery)::Vector{T} where {T<:AbstractModel}
   find(m, query)
 end
 
 
 """
 """
-@inline function first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
+function first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> onereduce
 end
-@inline function first(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:AbstractModel}
+function first(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:AbstractModel}
   find(m, qp + QueryBuilder.limit(1)) |> onereduce
 end
 
 
 """
 """
-@inline function last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Union{Nothing,T} where {T<:AbstractModel}
+function last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Union{Nothing,T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> onereduce
 end
-@inline function last(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:AbstractModel}
+function last(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:AbstractModel}
   find(m, qp + QueryBuilder.limit(1)) |> onereduce
 end
 
@@ -395,7 +395,7 @@ julia> SearchLight.save(a)
 true
 ```
 """
-@inline function save(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::Bool where {T<:AbstractModel}
+function save(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::Bool where {T<:AbstractModel}
   try
     _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
@@ -447,7 +447,7 @@ App.Article
 ...
 ```
 """
-@inline function save!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
+function save!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
   save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 end
 function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
@@ -516,7 +516,7 @@ App.Article
 )
 ```
 """
-@inline function invoke_callback(m::T, callback::Symbol)::Tuple{Bool,T} where {T<:AbstractModel}
+function invoke_callback(m::T, callback::Symbol)::Tuple{Bool,T} where {T<:AbstractModel}
   if isdefined(m, callback)
     getfield(m, callback)(m)
     (true, m)
@@ -528,7 +528,7 @@ end
 
 """
 """
-@inline function updatewith!(m::T, w::T)::T where {T<:AbstractModel}
+function updatewith!(m::T, w::T)::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
     ( startswith(string(fieldname), "_") || string(fieldname) == primary_key_name(m) ) && continue
     setfield!(m, fieldname, getfield(w, fieldname))
@@ -585,7 +585,7 @@ end
 
 """
 """
-@inline function updatewith!!(m::T, w::Union{T,Dict})::T where {T<:AbstractModel}
+function updatewith!!(m::T, w::Union{T,Dict})::T where {T<:AbstractModel}
   SearchLight.save!!(updatewith!(m, w))
 end
 
@@ -593,7 +593,7 @@ end
 """
 
 """
-@inline function createwith(m::Type{T}, w::Dict)::T where {T<:AbstractModel}
+function createwith(m::Type{T}, w::Dict)::T where {T<:AbstractModel}
   updatewith!(m(), w)
 end
 
@@ -627,14 +627,14 @@ If `m` is already persisted, it gets updated. If not, it is persisted as a new r
 If values are provided for `ignore`, the corresponding properties (fields) of `m` will not be updated.
 If `skip_update` is `true` and `m` is already persisted, no update will be performed, and the originally persisted `m` will be returned.
 """
-@inline function update_or_create(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
+function update_or_create(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
   updateby_or_create(m; ignore = ignore, skip_update = skip_update, NamedTuple{ (Symbol(primary_key_name(m)),) }( (getfield(m, Symbol(primary_key_name(m))),) )...)
 end
 
 
 """
 """
-@inline function findone_or_create(m::Type{T}; filters...)::T where {T<:AbstractModel}
+function findone_or_create(m::Type{T}; filters...)::T where {T<:AbstractModel}
   lookup = findone(m; filters...)
   lookup !== nothing && return lookup
 
@@ -756,12 +756,12 @@ end
 
 """
 """
-@inline function to_model!!(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::T where {T<:AbstractModel}
+function to_model!!(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::T where {T<:AbstractModel}
   dfr = DataFrames.DataFrameRow(df, row_index)
 
   to_model(m, dfr)
 end
-@inline function to_model!!(m::Type{T}, dfr::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
+function to_model!!(m::Type{T}, dfr::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
   to_model(m, dfr)
 end
 
@@ -800,7 +800,7 @@ julia> SearchLight.to_model(Article, df)
 Union{Nothing,App.Article}()
 ```
 """
-@inline function to_model(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Union{Nothing,T} where {T<:AbstractModel}
+function to_model(m::Type{T}, df::DataFrames.DataFrame; row_index = 1)::Union{Nothing,T} where {T<:AbstractModel}
   size(df)[1] >= row_index ? to_model!!(m, df, row_index = row_index) : nothing
 end
 
@@ -835,16 +835,16 @@ julia> SearchLight.to_select_part(Article, SQLColumn[:id, :slug, :title])
 "SELECT articles.id AS articles_id, articles.slug AS articles_slug, articles.title AS articles_title"
 ```
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_select_part(m::Type{T}, cols::Vector{SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   Database.to_select_part(m, cols, joins)
 end
-@inline function to_select_part(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
+function to_select_part(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
   to_select_part(m, [c])
 end
-@inline function to_select_part(m::Type{T}, c::String)::String where {T<:AbstractModel}
+function to_select_part(m::Type{T}, c::String)::String where {T<:AbstractModel}
   to_select_part(m, SQLColumn(c, raw = c == "*"))
 end
-@inline function to_select_part(m::Type{T})::String where {T<:AbstractModel}
+function to_select_part(m::Type{T})::String where {T<:AbstractModel}
   to_select_part(m, SQLColumn[])
 end
 
@@ -860,12 +860,12 @@ julia> SearchLight.to_from_part(Article)
 "FROM "articles""
 ```
 """
-@inline function to_from_part(m::Type{T})::String where {T<:AbstractModel}
+function to_from_part(m::Type{T})::String where {T<:AbstractModel}
   Database.to_from_part(m)
 end
 
 
-@inline function to_where_part(w::Vector{SQLWhereEntity})::String
+function to_where_part(w::Vector{SQLWhereEntity})::String
   Database.to_where_part(w)
 end
 
@@ -881,7 +881,7 @@ julia> SearchLight.to_order_part(Article, SQLOrder[:id, :title])
 "ORDER BY articles.id ASC, articles.title ASC"
 ```
 """
-@inline function to_order_part(m::Type{T}, o::Vector{SQLOrder})::String where {T<:AbstractModel}
+function to_order_part(m::Type{T}, o::Vector{SQLOrder})::String where {T<:AbstractModel}
   Database.to_order_part(m, o)
 end
 
@@ -897,7 +897,7 @@ julia> SearchLight.to_group_part(SQLColumn[:id, :title])
 " GROUP BY "id", "title" "
 ```
 """
-@inline function to_group_part(g::Vector{SQLColumn})::String
+function to_group_part(g::Vector{SQLColumn})::String
   Database.to_group_part(g)
 end
 
@@ -917,10 +917,10 @@ julia> SearchLight.to_limit_part(1)
 "LIMIT 1"
 ```
 """
-@inline function to_limit_part(l::SQLLimit)::String
+function to_limit_part(l::SQLLimit)::String
   Database.to_limit_part(l)
 end
-@inline function to_limit_part(l::Int)::String
+function to_limit_part(l::Int)::String
   to_limit_part(SQLLimit(l))
 end
 
@@ -936,7 +936,7 @@ julia> SearchLight.to_offset_part(10)
 "OFFSET 10"
 ```
 """
-@inline function to_offset_part(o::Int)::String
+function to_offset_part(o::Int)::String
   Database.to_offset_part(o)
 end
 
@@ -952,7 +952,7 @@ julia> SearchLight.to_having_part(SQLHaving[SQLWhere(:aggregated_amount, 200, ">
 "HAVING ("aggregated_amount" >= 200)"
 ```
 """
-@inline function to_having_part(h::Vector{SQLWhereEntity})::String
+function to_having_part(h::Vector{SQLWhereEntity})::String
   Database.to_having_part(h)
 end
 
@@ -1005,7 +1005,7 @@ julia> SearchLight.to_join_part(User, [j])
 "  INNER  JOIN "roles"  ON "users"."role_id" = "roles"."id"  WHERE role_id > 10"
 ```
 """
-@inline function to_join_part(m::Type{T}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_join_part(m::Type{T}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   Database.to_join_part(m, joins)
 end
 
@@ -1123,7 +1123,7 @@ julia> SearchLight.to_find_sql(User, SQLQuery())
 "SELECT "users"."id" AS "users_id", "users"."name" AS "users_name", "users"."email" AS "users_email", "users"."password" AS "users_password", "users"."role_id" AS "users_role_id", "users"."updated_at" AS "users_updated_at", "roles"."id" AS "roles_id", "roles"."name" AS "roles_name" FROM "users" LEFT JOIN "roles" ON "users"."role_id" = "roles"."id""
 ```
 """
-@inline function to_find_sql(m::Type{T}, q::SQLQuery = SQLQuery(), joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel,N<:Union{Nothing,AbstractModel}}
+function to_find_sql(m::Type{T}, q::SQLQuery = SQLQuery(), joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel,N<:Union{Nothing,AbstractModel}}
   Database.to_find_sql(m, q, joins)
 end
 
@@ -1134,7 +1134,7 @@ const to_fetch_sql = to_find_sql
 
 Generates the INSERT SQL query.
 """
-@inline function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:AbstractModel} # upsert strateygy = :none | :error | :ignore | :update
+function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:AbstractModel} # upsert strateygy = :none | :error | :ignore | :update
   Database.to_store_sql(m, conflict_strategy = conflict_strategy)
 end
 
@@ -1201,7 +1201,7 @@ If `cascade` is `true`, the delete will be cascaded to all related tables (where
 julia> SearchLight.delete_all(Article)
 ```
 """
-@inline function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:AbstractModel}
   Database.delete_all(m, truncate = truncate, reset_sequence = reset_sequence, cascade = cascade)
 end
 
@@ -1229,7 +1229,7 @@ App.Article
 ...
 ```
 """
-@inline function delete(m::T)::T where {T<:AbstractModel}
+function delete(m::T)::T where {T<:AbstractModel}
   Database.delete(m)
 end
 
@@ -1254,7 +1254,7 @@ julia> SearchLight.query("SELECT * FROM articles LIMIT 5")
 5×7 DataFrames.DataFrame
 ```
 """
-@inline function query(sql::String; system_query::Bool = false) :: DataFrames.DataFrame
+function query(sql::String; system_query::Bool = false) :: DataFrames.DataFrame
   Database.query(sql, system_query = system_query)
 end
 
@@ -1286,10 +1286,10 @@ julia> SearchLight.count(Article, SQLQuery(where = SQLWhereEntity[SQLWhereExpres
 9
 ```
 """
-@inline function count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
+function count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
   Database.count(m, q)
 end
-@inline function count(m::Type{T}, qp::QueryBuilder.QueryPart)::Int where {T<:AbstractModel}
+function count(m::Type{T}, qp::QueryBuilder.QueryPart)::Int where {T<:AbstractModel}
   count(m, qp.query)
 end
 
@@ -1304,7 +1304,7 @@ end
 
 Returns a type stable object T().
 """
-@inline function disposable_instance(m::Type{T})::T where {T<:AbstractModel}
+function disposable_instance(m::Type{T})::T where {T<:AbstractModel}
   m()::T
 end
 
@@ -1445,10 +1445,10 @@ end
 
 Returns a DataFrame representing schema information for the database table columns associated with `m`.
 """
-@inline function columns(m::Type{T})::DataFrames.DataFrame where {T<:AbstractModel}
+function columns(m::Type{T})::DataFrames.DataFrame where {T<:AbstractModel}
   Database.table_columns(table_name(disposable_instance(m)))
 end
-@inline function columns(m::T)::DataFrames.DataFrame where {T<:AbstractModel}
+function columns(m::T)::DataFrames.DataFrame where {T<:AbstractModel}
   Database.table_columns(table_name(m))
 end
 
@@ -1478,7 +1478,7 @@ julia> SearchLight.ispersisted(SearchLight.findone(User, 1))
 true
 ```
 """
-@inline function ispersisted(m::T)::Bool where {T<:AbstractModel}
+function ispersisted(m::T)::Bool where {T<:AbstractModel}
   getfield(m, Symbol(primary_key_name(m))).value !== nothing
 end
 
@@ -1566,7 +1566,7 @@ end
 
 Returns the "id" property defined on `m`.
 """
-@inline function id(m::T)::String where {T<:AbstractModel}
+function id(m::T)::String where {T<:AbstractModel}
   primary_key_name(m)
 end
 
@@ -1621,7 +1621,7 @@ SearchLight.ModelValidator
 )
 ```
 """
-@inline function validator(m::T)::Union{Nothing,SearchLight.Validation.ModelValidator} where {T<:AbstractModel}
+function validator(m::T)::Union{Nothing,SearchLight.Validation.ModelValidator} where {T<:AbstractModel}
   Validation.validator!!(m)
 end
 
@@ -1640,7 +1640,7 @@ julia> SearchLight.hasfield(ar, :moo)
 false
 ```
 """
-@inline function hasfield(m::T, f::Symbol)::Bool where {T<:AbstractModel}
+function hasfield(m::T, f::Symbol)::Bool where {T<:AbstractModel}
   isdefined(m, f)
 end
 
@@ -1656,7 +1656,7 @@ julia> SearchLight.strip_table_name(SearchLight.randone(Article), :articles_upda
 :updated_at
 ```
 """
-@inline function strip_table_name(m::T, f::Symbol)::Symbol where {T<:AbstractModel}
+function strip_table_name(m::T, f::Symbol)::Symbol where {T<:AbstractModel}
   replace(string(f), Regex("^$(table_name(m))_") => "", count = 1) |> Symbol
 end
 
@@ -1676,10 +1676,10 @@ julia> SearchLight.is_fully_qualified(SearchLight.randone(Article), :users_updat
 false
 ```
 """
-@inline function is_fully_qualified(m::T, f::Symbol)::Bool where {T<:AbstractModel}
+function is_fully_qualified(m::T, f::Symbol)::Bool where {T<:AbstractModel}
   startswith(string(f), table_name(m)) && hasfield(m, strip_table_name(m, f))
 end
-@inline function is_fully_qualified(t::T)::Bool where {T<:SQLType}
+function is_fully_qualified(t::T)::Bool where {T<:SQLType}
   replace(t |> string, "\""=>"") |> string |> is_fully_qualified
 end
 
@@ -1698,7 +1698,7 @@ julia> SearchLight.is_fully_qualified("updated_at")
 false
 ```
 """
-@inline function is_fully_qualified(s::String)::Bool
+function is_fully_qualified(s::String)::Bool
   ! startswith(s, ".") && occursin(".", s)
 end
 
@@ -1718,7 +1718,7 @@ julia> SearchLight.from_fully_qualified(SearchLight.randone(Article), :foo_bar)
 :foo_bar
 ```
 """
-@inline function from_fully_qualified(m::T, f::Symbol)::Symbol where {T<:AbstractModel}
+function from_fully_qualified(m::T, f::Symbol)::Symbol where {T<:AbstractModel}
   is_fully_qualified(m, f) ? strip_table_name(m, f) : f
 end
 
@@ -1749,7 +1749,7 @@ function from_fully_qualified(s::String)::Tuple{String,String}
 
   (string(x),string(y))
 end
-@inline function from_fully_qualified(t::T)::Tuple{String,String} where {T<:SQLType}
+function from_fully_qualified(t::T)::Tuple{String,String} where {T<:SQLType}
   replace(t |> string, "\""=>"") |> string |> from_fully_qualified
 end
 
@@ -1766,7 +1766,7 @@ julia> SearchLight.strip_module_name("SearchLight.rand")
 "rand"
 ```
 """
-@inline function strip_module_name(s::String)::String
+function strip_module_name(s::String)::String
   split(s, ".") |> last
 end
 
@@ -1782,7 +1782,7 @@ julia> SearchLight.to_fully_qualified("updated_at", "articles")
 "articles.updated_at"
 ```
 """
-@inline function to_fully_qualified(v::String, t::String)::String
+function to_fully_qualified(v::String, t::String)::String
   t * "." * v
 end
 
@@ -1800,14 +1800,14 @@ julia> SearchLight.to_fully_qualified(SearchLight.randone(Article), "updated_at"
 "articles.updated_at"
 ```
 """
-@inline function to_fully_qualified(m::T, v::String)::String where {T<:AbstractModel}
+function to_fully_qualified(m::T, v::String)::String where {T<:AbstractModel}
   to_fully_qualified(v, table_name(m))
 end
-@inline function to_fully_qualified(m::T, c::SQLColumn)::String where {T<:AbstractModel}
+function to_fully_qualified(m::T, c::SQLColumn)::String where {T<:AbstractModel}
   c.raw && return c.value
   to_fully_qualified(c.value, table_name(m))
 end
-@inline function to_fully_qualified(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
+function to_fully_qualified(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
   to_fully_qualified(disposable_instance(m), c)
 end
 
@@ -1825,10 +1825,10 @@ julia> SearchLight.to_sql_column_names(SearchLight.randone(Article), Symbol[:upd
  :articles_deleted
 ```
 """
-@inline function to_sql_column_names(m::T, fields::Vector{Symbol})::Vector{Symbol} where {T<:AbstractModel}
+function to_sql_column_names(m::T, fields::Vector{Symbol})::Vector{Symbol} where {T<:AbstractModel}
   map(x -> (to_sql_column_name(m, string(x))) |> Symbol, fields)
 end
-@inline function to_sql_column_names(m::T, fields::Tuple)::Vector{Symbol} where {T<:AbstractModel}
+function to_sql_column_names(m::T, fields::Tuple)::Vector{Symbol} where {T<:AbstractModel}
   to_sql_column_names(m, Symbol[fields...])
 end
 
@@ -1846,10 +1846,10 @@ function to_sql_column_name(v::String, t::String)::String
     str
   end
 end
-@inline function to_sql_column_name(m::T, v::String)::String where {T<:AbstractModel}
+function to_sql_column_name(m::T, v::String)::String where {T<:AbstractModel}
   to_sql_column_name(v, table_name(m))
 end
-@inline function to_sql_column_name(m::T, c::SQLColumn)::String where {T<:AbstractModel}
+function to_sql_column_name(m::T, c::SQLColumn)::String where {T<:AbstractModel}
   to_sql_column_name(c.value, table_name(m))
 end
 
@@ -1859,7 +1859,7 @@ end
 
 Takes a `vector` of field names and generates corresponding SQL column names.
 """
-@inline function to_fully_qualified_sql_column_names(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false)::Vector{String} where {T<:AbstractModel}
+function to_fully_qualified_sql_column_names(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false)::Vector{String} where {T<:AbstractModel}
   map(x -> to_fully_qualified_sql_column_name(m, x, escape_columns = escape_columns), persistable_fields)
 end
 
@@ -1869,7 +1869,7 @@ end
 
 Generates a fully qualified SQL column name, in the form of `table_name.column AS table_name_column` for the underlying table of `m` and the column `f`.
 """
-@inline function to_fully_qualified_sql_column_name(m::T, f::String; escape_columns::Bool = false, alias::String = "")::String where {T<:AbstractModel}
+function to_fully_qualified_sql_column_name(m::T, f::String; escape_columns::Bool = false, alias::String = "")::String where {T<:AbstractModel}
   if escape_columns
     "$(to_fully_qualified(m, f) |> escape_column_name) AS $(isempty(alias) ? (to_sql_column_name(m, f) |> escape_column_name) : alias)"
   else
@@ -1913,7 +1913,7 @@ end
 Converts a model `m` to a `Dict`. Orginal types of the fields values are kept.
 If `all_fields` is `true`, all fields are included; otherwise just the fields corresponding to database columns.
 """
-@inline function to_dict(m::T; all_fields::Bool = false)::Dict{String,Any} where {T<:AbstractModel}
+function to_dict(m::T; all_fields::Bool = false)::Dict{String,Any} where {T<:AbstractModel}
   Dict( string(f) => Util.expand_nullable( getfield(m, Symbol(f)) ) for f in (all_fields ? fieldnames(typeof(m)) : persistable_fields(m)) )
 end
 
@@ -1923,7 +1923,7 @@ end
 
 Creates a `Dict` using the fields and the values of `m`.
 """
-@inline function to_dict(m::Any)::Dict{String,Any}
+function to_dict(m::Any)::Dict{String,Any}
   Dict(string(f) => getfield(m, Symbol(f)) for f in fieldnames(typeof(m)))
 end
 
@@ -1945,7 +1945,7 @@ function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false
 
   response
 end
-@inline function to_string_dict(m::Any; all_output::Bool = false)::Dict{String,String}
+function to_string_dict(m::Any; all_output::Bool = false)::Dict{String,String}
   to_string_dict(m, [f for f in fieldnames(typeof(m))], all_output = all_output)
 end
 function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false)::Dict{String,String}
@@ -1978,12 +1978,12 @@ end
 
 Wraps SQL query parts in parenthesys.
 """
-@inline function enclosure(v::Any, o::Any)::String
+function enclosure(v::Any, o::Any)::String
   in(string(o), ["IN", "in"]) ? "($(string(v)))" : string(v)
 end
 
 
-@inline function update_query_part(m::T)::String where {T<:AbstractModel}
+function update_query_part(m::T)::String where {T<:AbstractModel}
   Database.update_query_part(m)
 end
 
@@ -1994,7 +1994,7 @@ end
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `config.db_migrations_table_name`
 """
-@inline function create_migrations_table(table_name::String = config.db_migrations_table_name) :: Bool
+function create_migrations_table(table_name::String = config.db_migrations_table_name) :: Bool
   Database.DatabaseAdapter.create_migrations_table(table_name)
 end
 
@@ -2004,7 +2004,7 @@ end
 
 Initializes support for SearchLight operations - for example by creating the schema migrations table.
 """
-@inline function init() :: Bool
+function init() :: Bool
   create_migrations_table()
 end
 
@@ -2014,7 +2014,7 @@ end
 
 Converts the Julia type to the corresponding type in the database. For example, the bool type for SQLite is 1 or 0
 """
-@inline function adapter_type(v::Bool)::Union{Bool,Int,Char,String}
+function adapter_type(v::Bool)::Union{Bool,Int,Char,String}
   Database.DatabaseAdapter.cast_type(v)
 end
 
@@ -2024,7 +2024,7 @@ end
 
 Creates a new DB table
 """
-@inline function create_table(f::Function, name::String, options::String = "") :: Nothing
+function create_table(f::Function, name::String, options::String = "") :: Nothing
   sql = Database.DatabaseAdapter.create_table_sql(f, name, options)
   try
     SearchLight.query(sql)
@@ -2045,21 +2045,21 @@ const createtable = create_table
 
 Returns the adapter-dependent SQL for defining a table column
 """
-@inline function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false)::String
+function column_definition(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false)::String
   Database.DatabaseAdapter.column_sql(name, column_type, options, default = default, limit = limit, not_null = not_null)
 end
 
 
 """
 """
-@inline function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
+function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
   Database.DatabaseAdapter.column_id_sql(name, options, constraint = constraint, nextval = nextval)
 end
 
 
 """
 """
-@inline function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Nothing
+function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Nothing
   Database.DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
 
   nothing
@@ -2068,7 +2068,7 @@ end
 
 """
 """
-@inline function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false)::Nothing
+function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false)::Nothing
   Database.DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
 
   nothing
@@ -2077,7 +2077,7 @@ end
 
 """
 """
-@inline function drop_table(name::String)::Nothing
+function drop_table(name::String)::Nothing
   Database.DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
 
   nothing
@@ -2087,7 +2087,7 @@ end
 """
 
 """
-@inline function remove_column(table_name::String, name::String)::Nothing
+function remove_column(table_name::String, name::String)::Nothing
   Database.DatabaseAdapter.remove_column_sql(table_name, name) |> SearchLight.query
 
   nothing
@@ -2096,7 +2096,7 @@ end
 
 """
 """
-@inline function remove_index(table_name::String, name::String)::Nothing
+function remove_index(table_name::String, name::String)::Nothing
   Database.DatabaseAdapter.remove_index_sql(table_name, name) |> SearchLight.query
 
   nothing
@@ -2105,7 +2105,7 @@ end
 
 """
 """
-@inline function create_sequence(name::String)::Nothing
+function create_sequence(name::String)::Nothing
   Database.DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
 
   nothing
@@ -2114,7 +2114,7 @@ end
 
 """
 """
-@inline function remove_sequence(name::String, options::String = "")::Nothing
+function remove_sequence(name::String, options::String = "")::Nothing
   Database.DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
 
   nothing
@@ -2123,13 +2123,13 @@ end
 
 """
 """
-@inline function sql(m::Type{T}, q::SQLQuery = SQLQuery(), j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
+function sql(m::Type{T}, q::SQLQuery = SQLQuery(), j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   to_fetch_sql(m, q, j)
 end
-@inline function sql(m::Type{T}, qp::QueryBuilder.QueryPart)::String where {T<:AbstractModel}
+function sql(m::Type{T}, qp::QueryBuilder.QueryPart)::String where {T<:AbstractModel}
   sql(m, qp.query)
 end
-@inline function sql(m::T)::String where {T<:AbstractModel}
+function sql(m::T)::String where {T<:AbstractModel}
   to_store_sql(m)
 end
 

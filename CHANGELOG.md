@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.15.3 - 2019-12-04
+
+* performance optimisations
+
 ## v0.15.2 - 2019-12-04
 
 * added support for `options` in the db connection data - this is passed to the database adapter

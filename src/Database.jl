@@ -48,9 +48,11 @@ julia> Database.connect(dict)
 PostgreSQL.PostgresDatabaseHandle(Ptr{Nothing} @0x00007fbf3839f360,0x00000000,false)
 ```
 """
-@inline function connect() #::DatabaseHandle
+function connect() #::DatabaseHandle
   connect(SearchLight.config.db_config_settings)
 end
+
+
 function connect(conn_settings::Dict)
   isdefined(@__MODULE__, :DatabaseAdapter) || connect!(conn_settings)
 
@@ -61,7 +63,7 @@ function connect(conn_settings::Dict)
 end
 
 
-@inline function connect!(conn_settings::Dict)
+function connect!(conn_settings::Dict)
   SearchLight.config.db_config_settings["adapter"] = conn_settings["adapter"]
   setup_adapter() && Database.connect(conn_settings) #::DatabaseHandle
 end
@@ -70,10 +72,12 @@ end
 """
 
 """
-@inline function disconnect(conn)
+function disconnect(conn)
   DatabaseAdapter.disconnect(conn)
 end
-@inline function disconnect()
+
+
+function disconnect()
   DatabaseAdapter.disconnect(CONNECTION)
 end
 
@@ -85,10 +89,12 @@ end
 Invokes the database adapter's create database method. If invoked without param, it defaults to the
 database name defined in `config.db_config_settings`
 """
-@inline function create_database() :: Bool
+function create_database() :: Bool
   create_database(SearchLight.config.db_config_settings["database"])
 end
-@inline function create_database(db_name::String)::Bool
+
+
+function create_database(db_name::String)::Bool
   DatabaseAdapter.create_database(db_name)
 end
 
@@ -99,7 +105,7 @@ end
 Invokes the database adapter's create migrations table method. If invoked without param, it defaults to the
 database name defined in `config.db_migrations_table_name`
 """
-@inline function create_migrations_table(table_name::String) :: Bool
+function create_migrations_table(table_name::String) :: Bool
   DatabaseAdapter.create_migrations_table(table_name)
 end
 
@@ -109,17 +115,17 @@ end
 
 Sets up the DB tables used by SearchLight.
 """
-@inline function init() :: Bool
+function init() :: Bool
   DatabaseAdapter.create_migrations_table(SearchLight.config.db_migrations_table_name)
 end
 
 
-@inline function escape_column_name(c::String) :: String
+function escape_column_name(c::String) :: String
   DatabaseAdapter.escape_column_name(c, CONNECTION)
 end
 
 
-@inline function escape_value(v::T)::T where {T}
+function escape_value(v::T)::T where {T}
   result =  try
               DatabaseAdapter.escape_value(v, CONNECTION)
             catch ex
@@ -130,7 +136,7 @@ end
 end
 
 
-@inline function table_columns(table_name::String) :: DataFrames.DataFrame
+function table_columns(table_name::String) :: DataFrames.DataFrame
   query(DatabaseAdapter.table_columns_sql(table_name), suppress_output = true)
 end
 
@@ -153,7 +159,7 @@ julia> SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)) |> Database.query;
 ...
 ```
 """
-@inline function query(sql::String; suppress_output::Bool = false, system_query::Bool = false) :: DataFrames.DataFrame
+function query(sql::String; suppress_output::Bool = false, system_query::Bool = false) :: DataFrames.DataFrame
   df::DataFrames.DataFrame =  DatabaseAdapter.query(sql, (suppress_output || system_query), CONNECTION)
   (! suppress_output && ! system_query && SearchLight.config.log_db) && @info(df)
 
@@ -164,7 +170,7 @@ end
 """
 
 """
-@inline function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   DatabaseAdapter.to_find_sql(m, q, joins)
 end
 
@@ -174,7 +180,7 @@ const to_fetch_sql = to_find_sql
 """
 
 """
-@inline function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:SearchLight.AbstractModel}
+function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.to_store_sql(m, conflict_strategy = conflict_strategy)
 end
 
@@ -182,7 +188,7 @@ end
 """
 
 """
-@inline function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:SearchLight.AbstractModel}
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.delete_all(m, truncate = truncate, reset_sequence = reset_sequence, cascade = cascade)
 end
 
@@ -190,7 +196,7 @@ end
 """
 
 """
-@inline function delete(m::T)::T where {T<:SearchLight.AbstractModel}
+function delete(m::T)::T where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.delete(m)
 end
 
@@ -198,7 +204,7 @@ end
 """
 
 """
-@inline function count(m::Type{T}, q::SearchLight.SQLQuery = SearchLight.SQLQuery())::Int where {T<:SearchLight.AbstractModel}
+function count(m::Type{T}, q::SearchLight.SQLQuery = SearchLight.SQLQuery())::Int where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.count(m, q)
 end
 
@@ -206,7 +212,7 @@ end
 """
 
 """
-@inline function update_query_part(m::T)::String where {T<:SearchLight.AbstractModel}
+function update_query_part(m::T)::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.update_query_part(m)
 end
 
@@ -214,7 +220,7 @@ end
 """
 
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   DatabaseAdapter.to_select_part(m, cols, joins)
 end
 """
@@ -244,7 +250,7 @@ end
 """
 
 """
-@inline function to_from_part(m::Type{T})::String where {T<:SearchLight.AbstractModel}
+function to_from_part(m::Type{T})::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.to_from_part(m)
 end
 
@@ -252,7 +258,7 @@ end
 """
 
 """
-@inline function to_where_part(w::Vector{SearchLight.SQLWhereEntity})::String
+function to_where_part(w::Vector{SearchLight.SQLWhereEntity})::String
   DatabaseAdapter.to_where_part(w)
 end
 
@@ -260,7 +266,7 @@ end
 """
 
 """
-@inline function to_order_part(m::Type{T}, o::Vector{SearchLight.SQLOrder})::String where {T<:SearchLight.AbstractModel}
+function to_order_part(m::Type{T}, o::Vector{SearchLight.SQLOrder})::String where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.to_order_part(m, o)
 end
 
@@ -268,7 +274,7 @@ end
 """
 
 """
-@inline function to_group_part(group::Vector{SearchLight.SQLColumn}) :: String
+function to_group_part(group::Vector{SearchLight.SQLColumn}) :: String
   DatabaseAdapter.to_group_part(group)
 end
 
@@ -276,7 +282,7 @@ end
 """
 
 """
-@inline function to_limit_part(limit::SearchLight.SQLLimit) :: String
+function to_limit_part(limit::SearchLight.SQLLimit) :: String
   DatabaseAdapter.to_limit_part(limit)
 end
 
@@ -284,7 +290,7 @@ end
 """
 
 """
-@inline function to_offset_part(offset::Int) :: String
+function to_offset_part(offset::Int) :: String
   DatabaseAdapter.to_offset_part(offset)
 end
 
@@ -292,7 +298,7 @@ end
 """
 
 """
-@inline function to_having_part(having::Vector{SearchLight.SQLHaving}) :: String
+function to_having_part(having::Vector{SearchLight.SQLHaving}) :: String
   DatabaseAdapter.to_having_part(having)
 end
 
@@ -300,7 +306,7 @@ end
 """
 
 """
-@inline function to_join_part(m::Type{T}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_join_part(m::Type{T}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   DatabaseAdapter.to_join_part(m, joins)
 end
 
@@ -346,7 +352,7 @@ end
 """
 
 """
-@inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:SearchLight.AbstractModel}
+function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:SearchLight.AbstractModel}
   DatabaseAdapter.rand(m, limit = limit)
 end
 
@@ -354,7 +360,7 @@ end
 """
 
 """
-@inline function index_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
+function index_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
   string(table_name) * "__" * "idx_" * string(column_name)
 end
 

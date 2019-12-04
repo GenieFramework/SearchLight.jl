@@ -38,7 +38,7 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => MySQL
 )
 
 
-@inline function db_adapter()::Symbol
+function db_adapter()::Symbol
   Symbol(DB_ADAPTER)
 end
 
@@ -53,7 +53,7 @@ end
 
 Connects to the database and returns a handle.
 """
-@inline function connect(conn_data::Dict) :: DatabaseHandle
+function connect(conn_data::Dict) :: DatabaseHandle
     MySQL.connect(conn_data["host"], conn_data["username"], get(conn_data, "password", "");
                   db    = conn_data["database"],
                   port  = get(conn_data, "port", 3306),
@@ -66,7 +66,7 @@ end
 
 Disconnects from database.
 """
-@inline function disconnect(conn::DatabaseHandle) :: Nothing
+function disconnect(conn::DatabaseHandle) :: Nothing
   MySQL.disconnect(conn)
 end
 
@@ -81,7 +81,7 @@ end
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
-@inline function table_columns_sql(table_name::String) :: String
+function table_columns_sql(table_name::String) :: String
   "SHOW COLUMNS FROM `$table_name`"
 end
 
@@ -120,7 +120,7 @@ Escapes the column name.
 julia>
 ```
 """
-@inline function escape_column_name(c::String, conn::DatabaseHandle) :: String
+function escape_column_name(c::String, conn::DatabaseHandle) :: String
   """`$(replace(c, "`"=>"-"))`"""
 end
 
@@ -135,11 +135,11 @@ Escapes the value `v` using native features provided by the database backend.
 julia>
 ```
 """
-@inline function escape_value(v::T, conn::DatabaseHandle)::T where {T}
+function escape_value(v::T, conn::DatabaseHandle)::T where {T}
   isa(v, Number) ? v : "'$(MySQL.escape(conn, string(v)))'"
 end
 
-@inline function mysql_escape(s::String, conn::DatabaseHandle)
+function mysql_escape(s::String, conn::DatabaseHandle)
   MySQL.escape(conn, s)
 end
 
@@ -166,7 +166,7 @@ julia> query(SearchLight.to_fetch_sql(Article, SQLQuery(limit = 5)), false, Data
 ...
 ```
 """
-@inline function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
+function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
   try
     _result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
       DB_ADAPTER.Query(conn, sql)
@@ -197,7 +197,7 @@ end
 
 """
 """
-@inline function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(q.where)) " *
                       "$(to_group_part(q.group)) $(to_having_part(q.having)) $(to_order_part(m, q.order)) " *
                       "$(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
@@ -223,7 +223,7 @@ function to_store_sql(m::T; conflict_strategy = :error)::String where {T<:Search
         if ( conflict_strategy == :error ) ""
         elseif ( conflict_strategy == :ignore ) " ON DUPLICATE KEY UPDATE `$(SearchLight.primary_key_name(m))` = `$(SearchLight.primary_key_name(m))`"
         elseif ( conflict_strategy == :update && getfield(m, Symbol(SearchLight.primary_key_name(m))).value !== nothing )
-           " ON DUPLICATE KEY UPDATE $(update_query_part(m))"
+          " ON DUPLICATE KEY UPDATE $(update_query_part(m))"
         else ""
         end
   else
@@ -259,7 +259,7 @@ end
 
 """
 """
-@inline function count(m::Type{T}, q::SearchLight.SQLQuery = SearchLight.SQLQuery())::Int where {T<:SearchLight.AbstractModel}
+function count(m::Type{T}, q::SearchLight.SQLQuery = SearchLight.SQLQuery())::Int where {T<:SearchLight.AbstractModel}
   count_column = SearchLight.SQLColumn("COUNT(*) AS __cid", raw = true)
   q = SearchLight.clone(q, :columns, push!(q.columns, count_column))
 
@@ -269,7 +269,7 @@ end
 
 """
 """
-@inline function update_query_part(m::T)::String where {T<:SearchLight.AbstractModel}
+function update_query_part(m::T)::String where {T<:SearchLight.AbstractModel}
   update_values = join(map(x -> "$(string(SearchLight.SQLColumn(x))) = $(string(SearchLight.to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))))", SearchLight.persistable_fields(m)), ", ")
 
   " $update_values WHERE $(m._table_name).$(SearchLight.primary_key_name(m)) = '$(m.id.value)'"
@@ -278,26 +278,26 @@ end
 
 """
 """
-@inline function column_data_to_column_name(column::SearchLight.SQLColumn, column_data::Dict{Symbol,Any}) :: String
+function column_data_to_column_name(column::SearchLight.SQLColumn, column_data::Dict{Symbol,Any}) :: String
   "$(SearchLight.to_fully_qualified(column_data[:column_name], column_data[:table_name])) AS $(isempty(column_data[:alias]) ? SearchLight.to_sql_column_name(column_data[:column_name], column_data[:table_name]) : column_data[:alias])"
 end
 
 
 """
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   "SELECT " * SearchLight.Database._to_select_part(m, cols, joins)
 end
 
 
 """
 """
-@inline function to_from_part(m::Type{T})::String where {T<:SearchLight.AbstractModel}
+function to_from_part(m::Type{T})::String where {T<:SearchLight.AbstractModel}
   "FROM " * SearchLight.Database.escape_column_name(m()._table_name)
 end
 
 
-@inline function to_where_part(w::Vector{SearchLight.SQLWhereEntity}) :: String
+function to_where_part(w::Vector{SearchLight.SQLWhereEntity}) :: String
   where = isempty(w) ?
           "" :
           "WHERE " * (string(first(w).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(wx -> string(wx), w), " ")
@@ -308,7 +308,7 @@ end
 
 """
 """
-@inline function to_order_part(m::Type{T}, o::Vector{SearchLight.SQLOrder})::String where {T<:SearchLight.AbstractModel}
+function to_order_part(m::Type{T}, o::Vector{SearchLight.SQLOrder})::String where {T<:SearchLight.AbstractModel}
   isempty(o) ?
     "" :
     "ORDER BY " * join(map(x -> (! SearchLight.is_fully_qualified(x.column.value) ? SearchLight.to_fully_qualified(m, x.column) : x.column.value) * " " * x.direction, o), ", ")
@@ -317,7 +317,7 @@ end
 
 """
 """
-@inline function to_group_part(g::Vector{SearchLight.SQLColumn}) :: String
+function to_group_part(g::Vector{SearchLight.SQLColumn}) :: String
   isempty(g) ?
     "" :
     " GROUP BY " * join(map(x -> string(x), g), ", ")
@@ -326,21 +326,21 @@ end
 
 """
 """
-@inline function to_limit_part(l::SearchLight.SQLLimit) :: String
+function to_limit_part(l::SearchLight.SQLLimit) :: String
   l.value != "ALL" ? "LIMIT " * (l |> string) : ""
 end
 
 
 """
 """
-@inline function to_offset_part(o::Int) :: String
+function to_offset_part(o::Int) :: String
   o != 0 ? "OFFSET " * (o |> string) : ""
 end
 
 
 """
 """
-@inline function to_having_part(h::Vector{SearchLight.SQLWhereEntity}) :: String
+function to_having_part(h::Vector{SearchLight.SQLWhereEntity}) :: String
   having =  isempty(h) ?
             "" :
             "HAVING " * (string(first(h).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(w -> string(w), h), " ")
@@ -366,14 +366,14 @@ end
 
 Converts the Julia type to the corresponding type in the database.
 """
-@inline function cast_type(v::Bool)::Int
+function cast_type(v::Bool)::Int
   v ? 1 : 0
 end
 
 
 """
 """
-@inline function create_table_sql(f::Function, name::String, options::String = "") :: String
+function create_table_sql(f::Function, name::String, options::String = "") :: String
   "CREATE TABLE `$name` (" * join(f()::Vector{String}, ", ") * ") $options" |> strip
 end
 
@@ -391,14 +391,14 @@ end
 
 """
 """
-@inline function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
+function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
   "`$name` INT NOT NULL AUTO_INCREMENT PRIMARY KEY $options"
 end
 
 
 """
 """
-@inline function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
+function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
   name = isempty(name) ? SearchLight.Database.index_name(table_name, column_name) : name
   "CREATE $(unique ? "UNIQUE" : "") INDEX `$(name)` ON `$table_name` (`$column_name`)"
 end
@@ -406,42 +406,42 @@ end
 
 """
 """
-@inline function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: String
+function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: String
   "ALTER TABLE `$table_name` ADD $(column_sql(name, column_type, default = default, limit = limit, not_null = not_null))"
 end
 
 
 """
 """
-@inline function drop_table_sql(name::String) :: String
+function drop_table_sql(name::String) :: String
   "DROP TABLE `$name`"
 end
 
 
 """
 """
-@inline function remove_column_sql(table_name::String, name::String, options::String = "") :: String
+function remove_column_sql(table_name::String, name::String, options::String = "") :: String
   "ALTER TABLE `$table_name` DROP COLUMN `$name` $options"
 end
 
 
 """
 """
-@inline function remove_index_sql(table_name::String, name::String, options::String = "") :: String
+function remove_index_sql(table_name::String, name::String, options::String = "") :: String
   "DROP INDEX `$name` ON `$table_name` $options"
 end
 
 
 """
 """
-@inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:SearchLight.AbstractModel}
+function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:SearchLight.AbstractModel}
   SearchLight.find(m, SearchLight.SQLQuery(limit = SearchLight.SQLLimit(limit), order = [SearchLight.SQLOrder("rand()", raw = true)]))
 end
 
 
 """
 """
-@inline function last_insert_id(conn)
+function last_insert_id(conn)
   MySQL.insertid(conn)
 end
 

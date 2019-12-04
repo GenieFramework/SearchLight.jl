@@ -38,7 +38,7 @@ const TYPE_MAPPINGS = Dict{Symbol,Symbol}( # Julia => SQLite
 const SELECT_LAST_ID_QUERY_START = "; SELECT CASE WHEN last_insert_rowid() = 0 THEN"
 const SELECT_LAST_ID_QUERY_END = "ELSE last_insert_rowid() END AS id"
 
-@inline function db_adapter()::Symbol
+function db_adapter()::Symbol
   Symbol(DB_ADAPTER)
 end
 
@@ -55,7 +55,7 @@ end
 Connects to the database defined in conn_data["filename"] and returns a handle.
 If no conn_data is provided, a temporary, in-memory database will be used.
 """
-@inline function connect(conn_data::Dict)::DatabaseHandle
+function connect(conn_data::Dict)::DatabaseHandle
   if ! haskey(conn_data, "filename")
     conn_data["filename"] = if haskey(conn_data, "host") && conn_data["host"] != nothing
                               conn_data["host"]
@@ -72,7 +72,9 @@ If no conn_data is provided, a temporary, in-memory database will be used.
     rethrow(ex)
   end
 end
-@inline function connect()::DatabaseHandle
+
+
+function connect()::DatabaseHandle
   try
     SQLite.DB()
   catch ex
@@ -88,7 +90,7 @@ end
 
 Disconnects from database.
 """
-@inline function disconnect(conn::DatabaseHandle)::Nothing
+function disconnect(conn::DatabaseHandle)::Nothing
   conn = nothing
 end
 
@@ -103,7 +105,7 @@ end
 
 Returns the adapter specific query for SELECTing table columns information corresponding to `table_name`.
 """
-@inline function table_columns_sql(table_name::String) :: String
+function table_columns_sql(table_name::String) :: String
   "PRAGMA table_info(`$table_name`)"
 end
 
@@ -115,7 +117,7 @@ Runs a SQL DB query that creates the table `table_name` with the structure neede
 The table should contain one column, `version`, unique, as a string of maximum 30 chars long.
 Returns `true` on success.
 """
-@inline function create_migrations_table(table_name::String) :: Bool
+function create_migrations_table(table_name::String) :: Bool
   "CREATE TABLE `$table_name` (
     `version` varchar(30) NOT NULL DEFAULT '',
     PRIMARY KEY (`version`)
@@ -142,7 +144,7 @@ Escapes the column name using native features provided by the database backend.
 julia>
 ```
 """
-@inline function escape_column_name(c::String, conn::DatabaseHandle) :: String
+function escape_column_name(c::String, conn::DatabaseHandle) :: String
   DB_ADAPTER.esc_id(c)
 end
 
@@ -157,7 +159,7 @@ Escapes the value `v` using native features provided by the database backend if 
 julia>
 ```
 """
-@inline function escape_value(v::T, conn::DatabaseHandle) :: T where {T}
+function escape_value(v::T, conn::DatabaseHandle) :: T where {T}
   isa(v, Number) ? v : "'$(replace(string(v), "'"=>"''"))'"
 end
 
@@ -219,7 +221,7 @@ end
 
 """
 """
-@inline function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_find_sql(m::Type{T}, q::SearchLight.SQLQuery, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   sql::String = ( "$(to_select_part(m, q.columns, joins)) $(to_from_part(m)) $(to_join_part(m, joins)) $(to_where_part(q.where)) " *
                       "$(to_group_part(q.group)) $(to_having_part(q.having)) $(to_order_part(m, q.order)) " *
                       "$(to_limit_part(q.limit)) $(to_offset_part(q.offset))") |> strip
@@ -256,7 +258,7 @@ end
 """
 
 """
-@inline function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:SearchLight.AbstractModel}
+function delete_all(m::Type{T}; truncate::Bool = true, reset_sequence::Bool = true, cascade::Bool = false)::Nothing where {T<:SearchLight.AbstractModel}
   _m::T = m()
   "DELETE FROM $(_m._table_name)" |> SearchLight.query
 
@@ -267,7 +269,7 @@ end
 """
 
 """
-@inline function delete(m::T)::T where {T<:SearchLight.AbstractModel}
+function delete(m::T)::T where {T<:SearchLight.AbstractModel}
   SearchLight.ispersisted(m) || throw(SearchLight.Exceptions.NotPersistedException(m))
 
   "DELETE FROM $(m._table_name) WHERE $(SearchLight.primary_key_name(m)) = '$(m.id.value)'" |> SearchLight.query
@@ -281,7 +283,7 @@ end
 """
 
 """
-@inline function count(m::Type{T}, q::SearchLight.SQLQuery = SearchLight.SQLQuery())::Int where {T<:SearchLight.AbstractModel}
+function count(m::Type{T}, q::SearchLight.SQLQuery = SearchLight.SQLQuery())::Int where {T<:SearchLight.AbstractModel}
   count_column = SearchLight.SQLColumn("COUNT(*) AS __cid", raw = true)
   q = SearchLight.clone(q, :columns, push!(q.columns, count_column))
 
@@ -292,7 +294,7 @@ end
 """
 
 """
-@inline function update_query_part(m::T)::String where {T<:SearchLight.AbstractModel}
+function update_query_part(m::T)::String where {T<:SearchLight.AbstractModel}
   update_values = join(map(x -> "$(string(SearchLight.SQLColumn(x))) = $(string(SearchLight.to_sqlinput(m, Symbol(x), getfield(m, Symbol(x)))) )", SearchLight.persistable_fields(m)), ", ")
 
   " $update_values WHERE $(m._table_name).$(SearchLight.primary_key_name(m)) = '$(m.id.value)'"
@@ -302,7 +304,7 @@ end
 """
 
 """
-@inline function column_data_to_column_name(column::SearchLight.SQLColumn, column_data::Dict{Symbol,Any})::String
+function column_data_to_column_name(column::SearchLight.SQLColumn, column_data::Dict{Symbol,Any})::String
   "$(SearchLight.to_fully_qualified(column_data[:column_name], column_data[:table_name])) AS $(isempty(column_data[:alias]) ? SearchLight.to_sql_column_name(column_data[:column_name], column_data[:table_name]) : column_data[:alias] )"
 end
 
@@ -310,7 +312,7 @@ end
 """
 
 """
-@inline function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
   "SELECT " * SearchLight.Database._to_select_part(m, cols, joins)
 end
 
@@ -318,12 +320,12 @@ end
 """
 
 """
-@inline function to_from_part(m::Type{T})::String where {T<:SearchLight.AbstractModel}
+function to_from_part(m::Type{T})::String where {T<:SearchLight.AbstractModel}
   "FROM " * SearchLight.Database.escape_column_name(m()._table_name)
 end
 
 
-@inline function to_where_part(w::Vector{SearchLight.SQLWhereEntity})::String
+function to_where_part(w::Vector{SearchLight.SQLWhereEntity})::String
   where = isempty(w) ?
           "" :
           "WHERE " * (string(first(w).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(wx -> string(wx), w), " ")
@@ -335,7 +337,7 @@ end
 """
 
 """
-@inline function to_order_part(m::Type{T}, o::Vector{SearchLight.SQLOrder})::String where {T<:SearchLight.AbstractModel}
+function to_order_part(m::Type{T}, o::Vector{SearchLight.SQLOrder})::String where {T<:SearchLight.AbstractModel}
   isempty(o) ?
     "" :
     "ORDER BY " * join(map(x -> (! SearchLight.is_fully_qualified(x.column.value) ? SearchLight.to_fully_qualified(m, x.column) : x.column.value) * " " * x.direction, o), ", ")
@@ -345,7 +347,7 @@ end
 """
 
 """
-@inline function to_group_part(g::Vector{SearchLight.SQLColumn}) :: String
+function to_group_part(g::Vector{SearchLight.SQLColumn}) :: String
   isempty(g) ?
     "" :
     " GROUP BY " * join(map(x -> string(x), g), ", ")
@@ -355,7 +357,7 @@ end
 """
 
 """
-@inline function to_limit_part(l::SearchLight.SQLLimit) :: String
+function to_limit_part(l::SearchLight.SQLLimit) :: String
   l.value != "ALL" ? "LIMIT " * (l |> string) : ""
 end
 
@@ -363,7 +365,7 @@ end
 """
 
 """
-@inline function to_offset_part(o::Int) :: String
+function to_offset_part(o::Int) :: String
   o != 0 ? "OFFSET " * (o |> string) : ""
 end
 
@@ -371,7 +373,7 @@ end
 """
 
 """
-@inline function to_having_part(h::Vector{SearchLight.SQLWhereEntity}) :: String
+function to_having_part(h::Vector{SearchLight.SQLWhereEntity}) :: String
   having =  isempty(h) ?
             "" :
             "HAVING " * (string(first(h).condition) == "AND" ? "TRUE " : "FALSE ") * join(map(w -> string(w), h), " ")
@@ -398,7 +400,7 @@ end
 
 Converts the Julia type to the corresponding type in the database.
 """
-@inline function cast_type(v::Bool) :: Int
+function cast_type(v::Bool) :: Int
   v ? 1 : 0
 end
 
@@ -406,7 +408,7 @@ end
 """
 
 """
-@inline function create_table_sql(f::Function, name::String, options::String = "") :: String
+function create_table_sql(f::Function, name::String, options::String = "") :: String
   "CREATE TABLE $name (" * join(f()::Vector{String}, ", ") * ") $options" |> strip
 end
 
@@ -414,7 +416,7 @@ end
 """
 
 """
-@inline function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: String
+function column_sql(name::String, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: String
   "$name $(TYPE_MAPPINGS[column_type] |> string) " *
     (isa(limit, Int) ? "($limit)" : "") *
     (default === nothing ? "" : " DEFAULT $default ") *
@@ -426,7 +428,7 @@ end
 """
 
 """
-@inline function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
+function column_id_sql(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
   "$name INTEGER PRIMARY KEY $options"
 end
 
@@ -434,7 +436,7 @@ end
 """
 
 """
-@inline function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
+function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
   name = isempty(name) ? SearchLight.Database.index_name(table_name, column_name) : name
   "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
 end
@@ -443,7 +445,7 @@ end
 """
 
 """
-@inline function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: String
+function add_column_sql(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: String
   "ALTER TABLE $table_name ADD $(column_sql(name, column_type, default = default, limit = limit, not_null = not_null))"
 end
 
@@ -451,7 +453,7 @@ end
 """
 
 """
-@inline function drop_table_sql(name::String) :: String
+function drop_table_sql(name::String) :: String
   "DROP TABLE $name"
 end
 
@@ -459,7 +461,7 @@ end
 """
 
 """
-@inline function remove_column_sql(table_name::String, name::String) :: Nothing
+function remove_column_sql(table_name::String, name::String) :: Nothing
   throw(SearchLight.UnsupportedException(:remove_column, Symbol(DB_ADAPTER)))
 end
 
@@ -467,7 +469,7 @@ end
 """
 
 """
-@inline function remove_index_sql(table_name::String, name::String) :: String
+function remove_index_sql(table_name::String, name::String) :: String
   "DROP INDEX $name"
 end
 
@@ -475,7 +477,7 @@ end
 """
 
 """
-@inline function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:SearchLight.AbstractModel}
+function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:SearchLight.AbstractModel}
   SearchLight.find(m, SearchLight.SQLQuery(limit = SearchLight.SQLLimit(limit), order = [SearchLight.SQLOrder("random()", raw = true)]))
 end
 
