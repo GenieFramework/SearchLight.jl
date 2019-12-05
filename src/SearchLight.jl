@@ -4,7 +4,6 @@ import Revise
 import DataFrames, OrderedCollections, Distributed, Dates, Logging, Millboard
 
 import DataFrames.DataFrame
-import Base.first, Base.last
 
 include("constants.jl")
 
@@ -25,15 +24,11 @@ include("Migration.jl")
 include("Util.jl")
 include("Validation.jl")
 include("Generator.jl")
-include("DatabaseSeeding.jl")
-include("QueryBuilder.jl")
 include("Highlight.jl")
 
-import .Database, .Migration, .Util, .Validation
-import .Inflector, .DatabaseSeeding, .QueryBuilder
-import .Exceptions, .Highlight
-
-import Base.rand, Base.all, Base.count
+import .Database, .Util, .Validation
+import .Inflector
+import .Exceptions
 
 export find, findone
 export rand, randone
@@ -45,8 +40,6 @@ export validator
 
 export ispersisted
 export primary_key_name, table_name
-
-export QueryBuilder, Migration, Validation, Util
 
 const PRIMARY_KEY_NAME = "id"
 
@@ -166,13 +159,6 @@ end
 
 """
 """
-function DataFrames.DataFrame(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
-  DataFrame(m, qp.query, j)
-end
-
-
-"""
-"""
 function DataFrames.DataFrame(args...)::DataFrames.DataFrame
   DataFrame(args...)
 end
@@ -228,14 +214,6 @@ end
 
 """
 """
-function find(m::Type{T}, qp::QueryBuilder.QueryPart,
-                      j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
-  find(m, qp.query, j)
-end
-
-
-"""
-"""
 function find(m::Type{T};
                       order = SQLOrder(primary_key_name(disposable_instance(m))),
                       limit = SQLLimit(),
@@ -283,7 +261,7 @@ julia> SearchLight.rand(Article, limit = 3)
 ...
 ```
 """
-function rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
+function Base.rand(m::Type{T}; limit = 1)::Vector{T} where {T<:AbstractModel}
   Database.rand(m, limit = limit)
 end
 
@@ -326,31 +304,25 @@ julia> SearchLight.all(Article)
 ...
 ```
 """
-function all(m::Type{T}; columns::Vector{SQLColumn} = SQLColumn[], order = SQLOrder(primary_key_name(disposable_instance(m))), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
+function Base.all(m::Type{T}; columns::Vector{SQLColumn} = SQLColumn[], order = SQLOrder(primary_key_name(disposable_instance(m))), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(columns = columns, order = order, limit = limit, offset = offset))
 end
-function all(m::Type{T}, query::SQLQuery)::Vector{T} where {T<:AbstractModel}
+function Base.all(m::Type{T}, query::SQLQuery)::Vector{T} where {T<:AbstractModel}
   find(m, query)
 end
 
 
 """
 """
-function first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
+function Base.first(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m))))::Union{Nothing,T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> onereduce
-end
-function first(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:AbstractModel}
-  find(m, qp + QueryBuilder.limit(1)) |> onereduce
 end
 
 
 """
 """
-function last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Union{Nothing,T} where {T<:AbstractModel}
+function Base.last(m::Type{T}; order = SQLOrder(primary_key_name(disposable_instance(m)), :desc))::Union{Nothing,T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> onereduce
-end
-function last(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:AbstractModel}
-  find(m, qp + QueryBuilder.limit(1)) |> onereduce
 end
 
 
@@ -1286,11 +1258,8 @@ julia> SearchLight.count(Article, SQLQuery(where = SQLWhereEntity[SQLWhereExpres
 9
 ```
 """
-function count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
+function Base.count(m::Type{T}, q::SQLQuery = SQLQuery())::Int where {T<:AbstractModel}
   Database.count(m, q)
-end
-function count(m::Type{T}, qp::QueryBuilder.QueryPart)::Int where {T<:AbstractModel}
-  count(m, qp.query)
 end
 
 
@@ -2126,9 +2095,6 @@ end
 function sql(m::Type{T}, q::SQLQuery = SQLQuery(), j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
   to_fetch_sql(m, q, j)
 end
-function sql(m::Type{T}, qp::QueryBuilder.QueryPart)::String where {T<:AbstractModel}
-  sql(m, qp.query)
-end
 function sql(m::T)::String where {T<:AbstractModel}
   to_store_sql(m)
 end
@@ -2151,5 +2117,7 @@ end
 const load_models = load_resources
 
 SearchLight.load_resources()
+
+include("QueryBuilder.jl")
 
 end

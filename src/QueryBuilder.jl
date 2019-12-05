@@ -1,6 +1,7 @@
 module QueryBuilder
 
-using SearchLight
+import SearchLight
+import DataFrames
 
 import Base: (+) #, select
 # TODO: Base.isequal and Base.hash
@@ -10,94 +11,94 @@ export from, select, where, limit, offset, order, group, having, prepare
 struct MissingModel <: SearchLight.AbstractModel
 end
 
-struct QueryPart{T<:AbstractModel}
+struct QueryPart{T<:SearchLight.AbstractModel}
   model::Type{T}
-  query::SQLQuery
+  query::SearchLight.SQLQuery
 end
 
 
 """
 """
-function from(model::Type{T})::QueryPart{T} where {T<:AbstractModel}
-  QueryPart(model, SQLQuery())
+function from(model::Type{T})::QueryPart{T} where {T<:SearchLight.AbstractModel}
+  QueryPart(model, SearchLight.SQLQuery())
 end
 
 
 """
 """
-function select(columns::Vararg{Union{Symbol,String,SQLColumn,SQLRaw}}) :: QueryPart
-  QueryPart(MissingModel, SQLQuery(columns = SQLColumns([columns...])))
+function select(columns::Vararg{Union{Symbol,String,SearchLight.SQLColumn,SearchLight.SQLRaw}}) :: QueryPart
+  QueryPart(MissingModel, SearchLight.SQLQuery(columns = SearchLight.SQLColumns([columns...])))
 end
 
 
 """
 """
 function where(sql_expression::String)::QueryPart
-  QueryPart(MissingModel, SQLQuery(where = [SQLWhereExpression(sql_expression)]))
+  QueryPart(MissingModel, SearchLight.SQLQuery(where = [SearchLight.SQLWhereExpression(sql_expression)]))
 end
 function where(sql_expression::String, values::Vararg{Any})::QueryPart
-  QueryPart(MissingModel, SQLQuery(where = [SQLWhereExpression(sql_expression, [values...])]))
+  QueryPart(MissingModel, SearchLight.SQLQuery(where = [SearchLight.SQLWhereExpression(sql_expression, [values...])]))
 end
 
 
 """
 """
 function limit(lim::Int)
-  QueryPart(MissingModel, SQLQuery(limit = SQLLimit(lim)))
+  QueryPart(MissingModel, SearchLight.SQLQuery(limit = SearchLight.SQLLimit(lim)))
 end
 
 
 """
 """
 function offset(off::Int)
-  QueryPart(MissingModel, SQLQuery(offset = off))
+  QueryPart(MissingModel, SearchLight.SQLQuery(offset = off))
 end
 
 
 """
 """
 function order(ordering::Union{Symbol,String})
-  QueryPart(MissingModel, SQLQuery(order = SQLOrder(ordering)))
+  QueryPart(MissingModel, SearchLight.SQLQuery(order = SearchLight.SQLOrder(ordering)))
 end
 function order(column::Union{Symbol,String}, direction::Union{Symbol,String})
-  QueryPart(MissingModel, SQLQuery(order = SQLOrder(column, direction)))
+  QueryPart(MissingModel, SearchLight.SQLQuery(order = SearchLight.SQLOrder(column, direction)))
 end
 
 
 """
 """
 function group(columns::Vararg{Union{Symbol,String}})
-  QueryPart(MissingModel, SQLQuery(group = SQLColumns([columns...])))
+  QueryPart(MissingModel, SearchLight.SQLQuery(group = SearchLight.SQLColumns([columns...])))
 end
 
 
 """
 """
 function having(sql_expression::String)::QueryPart
-  QueryPart(MissingModel, SQLQuery(having = [SQLWhereExpression(sql_expression)]))
+  QueryPart(MissingModel, SearchLight.SQLQuery(having = [SearchLight.SQLWhereExpression(sql_expression)]))
 end
 function having(sql_expression::String, values::Vararg{Any})::QueryPart
-  QueryPart(MissingModel, SQLQuery(having = [SQLWhereExpression(sql_expression, [values...])]))
+  QueryPart(MissingModel, SearchLight.SQLQuery(having = [SearchLight.SQLWhereExpression(sql_expression, [values...])]))
 end
 
 
 """
 """
-function prepare(qb::QueryPart{T}) where {T<:AbstractModel}
+function prepare(qb::QueryPart{T}) where {T<:SearchLight.AbstractModel}
   (qb.model::Type{T}, qb)
 end
-function prepare(model::Type{T}, qb::QueryPart) where {T<:AbstractModel}
+function prepare(model::Type{T}, qb::QueryPart) where {T<:SearchLight.AbstractModel}
   prepare(from(model) + qb)
 end
 
 
 """
 """
-function (+)(q::SQLQuery, r::SQLQuery)
-  SQLQuery(
+function (+)(q::SearchLight.SQLQuery, r::SearchLight.SQLQuery)
+  SearchLight.SQLQuery(
     columns = vcat(q.columns, r.columns),
     where   = vcat(q.where, r.where),
-    limit   = r.limit.value == SQLLimit_ALL ? q.limit : r.limit,
+    limit   = r.limit.value == SearchLight.SQLLimit_ALL ? q.limit : r.limit,
     offset  = r.offset != 0 ? r.offset : q.offset,
     order   = vcat(q.order, r.order),
     group   = vcat(q.group, r.group),
@@ -113,6 +114,44 @@ function (+)(q::QueryPart, r::QueryPart)
     r.model == MissingModel ? q.model : r.model,
     q.query + r.query
   )
+end
+
+
+### API
+
+
+"""
+"""
+function DataFrames.DataFrame(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+  SearchLight.DataFrame(m, qp.query, j)
+end
+
+
+"""
+"""
+function SearchLight.find(m::Type{T}, qp::QueryBuilder.QueryPart,
+                      j::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::Vector{T} where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+  SearchLight.find(m, qp.query, j)
+end
+
+
+function SearchLight.first(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:SearchLight.AbstractModel}
+  SearchLight.find(m, qp + QueryBuilder.limit(1)) |> onereduce
+end
+
+
+function SearchLight.last(m::Type{T}, qp::QueryBuilder.QueryPart)::Union{Nothing,T} where {T<:SearchLight.AbstractModel}
+  SearchLight.find(m, qp + QueryBuilder.limit(1)) |> onereduce
+end
+
+
+function SearchLight.count(m::Type{T}, qp::QueryBuilder.QueryPart)::Int where {T<:SearchLight.AbstractModel}
+  SearchLight.count(m, qp.query)
+end
+
+
+function SearchLight.sql(m::Type{T}, qp::QueryBuilder.QueryPart)::String where {T<:SearchLight.AbstractModel}
+  SearchLight.sql(m, qp.query)
 end
 
 end

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.16.0 - 2019-12-05
+
+* internal API refactoring
+* performance optimisations
+* removed `DatabaseSeeder` (**breaking**)
+
 ## v0.15.3 - 2019-12-04
 
 * performance optimisations
