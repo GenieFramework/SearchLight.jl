@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.16.1 - 2020-01-26
+
+* bug fixes: parsing of `?` in query expressions
+* deps updates
+
 ## v0.16.0 - 2019-12-05
 
 * internal API refactoring

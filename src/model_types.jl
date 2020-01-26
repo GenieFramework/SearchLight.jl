@@ -306,18 +306,22 @@ struct SQLWhereExpression <: SQLType
   sql_expression::String
   values::Vector{SQLInput}
   condition::String
-
-  function SQLWhereExpression(sql_expression::String, values::Vector{SQLInput})
-    condition = "AND"
-    parts = split(sql_expression, " ")
-    if in(parts[1], ["AND", "OR", "and", "or"])
-      condition = parts |> first |> uppercase
-      sql_expression = parts[2:end] |> strip
-    end
-
-    new(sql_expression, values, condition)
-  end
 end
+
+const QUESTION_MARK_REPLACEMENT = "&QM;"
+
+function SQLWhereExpression(sql_expression::String, values::Vector{SQLInput})
+  condition = "AND"
+
+  parts = split(sql_expression, " ")
+  if in(parts[1], ["AND", "OR", "and", "or"])
+    condition = parts |> first |> uppercase
+    sql_expression = parts[2:end] |> strip
+  end
+
+  SQLWhereExpression(sql_expression, [SQLInput(replace(v.value, '?' => QUESTION_MARK_REPLACEMENT)) for v in values], condition)
+end
+
 SQLWhereExpression(sql_expression::String, values...) = SQLWhereExpression(sql_expression, [values...])
 SQLWhereExpression(sql_expression::String) = SQLWhereExpression(sql_expression, SQLInput[])
 SQLWhereExpression(sql_expression::String, values::Dates.Date) = SQLWhereExpression(sql_expression, [SQLInput(string(values))])
@@ -339,6 +343,8 @@ function string(we::SQLWhereExpression)
 
     counter += 1
   end
+
+  result = replace(result, QUESTION_MARK_REPLACEMENT => '?')
 
   string(we.condition, " ", result)
 end
