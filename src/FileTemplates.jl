@@ -39,7 +39,7 @@ end
 
 """
 """
-function new_migration(module_name::String) :: String
+function newmigration(module_name::String) :: String
   """
   module $module_name
 

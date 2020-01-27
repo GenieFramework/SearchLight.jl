@@ -84,15 +84,15 @@ function new_table_migration(migration_name::String) :: Nothing
 end
 
 
-function new_migration(cmd_args::Dict{String,Any}) :: Nothing
+function newmigration(cmd_args::Dict{String,Any}) :: Nothing
   migration_name = replace(uppercasefirst(cmd_args["migration:new"]) |> lowercase, " "=>"_")
 
   Migration.new(migration_name)
 
   nothing
 end
-function new_migration(migration_name::String) :: Nothing
-  new_migration(Dict{String,Any}("migration:new" => migration_name))
+function newmigration(migration_name::String) :: Nothing
+  newmigration(Dict{String,Any}("migration:new" => migration_name))
 end
 
 

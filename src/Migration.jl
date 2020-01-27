@@ -65,10 +65,10 @@ function new(migration_name::String) :: Nothing
   ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
-    write(f, SearchLight.FileTemplates.new_migration(migration_module_name(migration_name)))
+    write(f, SearchLight.FileTemplates.newmigration(migration_module_name(migration_name)))
   end
 
-  @info "New table migration created at $mfn"
+  @info "New migration created at $(abspath(mfn))"
 
   nothing
 end

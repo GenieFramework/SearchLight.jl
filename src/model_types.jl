@@ -319,7 +319,7 @@ function SQLWhereExpression(sql_expression::String, values::Vector{SQLInput})
     sql_expression = parts[2:end] |> strip
   end
 
-  SQLWhereExpression(sql_expression, [SQLInput(replace(v.value, '?' => QUESTION_MARK_REPLACEMENT)) for v in values], condition)
+  SQLWhereExpression(sql_expression, [SQLInput(isa(v.value, AbstractString) ? replace(v.value, "?" => QUESTION_MARK_REPLACEMENT) : v.value) for v in values], condition)
 end
 
 SQLWhereExpression(sql_expression::String, values...) = SQLWhereExpression(sql_expression, [values...])

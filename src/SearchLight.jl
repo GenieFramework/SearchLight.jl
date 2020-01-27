@@ -2021,14 +2021,14 @@ end
 
 """
 """
-function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "")::String
+function column_id(name::String = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
   Database.DatabaseAdapter.column_id_sql(name, options, constraint = constraint, nextval = nextval)
 end
 
 
 """
 """
-function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none)::Nothing
+function add_index(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: Nothing
   Database.DatabaseAdapter.add_index_sql(table_name, column_name, name = name, unique = unique, order = order) |> SearchLight.query
 
   nothing
@@ -2037,7 +2037,7 @@ end
 
 """
 """
-function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false)::Nothing
+function add_column(table_name::String, name::String, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: Nothing
   Database.DatabaseAdapter.add_column_sql(table_name, name, column_type, default = default, limit = limit, not_null = not_null) |> SearchLight.query
 
   nothing
@@ -2046,7 +2046,7 @@ end
 
 """
 """
-function drop_table(name::String)::Nothing
+function drop_table(name::String) :: Nothing
   Database.DatabaseAdapter.drop_table_sql(name) |> SearchLight.query
 
   nothing
