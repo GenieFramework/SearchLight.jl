@@ -4,44 +4,16 @@ Core SearchLight configuration / settings functionality.
 module Configuration
 
 import Revise
-import YAML
-using SearchLight, SearchLight.Exceptions
+import YAML, Logging
+using SearchLight
 
-export isdev, isprod, istest, env, Settings, DEV, PROD, TEST
-
+export env, Settings
 # app environments
 const DEV   = "dev"
 const PROD  = "prod"
 const TEST  = "test"
 
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = DEV)
-
-
-"""
-    isdev()  :: Bool
-    isprod() :: Bool
-    istest() :: Bool
-
-Set of utility functions that return whether or not the current environment is development, production or testing.
-
-# Examples
-```julia
-julia> Configuration.isdev()
-true
-
-julia> Configuration.isprod()
-false
-```
-"""
-function isdev()::Bool
-  SearchLight.config.app_env == DEV
-end
-function isprod()::Bool
-  SearchLight.config.app_env == PROD
-end
-function istest()::Bool
-  SearchLight.config.app_env == TEST
-end
 
 
 """
@@ -78,13 +50,8 @@ Dict{Any,Any} with 6 entries:
 ```
 """
 function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
-  db_conn_data::Dict =  if endswith(db_settings_file, ".yml")
-                          open(db_settings_file) do io
-                            YAML.load(io)
-                          end
-                        elseif endswith(db_settings_file, ".jl")
-                          include(db_settings_file)
-                        end
+  endswith(db_settings_file, ".yml") || throw("Unknow configuration file type - expecting .yml")
+  db_conn_data::Dict =  YAML.load(open(db_settings_file))
 
   if  haskey(db_conn_data, "env") && db_conn_data["env"] !== nothing
     ENV["SEARCHLIGHT_ENV"] =  if strip(uppercase(string(db_conn_data["env"]))) == """ENV["GENIE_ENV"]"""
@@ -99,45 +66,30 @@ function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
   if  haskey(db_conn_data, SearchLight.config.app_env)
       if haskey(db_conn_data[SearchLight.config.app_env], "config") && isa(db_conn_data[SearchLight.config.app_env]["config"], Dict)
         for (k, v) in db_conn_data[SearchLight.config.app_env]["config"]
-          setfield!(SearchLight.config, Symbol(k), ((isa(v, String) && startswith(v, ":")) ? Symbol(v[2:end]) : v) )
+          if k == "log_level"
+            for dl in Dict("debug" => Logging.Debug, "error" => Logging.Error, "info" => Logging.Info, "warn" => Logging.Warn)
+              occursin(dl[1], v) && setfield!(SearchLight.config, Symbol(k), dl[2])
+            end
+          else
+            setfield!(SearchLight.config, Symbol(k), ((isa(v, String) && startswith(v, ":")) ? Symbol(v[2:end]) : v) )
+          end
         end
       end
 
       if ! haskey(db_conn_data[SearchLight.config.app_env], "options") || ! isa(db_conn_data[SearchLight.config.app_env]["options"], Dict)
         db_conn_data[SearchLight.config.app_env]["options"] = Dict{String,String}()
-      # elseif haskey(db_conn_data[SearchLight.config.app_env], "options") && isa(db_conn_data[SearchLight.config.app_env]["options"], Dict)
-      #     db_conn_data[SearchLight.config.app_env]["options"] = Dict(Symbol(k) => string(v) for (k,v) in db_conn_data[SearchLight.config.app_env]["options"])
       end
   end
 
-  return  if haskey(db_conn_data, SearchLight.config.app_env)
-            db_conn_data[SearchLight.config.app_env]
-          else
-            throw(MissingDatabaseConfigurationException("DB configuration for $(SearchLight.config.app_env) not found"))
-
-            Dict{String,Any}()
-          end
-end
-
-
-"""
-    load_db_connection() :: Bool
-
-Attempts to load the database configuration from file. Returns `true` if successful, otherwise `false`.
-"""
-function load_db_connection(path::Union{String,Nothing} = nothing) :: Dict{String,Any}
-  load_db_connection_from_config(path)
-end
-
-
-function load_db_connection_from_config(path::Union{String,Nothing} = nothing) :: Dict{String,Any}
-  db_config_file = path === nothing ? joinpath(SearchLight.DB_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME) : path
-  read_db_connection_data(db_config_file)
+  haskey(db_conn_data, SearchLight.config.app_env) ?
+    db_conn_data[SearchLight.config.app_env] :
+    throw(SearchLight.MissingDatabaseConfigurationException("DB configuration for $(SearchLight.config.app_env) not found"))
 end
 
 
 function load(path::Union{String,Nothing} = nothing) :: Dict{String,Any}
-  SearchLight.config.db_config_settings = load_db_connection(path)
+  db_config_file = path === nothing ? joinpath(SearchLight.DB_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME) : path
+  SearchLight.config.db_config_settings = read_db_connection_data(db_config_file)
 end
 
 
@@ -153,10 +105,8 @@ mutable struct Settings
   db_migrations_folder::String
   db_config_settings::Dict{String,Any}
 
-  log_db::Bool
   log_queries::Bool
-  log_level::Symbol
-  log_formatted::Bool
+  log_level::Logging.LogLevel
   log_to_file::Bool
 
   Settings(;
@@ -166,16 +116,14 @@ mutable struct Settings
             db_migrations_folder      = SearchLight.MIGRATIONS_PATH,
             db_config_settings        = Dict{String,Any}(),
 
-            log_db        = false,
             log_queries   = true,
-            log_level     = :debug,
-            log_formatted = true,
+            log_level     = Logging.Debug,
             log_to_file   = true
         ) =
               new(
                   app_env,
                   db_migrations_table_name, db_migrations_folder, db_config_settings,
-                  log_db, log_queries, log_level, log_formatted, log_to_file
+                  log_queries, log_level, log_to_file
                 )
 end
 

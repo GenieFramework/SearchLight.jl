@@ -5,7 +5,7 @@ module Migration
 
 import Revise
 import Millboard, Dates, Logging
-using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Database
+using SearchLight
 import Base.showerror
 
 
@@ -407,109 +407,36 @@ end
 const allup = all_up
 
 
-"""
-    function create_table() :: String
-
-Creates a new DB table.
-"""
-function create_table(f::Function, name::Union{String,Symbol}, options::String = "") :: Nothing
-  SearchLight.create_table(f, string(name), options)
-end
-
-const createtable = create_table
+function create_table end
 
 
-"""
-
-"""
-function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false) :: String
-  SearchLight.column_definition(string(name), column_type, options, default = default, limit = limit, not_null = not_null)
-end
+function column end
 
 
-"""
-
-"""
-function column_id(name::Union{String,Symbol} = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
-  SearchLight.column_id(string(name), options, constraint = constraint, nextval = nextval)
-end
-
+function column_id end
 const primary_key = column_id
-const primarykey = column_id
-const columnid = column_id
 
 
-"""
-
-"""
-function add_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}; name::Union{String,Symbol} = "", unique::Bool = false, order::Symbol = :none) :: Nothing
-  SearchLight.add_index(string(table_name), string(column_name), name = string(name), unique = unique, order = order)
-end
-
-const create_index = add_index
-const addindex = add_index
-const createindex = add_index
+function add_index end
 
 
-"""
-
-"""
-function add_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: Nothing
-  SearchLight.add_column(string(table_name), string(name), column_type, default = default, limit = limit, not_null = not_null)
-end
-
-const addcolumn = add_column
+function add_column end
 
 
-"""
-
-"""
-function drop_table(name::Union{String,Symbol}) :: Nothing
-  SearchLight.drop_table(string(name))
-end
-
-const droptable = drop_table
+function drop_table end
 
 
-"""
-
-"""
-function remove_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Nothing
-  SearchLight.remove_column(string(table_name), string(name))
-end
-
-const removecolumn = remove_column
+function remove_column end
 
 
-"""
-
-"""
-function remove_index_by_name(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Nothing
-  SearchLight.remove_index(string(table_name), string(name))
-end
-
-const removeindexbyname = remove_index_by_name
+function remove_index end
 
 
-"""
-
-"""
-function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
-  Migration.remove_index_by_name(string(table_name), SearchLight.Database.index_name(string(table_name), string(column_name)))
-end
-
-const removeindex = remove_index
-
-
-"""
-"""
 function create_sequence(name::Union{String,Symbol}) :: Nothing
   SearchLight.create_sequence(string(name))
 end
 
 
-"""
-"""
 function create_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
   SearchLight.create_sequence(sequence_name(table_name, column_name))
 end
@@ -553,23 +480,20 @@ function column_id_sequence(table_name::Union{String,Symbol}, column_name::Union
 end
 
 
-"""
-
-"""
 function remove_sequence_by_name(name::Union{String,Symbol}, options::String = "") :: Nothing
   SearchLight.remove_sequence(string(name), options)
 end
 
 
-"""
-
-"""
 function remove_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}, options::String = "") :: Nothing
   Migration.remove_sequence_by_name(sequence_name(string(table_name), string(column_name)), options)
 end
 
 const drop_sequence = remove_sequence
 const dropsequence = remove_sequence
+
+
+function create_migrations_table end
 
 end
 

@@ -1,0 +1,5 @@
+[deps]
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+SearchLight = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
+TestSetExtensions = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
+YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"

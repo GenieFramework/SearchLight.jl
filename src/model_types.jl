@@ -117,7 +117,7 @@ function escape_value(i::SQLInput) :: SQLInput
   (i.value == "NULL" || i.value == "NOT NULL") && return i
 
   if ! i.escaped && ! i.raw
-    i.value = Database.escape_value(i.value)
+    i.value = SearchLight.escape_value(i.value)
     i.escaped = true
   end
 
@@ -188,14 +188,15 @@ function escape_column_name(c::SQLColumn) :: SQLColumn
 
   c
 end
-function escape_column_name(s::String) :: String
-  join(
-    map(
-      x -> Database.escape_column_name(string(x))
-      , split(s, ".")
-    )
-    , ".")
-end
+
+# function escape_column_name(s::String) :: String
+#   join(
+#     map(
+#       x -> escape_column_name(string(x))
+#       , split(s, ".")
+#     )
+#     , ".")
+# end
 
 
 #

@@ -180,11 +180,11 @@ julia> PostgreSQLDatabaseAdapter.query(SearchLight.to_fetch_sql(Article, SQLQuer
 ```
 """
 function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: DataFrames.DataFrame
-  result = if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
-    DB_ADAPTER.execute(conn, sql)
-  else
+  result = if SearchLight.config.log_queries
     @info sql
     @time DB_ADAPTER.execute(conn, sql)
+  else
+    DB_ADAPTER.execute(conn, sql)
   end
 
   if ( DB_ADAPTER.error_message(result) != "" )
@@ -423,7 +423,7 @@ end
 
 """
 function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
-  name = isempty(name) ? SearchLight.Database.index_name(table_name, column_name) : name
+  name = isempty(name) ? SearchLight.index_name(table_name, column_name) : name
   "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
 end
 

@@ -195,14 +195,7 @@ function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: Data
 
   length(parts) == 2 && (parts[2] = SELECT_LAST_ID_QUERY_START * parts[2])
 
-  result =  if suppress_output || ( ! SearchLight.config.log_db && ! SearchLight.config.log_queries )
-              if length(parts) == 2
-                SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
-                SQLite.Query(conn, parts[2]) |> DataFrames.DataFrame
-              else
-                SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
-              end
-            else
+  result =  if SearchLight.config.log_queries
               if length(parts) == 2
                 @info parts[1]
                 @time SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
@@ -212,6 +205,13 @@ function query(sql::String, suppress_output::Bool, conn::DatabaseHandle) :: Data
               else
                 @info parts[1]
                 @time SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
+              end
+            else
+              if length(parts) == 2
+                SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
+                SQLite.Query(conn, parts[2]) |> DataFrames.DataFrame
+              else
+                SQLite.Query(conn, parts[1]) |> DataFrames.DataFrame
               end
             end
 
@@ -437,7 +437,7 @@ end
 
 """
 function add_index_sql(table_name::String, column_name::String; name::String = "", unique::Bool = false, order::Symbol = :none) :: String
-  name = isempty(name) ? SearchLight.Database.index_name(table_name, column_name) : name
+  name = isempty(name) ? SearchLight.index_name(table_name, column_name) : name
   "CREATE $(unique ? "UNIQUE" : "") INDEX $(name) ON $table_name ($column_name)"
 end
 
