@@ -37,8 +37,6 @@ function new_table_migration(module_name::String, resource::String) :: String
 end
 
 
-"""
-"""
 function newmigration(module_name::String) :: String
   """
   module $module_name
@@ -122,22 +120,6 @@ function adapter_default_config end
 
 
 function newconfig() :: String
-  # adapters[:postgres] = """
-  # $(SearchLight.config.app_env):
-  #   adapter:  PostgreSQL
-  #   host:     127.0.0.1
-  #   port:     5432
-  #   database: yourdb
-  #   username: root
-  #   password: ""
-  # """
-
-  # adapters[:sqlite] = """
-  # $(SearchLight.config.app_env):
-  #   adapter:  SQLite
-  #   filename: db/$(SearchLight.config.app_env).sqlite3
-  # """
-
   """
   env: $(SearchLight.config.app_env)
 
@@ -145,6 +127,25 @@ function newconfig() :: String
     config:
       log_queries: true
       log_level: :debug
+  """
+end
+
+
+"""
+    newtest(resource_name::String) :: String
+
+Default content for a new test file.
+"""
+function newtest(resource_name::String) :: String
+  """
+  using Test, SearchLight, $resource_name
+
+  @testset "$resource_name unit tests" begin
+
+    ### Your tests here
+    @test 1 == 1
+
+  end;
   """
 end
 

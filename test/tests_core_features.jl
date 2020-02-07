@@ -35,6 +35,6 @@
 
     @test isempty(SearchLight.query("SHOW TABLES")) == true
     @test SearchLight.Migration.create_migrations_table() == true
-    @test Array(SearchLight.query("SHOW TABLES")) == SearchLight.config.db_migrations_table_name
+    @test Array(SearchLight.query("SHOW TABLES"))[1] == SearchLight.config.db_migrations_table_name
   end;
 end

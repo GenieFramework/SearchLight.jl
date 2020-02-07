@@ -57,12 +57,10 @@ function newresource(resource_name::Union{String,Symbol}; pluralize::Bool = true
       @info "New $resource_type created at $(abspath(joinpath(resource_path, resource_file)))"
   end
 
-  isdir(SearchLight.TEST_PATH_UNIT) || mkpath(SearchLight.TEST_PATH_UNIT)
+  isdir(SearchLight.TEST_PATH) || mkpath(SearchLight.TEST_PATH)
   test_file = resource_name * SearchLight.TEST_FILE_IDENTIFIER |> lowercase
-  write_resource_file(SearchLight.TEST_PATH_UNIT, test_file, resource_name, :test, pluralize = pluralize) &&
-    @info "New unit test created at $(abspath(joinpath(SearchLight.TEST_PATH_UNIT, test_file)))"
-
-  SearchLight.load_resources()
+  write_resource_file(SearchLight.TEST_PATH, test_file, resource_name, :test, pluralize = pluralize) &&
+    @info "New unit test created at $(abspath(joinpath(SearchLight.TEST_PATH, test_file)))"
 
   nothing
 end
@@ -151,7 +149,7 @@ function write_resource_file(resource_path::String, file_name::String, resource_
         uname = SearchLight.Inflector.from_underscores(resource_name)
         uname = pluralize ? SearchLight.Inflector.to_plural(uname) : uname
 
-        write(f, FileTemplates.newtest(uname, resource_name, pluralize = pluralize))
+        write(f, FileTemplates.newtest(resource_name))
       end
     end
   catch ex

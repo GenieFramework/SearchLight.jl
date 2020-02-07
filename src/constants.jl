@@ -6,7 +6,6 @@ const LOG_PATH        = "log"
 const APP_PATH        = "app"
 const RESOURCES_PATH  = joinpath(APP_PATH, "resources")
 const TEST_PATH       = "test"
-const TEST_PATH_UNIT  = joinpath(TEST_PATH, "unit")
 const DB_PATH         = "db"
 const MIGRATIONS_PATH = joinpath(DB_PATH, MIGRATIONS_FOLDER_NAME)
 

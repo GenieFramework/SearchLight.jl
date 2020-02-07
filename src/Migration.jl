@@ -45,7 +45,7 @@ function new_table(migration_name::String, resource::String) :: Nothing
   ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
-    write(f, SearchLight.FileTemplates.new_table_migration(migration_module_name(migration_name), resource))
+    write(f, SearchLight.Generator.FileTemplates.new_table_migration(migration_module_name(migration_name), resource))
   end
 
   @info "New table migration created at $(abspath(mfn))"
@@ -65,7 +65,7 @@ function new(migration_name::String) :: Nothing
   ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
-    write(f, SearchLight.FileTemplates.newmigration(migration_module_name(migration_name)))
+    write(f, SearchLight.Generator.FileTemplates.newmigration(migration_module_name(migration_name)))
   end
 
   @info "New migration created at $(abspath(mfn))"
@@ -273,9 +273,9 @@ Persists the `direction` of the `migration` into the database.
 function store_migration_status(migration::DatabaseMigration, direction::Symbol; force = false) :: Nothing
   try
     if direction == :up
-      SearchLight.query("INSERT INTO $(SearchLight.config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", system_query = true)
+      SearchLight.query("INSERT INTO $(SearchLight.config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", internal = true)
     else
-      SearchLight.query("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", system_query = true)
+      SearchLight.query("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", internal = true)
     end
   catch ex
     @error ex
@@ -293,7 +293,7 @@ end
 List of all migrations that are `up`.
 """
 function upped_migrations() :: Vector{String}
-  result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC", system_query = true)
+  result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC", internal = true)
 
   String[string(x) for x = result[!, :version]]
 end
@@ -356,20 +356,18 @@ function all_with_status() :: Tuple{Vector{String},Dict{String,Dict{Symbol,Any}}
   indexes, result
 end
 
-const allwithstatus = all_with_status
-
 
 """
-    all_down() :: Nothing
+    all_down!!() :: Nothing
 
 Runs all migrations `down`.
 """
-function all_down(; confirm = true) :: Nothing
+function all_down!!(; confirm = true) :: Nothing
   if confirm
-    printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 5 seconds to cancel this. ", color = :yellow)
-    sleep(3)
-    printstyled("Running down all the migrations in 2 seconds. ", :yellow)
-    sleep(2)
+    printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 10 seconds to cancel this. ", color = :yellow)
+    sleep(5)
+    printstyled("Running down all the migrations in 5 seconds. ", :yellow)
+    sleep(5)
   end
 
   i, m = all_with_status()
@@ -383,15 +381,13 @@ function all_down(; confirm = true) :: Nothing
   nothing
 end
 
-const alldown = all_down
-
 
 """
-    all_up() :: Nothing
+    all_up!!() :: Nothing
 
 Runs all migrations `up`.
 """
-function all_up() :: Nothing
+function all_up!!() :: Nothing
   i, m = all_with_status()
   for v_hash in i
     v = m[v_hash]
@@ -403,8 +399,6 @@ function all_up() :: Nothing
 
   nothing
 end
-
-const allup = all_up
 
 
 function create_table end
@@ -440,8 +434,6 @@ end
 function create_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
   SearchLight.create_sequence(sequence_name(table_name, column_name))
 end
-
-const createsequence = create_sequence
 
 
 """
@@ -490,7 +482,6 @@ function remove_sequence(table_name::Union{String,Symbol}, column_name::Union{St
 end
 
 const drop_sequence = remove_sequence
-const dropsequence = remove_sequence
 
 
 function create_migrations_table end

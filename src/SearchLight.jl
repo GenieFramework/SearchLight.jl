@@ -912,18 +912,10 @@ function escape_value end
 
 
 # used by postgres
-function create_sequence(name::String)::Nothing
-  Database.DatabaseAdapter.create_sequence_sql(name) |> SearchLight.query
-
-  nothing
-end
+function create_sequence end
 
 
-function remove_sequence(name::String, options::String = "")::Nothing
-  Database.DatabaseAdapter.remove_sequence_sql(name, options) |> SearchLight.query
-
-  nothing
-end
+function remove_sequence end
 
 
 function index_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
@@ -941,7 +933,5 @@ end
 
 
 include("QueryBuilder.jl")
-
-include("adapters/MySQLAdapter.jl")
 
 end
