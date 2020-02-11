@@ -426,60 +426,20 @@ function remove_column end
 function remove_index end
 
 
-function create_sequence(name::Union{String,Symbol}) :: Nothing
-  SearchLight.create_sequence(string(name))
-end
+function create_sequence end
 
 
-function create_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
-  SearchLight.create_sequence(sequence_name(table_name, column_name))
-end
+function constraint end
 
 
-"""
-
-PostgreSQL specific.
-"""
-function sequence_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  string(table_name) * "__" * "seq_" * string(column_name)
-end
+function nextval end
 
 
-"""
-
-PostgreSQL specific.
-"""
-function constraint(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  string("CONSTRAINT ", SearchLight.index_name(table_name, column_name))
-end
+function column_id_sequence end
 
 
-"""
+function remove_sequence end
 
-PostgreSQL specific.
-"""
-function nextval(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  "NEXTVAL('$(sequence_name(table_name, column_name) )')"
-end
-
-
-"""
-
-PostgreSQL specific.
-"""
-function column_id_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol})
-  SearchLight.query("ALTER SEQUENCE $(sequence_name(table_name, column_name)) OWNED BY $table_name.$column_name")
-end
-
-
-function remove_sequence_by_name(name::Union{String,Symbol}, options::String = "") :: Nothing
-  SearchLight.remove_sequence(string(name), options)
-end
-
-
-function remove_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}, options::String = "") :: Nothing
-  Migration.remove_sequence_by_name(sequence_name(string(table_name), string(column_name)), options)
-end
 
 const drop_sequence = remove_sequence
 

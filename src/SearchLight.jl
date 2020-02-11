@@ -911,13 +911,6 @@ function escape_column_name end
 function escape_value end
 
 
-# used by postgres
-function create_sequence end
-
-
-function remove_sequence end
-
-
 function index_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
   string(table_name) * "__" * "idx_" * string(column_name)
 end
