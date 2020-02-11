@@ -5,7 +5,7 @@ module Migration
 
 import Revise
 import Millboard, Dates, Logging
-using SearchLight, SearchLight.FileTemplates, SearchLight.Configuration, SearchLight.Database
+using SearchLight
 import Base.showerror
 
 
@@ -45,7 +45,7 @@ function new_table(migration_name::String, resource::String) :: Nothing
   ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
-    write(f, SearchLight.FileTemplates.new_table_migration(migration_module_name(migration_name), resource))
+    write(f, SearchLight.Generator.FileTemplates.new_table_migration(migration_module_name(migration_name), resource))
   end
 
   @info "New table migration created at $(abspath(mfn))"
@@ -65,7 +65,7 @@ function new(migration_name::String) :: Nothing
   ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
 
   open(mfn, "w") do f
-    write(f, SearchLight.FileTemplates.newmigration(migration_module_name(migration_name)))
+    write(f, SearchLight.Generator.FileTemplates.newmigration(migration_module_name(migration_name)))
   end
 
   @info "New migration created at $(abspath(mfn))"
@@ -273,9 +273,9 @@ Persists the `direction` of the `migration` into the database.
 function store_migration_status(migration::DatabaseMigration, direction::Symbol; force = false) :: Nothing
   try
     if direction == :up
-      SearchLight.query("INSERT INTO $(SearchLight.config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", system_query = true)
+      SearchLight.query("INSERT INTO $(SearchLight.config.db_migrations_table_name) VALUES ('$(migration.migration_hash)')", internal = true)
     else
-      SearchLight.query("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", system_query = true)
+      SearchLight.query("DELETE FROM $(SearchLight.config.db_migrations_table_name) WHERE version = ('$(migration.migration_hash)')", internal = true)
     end
   catch ex
     @error ex
@@ -293,7 +293,7 @@ end
 List of all migrations that are `up`.
 """
 function upped_migrations() :: Vector{String}
-  result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC", system_query = true)
+  result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC", internal = true)
 
   String[string(x) for x = result[!, :version]]
 end
@@ -356,20 +356,18 @@ function all_with_status() :: Tuple{Vector{String},Dict{String,Dict{Symbol,Any}}
   indexes, result
 end
 
-const allwithstatus = all_with_status
-
 
 """
-    all_down() :: Nothing
+    all_down!!() :: Nothing
 
 Runs all migrations `down`.
 """
-function all_down(; confirm = true) :: Nothing
+function all_down!!(; confirm = true) :: Nothing
   if confirm
-    printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 5 seconds to cancel this. ", color = :yellow)
-    sleep(3)
-    printstyled("Running down all the migrations in 2 seconds. ", :yellow)
-    sleep(2)
+    printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 10 seconds to cancel this. ", color = :yellow)
+    sleep(5)
+    printstyled("Running down all the migrations in 5 seconds. ", :yellow)
+    sleep(5)
   end
 
   i, m = all_with_status()
@@ -383,15 +381,13 @@ function all_down(; confirm = true) :: Nothing
   nothing
 end
 
-const alldown = all_down
-
 
 """
-    all_up() :: Nothing
+    all_up!!() :: Nothing
 
 Runs all migrations `up`.
 """
-function all_up() :: Nothing
+function all_up!!() :: Nothing
   i, m = all_with_status()
   for v_hash in i
     v = m[v_hash]
@@ -404,172 +400,51 @@ function all_up() :: Nothing
   nothing
 end
 
-const allup = all_up
+
+function create_table end
 
 
-"""
-    function create_table() :: String
-
-Creates a new DB table.
-"""
-function create_table(f::Function, name::Union{String,Symbol}, options::String = "") :: Nothing
-  SearchLight.create_table(f, string(name), options)
-end
-
-const createtable = create_table
+function column end
 
 
-"""
-
-"""
-function column(name::Union{String,Symbol}, column_type::Symbol, options::String = ""; default::Any = nothing, limit::Union{Int,Nothing,String} = nothing, not_null::Bool = false) :: String
-  SearchLight.column_definition(string(name), column_type, options, default = default, limit = limit, not_null = not_null)
-end
-
-
-"""
-
-"""
-function column_id(name::Union{String,Symbol} = "id", options::String = ""; constraint::String = "", nextval::String = "") :: String
-  SearchLight.column_id(string(name), options, constraint = constraint, nextval = nextval)
-end
-
+function column_id end
 const primary_key = column_id
-const primarykey = column_id
-const columnid = column_id
 
 
-"""
-
-"""
-function add_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}; name::Union{String,Symbol} = "", unique::Bool = false, order::Symbol = :none) :: Nothing
-  SearchLight.add_index(string(table_name), string(column_name), name = string(name), unique = unique, order = order)
-end
-
-const create_index = add_index
-const addindex = add_index
-const createindex = add_index
+function add_index end
 
 
-"""
-
-"""
-function add_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}, column_type::Symbol; default::Any = nothing, limit::Union{Int,Nothing} = nothing, not_null::Bool = false) :: Nothing
-  SearchLight.add_column(string(table_name), string(name), column_type, default = default, limit = limit, not_null = not_null)
-end
-
-const addcolumn = add_column
+function add_column end
 
 
-"""
-
-"""
-function drop_table(name::Union{String,Symbol}) :: Nothing
-  SearchLight.drop_table(string(name))
-end
-
-const droptable = drop_table
+function drop_table end
 
 
-"""
-
-"""
-function remove_column(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Nothing
-  SearchLight.remove_column(string(table_name), string(name))
-end
-
-const removecolumn = remove_column
+function remove_column end
 
 
-"""
-
-"""
-function remove_index_by_name(table_name::Union{String,Symbol}, name::Union{String,Symbol}) :: Nothing
-  SearchLight.remove_index(string(table_name), string(name))
-end
-
-const removeindexbyname = remove_index_by_name
+function remove_index end
 
 
-"""
-
-"""
-function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
-  Migration.remove_index_by_name(string(table_name), SearchLight.Database.index_name(string(table_name), string(column_name)))
-end
-
-const removeindex = remove_index
+function create_sequence end
 
 
-"""
-"""
-function create_sequence(name::Union{String,Symbol}) :: Nothing
-  SearchLight.create_sequence(string(name))
-end
+function constraint end
 
 
-"""
-"""
-function create_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: Nothing
-  SearchLight.create_sequence(sequence_name(table_name, column_name))
-end
-
-const createsequence = create_sequence
+function nextval end
 
 
-"""
-
-PostgreSQL specific.
-"""
-function sequence_name(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  string(table_name) * "__" * "seq_" * string(column_name)
-end
+function column_id_sequence end
 
 
-"""
+function remove_sequence end
 
-PostgreSQL specific.
-"""
-function constraint(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  string("CONSTRAINT ", SearchLight.index_name(table_name, column_name))
-end
-
-
-"""
-
-PostgreSQL specific.
-"""
-function nextval(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}) :: String
-  "NEXTVAL('$(sequence_name(table_name, column_name) )')"
-end
-
-
-"""
-
-PostgreSQL specific.
-"""
-function column_id_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol})
-  SearchLight.query("ALTER SEQUENCE $(sequence_name(table_name, column_name)) OWNED BY $table_name.$column_name")
-end
-
-
-"""
-
-"""
-function remove_sequence_by_name(name::Union{String,Symbol}, options::String = "") :: Nothing
-  SearchLight.remove_sequence(string(name), options)
-end
-
-
-"""
-
-"""
-function remove_sequence(table_name::Union{String,Symbol}, column_name::Union{String,Symbol}, options::String = "") :: Nothing
-  Migration.remove_sequence_by_name(sequence_name(string(table_name), string(column_name)), options)
-end
 
 const drop_sequence = remove_sequence
-const dropsequence = remove_sequence
+
+
+function create_migrations_table end
 
 end
 

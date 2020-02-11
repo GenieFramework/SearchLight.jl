@@ -37,8 +37,6 @@ function new_table_migration(module_name::String, resource::String) :: String
 end
 
 
-"""
-"""
 function newmigration(module_name::String) :: String
   """
   module $module_name
@@ -118,42 +116,15 @@ function newvalidator(validator_name::String; pluralize::Bool = true) :: String
 end
 
 
-function new_db_config(adapter::Symbol = :sqlite) :: String
-  adapters = Dict{Symbol,String}()
+function adapter_default_config end
 
-  adapters[:mysql] = """
-  dev:
-    adapter:  MySQL
-    database: yourdb
-    host:     127.0.0.1
-    username: root
-    port:     3306
-    password: ""
+
+function newconfig() :: String
   """
+  env: $(SearchLight.config.app_env)
 
-  adapters[:postgres] = """
-  dev:
-    adapter:  PostgreSQL
-    database: yourdb
-    host:     127.0.0.1
-    username: root
-    port:     5432
-    password: ""
-  """
-
-  adapters[:sqlite] = """
-  dev:
-    adapter:  SQLite
-    filename: db/$(SearchLight.config.app_env).sqlite3
-  """
-
-
-  """
-  env: ENV["GENIE_ENV"]
-
-  $(adapters[adapter])
+  $(adapter_default_config())
     config:
-      log_db: true
       log_queries: true
       log_level: :debug
   """
@@ -161,56 +132,21 @@ end
 
 
 """
-    newtest(plural_name::String, singular_name::String) :: String
+    newtest(resource_name::String) :: String
 
 Default content for a new test file.
 """
-function newtest(plural_name::String, singular_name::String; pluralize::Bool = true) :: String
+function newtest(resource_name::String) :: String
   """
-  include(joinpath("..", "..", "$(SearchLight.SEARCHLIGHT_BOOTSTRAP_FILE_NAME)"))
-  using Test
+  using Test, SearchLight, $resource_name
 
-  ### Your tests here
-  @test 1 == 1
-  """
-end
+  @testset "$resource_name unit tests" begin
 
+    ### Your tests here
+    @test 1 == 1
 
-function new_app_loader(app_name::String)
-  """
-  module $app_name
-
-  using Revise
-  using SearchLight
-
-  Core.eval(SearchLight, :(config.db_config_settings = SearchLight.Configuration.load_db_connection()))
-
-  SearchLight.Database.setup_adapter()
-  SearchLight.Database.connect()
-  SearchLight.load_resources()
-
-  end
-
-  using Revise
-  using SearchLight, SearchLight.QueryBuilder
-  using .$app_name
+  end;
   """
 end
-
-
-function new_app_bootstrap(app_name::String)
-  """
-  include("$app_name.jl")
-  """
-end
-
-
-function new_app_info(app_name::String)
-  """
-  const __APP_NAME = "$app_name"
-  const __APP_FILE = "$app_name.jl"
-  """
-end
-
 
 end

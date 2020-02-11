@@ -5,8 +5,10 @@ module Generator
 
 import Revise
 import Unicode, Logging
-using SearchLight, SearchLight.FileTemplates, SearchLight.Inflector, SearchLight.Configuration, SearchLight.Migration
+using SearchLight
 
+include("FileTemplates.jl")
+using .FileTemplates
 
 """
     newmodel(cmd_args::Dict{String,Any}) :: Nothing
@@ -55,19 +57,15 @@ function newresource(resource_name::Union{String,Symbol}; pluralize::Bool = true
       @info "New $resource_type created at $(abspath(joinpath(resource_path, resource_file)))"
   end
 
-  isdir(SearchLight.TEST_PATH_UNIT) || mkpath(SearchLight.TEST_PATH_UNIT)
+  isdir(SearchLight.TEST_PATH) || mkpath(SearchLight.TEST_PATH)
   test_file = resource_name * SearchLight.TEST_FILE_IDENTIFIER |> lowercase
-  write_resource_file(SearchLight.TEST_PATH_UNIT, test_file, resource_name, :test, pluralize = pluralize) &&
-    @info "New unit test created at $(abspath(joinpath(SearchLight.TEST_PATH_UNIT, test_file)))"
-
-  SearchLight.load_resources()
+  write_resource_file(SearchLight.TEST_PATH, test_file, resource_name, :test, pluralize = pluralize) &&
+    @info "New unit test created at $(abspath(joinpath(SearchLight.TEST_PATH, test_file)))"
 
   nothing
 end
 
 
-"""
-"""
 function new_table_migration(cmd_args::Dict{String,Any}; pluralize::Bool = true) :: Nothing
   resource_name = uppercasefirst(cmd_args["migration:new"])
 
@@ -87,7 +85,7 @@ end
 function newmigration(cmd_args::Dict{String,Any}) :: Nothing
   migration_name = replace(uppercasefirst(cmd_args["migration:new"]) |> lowercase, " "=>"_")
 
-  Migration.new(migration_name)
+  SearchLight.Migration.new(migration_name)
 
   nothing
 end
@@ -126,7 +124,7 @@ function write_resource_file(resource_path::String, file_name::String, resource_
     if resource_type == :model
       resource_does_not_exist(resource_path, file_name) || return true
       open(joinpath(resource_path, file_name), "w") do f
-        write(f, SearchLight.FileTemplates.newmodel(resource_name, pluralize = pluralize))
+        write(f, FileTemplates.newmodel(resource_name, pluralize = pluralize))
       end
     end
   catch ex
@@ -137,7 +135,7 @@ function write_resource_file(resource_path::String, file_name::String, resource_
     if resource_type == :validator
       resource_does_not_exist(resource_path, file_name) || return true
       open(joinpath(resource_path, file_name), "w") do f
-        write(f, SearchLight.FileTemplates.newvalidator(resource_name, pluralize = pluralize))
+        write(f, FileTemplates.newvalidator(resource_name, pluralize = pluralize))
       end
     end
   catch ex
@@ -151,7 +149,7 @@ function write_resource_file(resource_path::String, file_name::String, resource_
         uname = SearchLight.Inflector.from_underscores(resource_name)
         uname = pluralize ? SearchLight.Inflector.to_plural(uname) : uname
 
-        write(f, SearchLight.FileTemplates.newtest(uname, resource_name, pluralize = pluralize))
+        write(f, FileTemplates.newtest(resource_name))
       end
     end
   catch ex
@@ -162,47 +160,19 @@ function write_resource_file(resource_path::String, file_name::String, resource_
 end
 
 
-"""
-"""
-function new_db_config(app_name::String = "App", adapter::Symbol = :mysql; create_folder::Bool = true, folder_name = lowercase(app_name)) :: Nothing
-  if create_folder
-    mkdir(folder_name)
-    cd(folder_name)
+function newconfig(path::String = SearchLight.DB_PATH; filename = SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME) :: Nothing
+  ispath(path) || mkpath(path)
+  filepath = joinpath(path, filename) |> abspath
+  open(filepath, "w") do io
+    write(io, FileTemplates.newconfig())
   end
 
-  isdir(SearchLight.CONFIG_PATH) || mkpath(SearchLight.CONFIG_PATH)
-  isdir(SearchLight.APP_PATH) || mkpath(SearchLight.APP_PATH)
-  isdir(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
-  if ! ispath(SearchLight.LOG_PATH)
-    mkpath(SearchLight.LOG_PATH)
-  end
-
-  open(joinpath(SearchLight.DB_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME), "w") do f
-    write(f, SearchLight.FileTemplates.new_db_config(adapter))
-  end
-
-  open(app_name * ".jl", "w") do f
-    write(f, SearchLight.FileTemplates.new_app_loader(app_name))
-  end
-
-  open(SearchLight.SEARCHLIGHT_BOOTSTRAP_FILE_NAME, "w") do f
-    write(f, SearchLight.FileTemplates.new_app_bootstrap(app_name))
-  end
-
-  open(SearchLight.SEARCHLIGHT_INFO_FILE_NAME, "w") do f
-    write(f, SearchLight.FileTemplates.new_app_info(app_name))
-  end
-
-  @info "New app ready at $(pwd())"
+  @info "New config file create at $(filepath)"
 
   nothing
 end
 
-const new_app = new_db_config
 
-
-"""
-"""
 function resource_does_not_exist(resource_path::String, file_name::String) :: Bool
   if isfile(joinpath(resource_path, file_name))
     @warn "File already exists, $(joinpath(resource_path, file_name)) - skipping"
@@ -214,36 +184,13 @@ function resource_does_not_exist(resource_path::String, file_name::String) :: Bo
 end
 
 
-"""
-"""
 function model_file_name(resource_name::Union{String,Symbol})
-  string(resource_name) * ".jl"
+  "$resource_name.jl"
 end
 
 
-"""
-"""
 function validator_file_name(resource_name::Union{String,Symbol})
-  string(resource_name) * SearchLight.SEARCHLIGHT_VALIDATOR_FILE_POSTFIX
-end
-
-
-"""
-"""
-function create_migrations_table()
-  SearchLight.create_migrations_table()
-end
-
-
-"""
-    init() :: Bool
-
-Sets up the DB tables used by SearchLight.
-"""
-function init() :: Bool
-  SearchLight.create_migrations_table(SearchLight.config.db_migrations_table_name)
+  string(resource_name, SearchLight.SEARCHLIGHT_VALIDATOR_FILE_POSTFIX)
 end
 
 end
-
-const Generators = Generator

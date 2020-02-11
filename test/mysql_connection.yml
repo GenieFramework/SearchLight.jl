@@ -1,0 +1,13 @@
+env: dev
+
+dev:
+  adapter:  MySQL
+  host:     127.0.0.1
+  port:     3306
+  database: searchlight_tests
+  username: root
+  password: root
+
+  config:
+    log_queries: true
+    log_level: :debug
