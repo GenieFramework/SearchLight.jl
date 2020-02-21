@@ -19,6 +19,12 @@ end
 MissingDatabaseConfigurationException() = MissingDatabaseConfigurationException("The database configuration can not be found")
 
 
+struct NotConnectedException <: Exception
+  msg::String
+end
+NotConnectedException() = NotConnectedException("SearchLight is not connected to the database")
+
+
 struct DatabaseAdapterException <: Exception
   msg::String
 end

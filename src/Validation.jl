@@ -109,13 +109,11 @@ end
 
 
 """
-    validate!(m::T)::Bool where {T<:AbstractModel}
+    validate(m::T)::Bool where {T<:AbstractModel}
 
 Validates `m`'s data. A `bool` is return and existing errors are pushed to the validator's error stack.
 """
-function validate!(m::T)::Bool where {T<:SearchLight.AbstractModel}
-  hasvalidator(m) || return true
-
+function validate(m::T)::Bool where {T<:SearchLight.AbstractModel}
   clear_errors!(m)
 
   for r in rules(m)
@@ -149,23 +147,9 @@ function errors(m::T)::Vector{ValidationError} where {T<:SearchLight.AbstractMod
 end
 
 
-"""
-    validator(m::T)::Union{Nothing,ModelValidator} where {T<:AbstractModel}
-
-`m`'s validator, wrapped in a Union{Nothing,ModelValidator}.
-"""
+# overwrite!
 function validator(m::T)::Union{Nothing,ModelValidator} where {T<:SearchLight.AbstractModel}
-  hasvalidator(m) ? m.validator : nothing
-end
-
-
-"""
-    hasvalidator(m::T)::Bool where {T<:AbstractModel}
-
-Whether or not `m` has a validator defined.
-"""
-function hasvalidator(m::T)::Bool where {T<:SearchLight.AbstractModel}
-  SearchLight.hasfield(m, :validator)
+  nothing
 end
 
 

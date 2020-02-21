@@ -1,4 +1,4 @@
-module FoosValidator
+module CarsValidator
 
 using SearchLight, SearchLight.Validation
 

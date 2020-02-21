@@ -11,25 +11,20 @@ include("FileTemplates.jl")
 using .FileTemplates
 
 """
-    newmodel(cmd_args::Dict{String,Any}) :: Nothing
+    newmodel(name::Union{String,Symbol}; path::Union{String,Nothing} = nothing, pluralize::Bool = true) :: Nothing
 
 Generates a new SearchLight model file and persists it to the resources folder.
 """
-function newmodel(cmd_args::Dict{String,Any}; pluralize::Bool = true) :: Nothing
-  resource_name = uppercasefirst(cmd_args["model:new"])
+function newmodel(name::Union{String,Symbol}; path::Union{String,Nothing} = nothing, pluralize::Bool = true) :: Nothing
+  name = string(name) |> uppercasefirst
+  model_name = SearchLight.Inflector.is_singular(name) ? SearchLight.Inflector.to_plural(name) : name
 
-  SearchLight.Inflector.is_singular(resource_name) &&
-    (resource_name = SearchLight.Inflector.to_plural(resource_name))
-
-  resource_path = setup_resource_path(resource_name)
-  mfn = model_file_name(resource_name)
-  write_resource_file(resource_path, mfn, resource_name, :model, pluralize = pluralize) &&
-    @info "New model created at $(abspath(joinpath(resource_path, mfn)))"
+  model_path = setup_resource_path(model_name, path)
+  mfn = model_file_name(model_name)
+  write_resource_file(model_path, mfn, model_name, :model, pluralize = pluralize) &&
+    @info "New model created at $(abspath(joinpath(model_path, mfn)))"
 
   nothing
-end
-function newmodel(resource_name::Union{String,Symbol}) :: Nothing
-  newresource(resource_name)
 end
 
 
@@ -38,20 +33,20 @@ end
 
 Generates all the files associated with a new resource and persists them to the resources folder.
 """
-function newresource(resource_name::Union{String,Symbol}; pluralize::Bool = true) :: Nothing
+function newresource(resource_name::Union{String,Symbol}; path::Union{String,Nothing} = nothing, pluralize::Bool = true) :: Nothing
   resource_name = string(resource_name)
 
   sf = SearchLight.Inflector.tosingular(resource_name)
 
   model_name = (sf === nothing ? resource_name : sf) |> uppercasefirst
-  newmodel(Dict{String,Any}("model:new" => model_name), pluralize = pluralize)
-  new_table_migration(Dict{String,Any}("migration:new" => resource_name), pluralize = pluralize)
+  newmodel(model_name, path = path, pluralize = pluralize)
+  new_table_migration(resource_name, pluralize = pluralize)
 
   resource_name = uppercasefirst(resource_name)
   pluralize && SearchLight.Inflector.is_singular(resource_name) &&
     (resource_name = SearchLight.Inflector.to_plural(resource_name))
 
-  resource_path = setup_resource_path(resource_name)
+  resource_path = setup_resource_path(resource_name, path)
   for (resource_file, resource_type) in [(validator_file_name(resource_name), :validator)]
     write_resource_file(resource_path, resource_file, resource_name, resource_type, pluralize = pluralize) &&
       @info "New $resource_type created at $(abspath(joinpath(resource_path, resource_file)))"
@@ -66,8 +61,8 @@ function newresource(resource_name::Union{String,Symbol}; pluralize::Bool = true
 end
 
 
-function new_table_migration(cmd_args::Dict{String,Any}; pluralize::Bool = true) :: Nothing
-  resource_name = uppercasefirst(cmd_args["migration:new"])
+function new_table_migration(migration_name::Union{String,Symbol}; pluralize::Bool = true) :: Nothing
+  resource_name = uppercasefirst(string(migration_name))
 
   SearchLight.Inflector.is_singular(resource_name) && pluralize &&
     (resource_name = SearchLight.Inflector.to_plural(resource_name))
@@ -77,20 +72,14 @@ function new_table_migration(cmd_args::Dict{String,Any}; pluralize::Bool = true)
 
   nothing
 end
-function new_table_migration(migration_name::String) :: Nothing
-  new_table_migration(Dict{String,Any}("migration:new" => migration_name))
-end
 
 
-function newmigration(cmd_args::Dict{String,Any}) :: Nothing
-  migration_name = replace(uppercasefirst(cmd_args["migration:new"]) |> lowercase, " "=>"_")
+function newmigration(migration_name::Union{String,Symbol}) :: Nothing
+  migration_name = replace(uppercasefirst(string(migration_name)) |> lowercase, " "=>"_")
 
   SearchLight.Migration.new(migration_name)
 
   nothing
-end
-function newmigration(migration_name::String) :: Nothing
-  newmigration(Dict{String,Any}("migration:new" => migration_name))
 end
 
 
@@ -99,9 +88,10 @@ end
 
 Computes and creates the directories structure needed to persist a new resource.
 """
-function setup_resource_path(resource_name::String) :: String
-  resources_dir = SearchLight.RESOURCES_PATH
-  resource_path = joinpath(resources_dir, lowercase(resource_name))
+function setup_resource_path(resource_name::String, path::Union{String,Nothing} = nothing) :: String
+  resource_path = path === nothing ?
+                  joinpath(SearchLight.RESOURCES_PATH, lowercase(resource_name)) :
+                  path
 
   if ! isdir(resource_path)
     mkpath(resource_path)

@@ -3,7 +3,7 @@ Functionality for handling the default content of the various files (migrations,
 """
 module FileTemplates
 
-using SearchLight, SearchLight.Inflector
+using SearchLight
 
 
 """
@@ -62,31 +62,16 @@ end
 Default content for a new SearchLight model.
 """
 function newmodel(model_name::String, resource_name::String = model_name; pluralize::Bool = true) :: String
-  pluralized_name = SearchLight.Inflector.to_plural(model_name)
-  table_name = SearchLight.Inflector.to_plural(resource_name) |> lowercase
-
   """
-  module $pluralized_name
+  module $(SearchLight.Inflector.to_plural(model_name))
 
-  using SearchLight
+  import SearchLight: AbstractModel, DbId
+  import Base: @kwdef
 
   export $model_name
 
-  mutable struct $model_name <: AbstractModel
-    ### INTERNALS
-    _table_name::String
-    _id::String
-
-    ### FIELDS
-    id::DbId
-
-    ### constructor
-    $model_name(;
-      ### FIELDS
-      id = DbId()
-    ) = new("$table_name", "id",                                                 ### INTERNALS
-            id                                                                   ### FIELDS
-            )
+  @kwdef mutable struct $model_name <: AbstractModel
+    id::DbId = DbId()
   end
 
   end
