@@ -242,7 +242,7 @@ SQLWhere(column::Any, value::Any) = SQLWhere(SQLColumn(column), SQLInput(value))
 
 string(w::SQLWhere) = "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
 function string(w::SQLWhere, m::T) where {T <: AbstractModel}
-  w.column = SQLColumn(w.column.value, escaped = w.column.escaped, raw = w.column.raw, table_name = m._table_name)
+  w.column = SQLColumn(w.column.value, escaped = w.column.escaped, raw = w.column.raw, table_name = table(m))
   "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
 end
 print(io::IO, w::T) where {T<:SQLWhere} = print(io, searchlightabstracttype_to_print(w))
@@ -525,7 +525,7 @@ SQLJoin(model_name::Type{T},
 
 function string(j::SQLJoin)
   _m = j.model_name()
-  sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(Util.add_quotes(_m._table_name)) $(string(j.on)) """
+  sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(add_quotes(table(_m))) $(string(j.on)) """
   sql *=  if ! isempty(j.where)
           SearchLight.to_where_part(j.where)
         else
