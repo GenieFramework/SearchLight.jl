@@ -362,6 +362,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
 
                 row[field]
               end
+
             elseif isdefined(_m, :on_find)
               try
                 value = _m.on_find(_m, unq_field, row[field])
@@ -377,8 +378,8 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
               row[field]
             end
 
-    value = if in(:_serializable, fieldnames(typeof(_m))) && isa(_m._serializable, Vector{Symbol}) && in(unq_field, _m._serializable)
-              Serializer.deserialize(value)
+    value = if in(unq_field, Serializer.serializables(m))
+              Serializer.deserialize(typeof(getfield(_m, unq_field)), value)
             else
               value
             end
@@ -599,7 +600,7 @@ function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractMod
             value
           end
 
-  value = if in(:_serializable, fieldnames(typeof(m))) && isa(m._serializable, Vector{Symbol}) && in(field, m._serializable)
+  value = if in(field, Serializer.serializables(typeof(m)))
             Serializer.serialize(value)
           else
             value
