@@ -22,6 +22,7 @@ include("Migration.jl")
 include("Util.jl")
 include("Validation.jl")
 include("Generator.jl")
+include("Serializer.jl")
 
 import .Util, .Validation
 import .Inflector
@@ -37,10 +38,6 @@ export validator
 
 export ispersisted
 export primary_key_name, table_name
-
-include("serializers/JSONSerializer.jl")
-using .JSONSerializer
-const Serializer = JSONSerializer
 
 #######################
 
