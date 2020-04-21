@@ -241,7 +241,7 @@ SQLWhere(column::SQLColumn, value::SQLInput) = SQLWhere(column, value, SQLLogicO
 SQLWhere(column::Any, value::Any) = SQLWhere(SQLColumn(column), SQLInput(value))
 
 string(w::SQLWhere) = "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
-function string(w::SQLWhere, m::T) where {T <: AbstractModel}
+function string(w::SQLWhere, m::Type{T}) where {T <: AbstractModel}
   w.column = SQLColumn(w.column.value, escaped = w.column.escaped, raw = w.column.raw, table_name = table(m))
   "$(w.condition.value) ($(w.column) $(w.operator) $(enclosure(w.value, w.operator)))"
 end
@@ -524,8 +524,7 @@ SQLJoin(model_name::Type{T},
         columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin(model_name, SQLOn(on_column_1, on_column_2), join_type = join_type, outer = outer, where = where, natural = natural, columns = columns)
 
 function string(j::SQLJoin)
-  _m = j.model_name()
-  sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(add_quotes(table(_m))) $(string(j.on)) """
+  sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(add_quotes(table(j.model_name))) $(string(j.on)) """
   sql *=  if ! isempty(j.where)
           SearchLight.to_where_part(j.where)
         else

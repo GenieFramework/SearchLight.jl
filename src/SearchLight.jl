@@ -29,7 +29,6 @@ export all, count # min, max, mean, median
 export findone_or_create, createwith, updateby_or_create, update_or_create
 export save, save!, save!!, updatewith!, updatewith!!
 export deleteall, delete
-export validator
 
 export ispersisted
 export pk, table
@@ -66,21 +65,21 @@ function DataFrames.DataFrame(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{S
   query(sql(m, q, j))::DataFrames.DataFrame
 end
 
-function DataFrames.DataFrame(m::Type{T}; order = SQLOrder(pk(m())))::DataFrames.DataFrame where {T<:AbstractModel}
+function DataFrames.DataFrame(m::Type{T}; order = SQLOrder(pk(m)))::DataFrames.DataFrame where {T<:AbstractModel}
   DataFrame(m, SQLQuery(order = order))
 end
 
-function DataFrames.DataFrame(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(pk(m())))::DataFrames.DataFrame where {T<:AbstractModel}
+function DataFrames.DataFrame(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(pk(m)))::DataFrames.DataFrame where {T<:AbstractModel}
   DataFrame(m, SQLQuery(where = [w], order = order))
 end
 
-function DataFrames.DataFrame(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(pk(m())))::DataFrames.DataFrame where {T<:AbstractModel}
+function DataFrames.DataFrame(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(pk(m)))::DataFrames.DataFrame where {T<:AbstractModel}
   DataFrame(m, SQLQuery(where = w, order = order))
 end
 
-function DataFrames.DataFrame(args...)::DataFrames.DataFrame
-  DataFrame(args...)
-end
+# function DataFrames.DataFrame(args...)::DataFrames.DataFrame
+#   DataFrame(args...)
+# end
 
 
 function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
@@ -88,17 +87,17 @@ function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = no
 end
 
 function find(m::Type{T}, w::SQLWhereEntity;
-                      order = SQLOrder(pk(m())))::Vector{T} where {T<:AbstractModel}
+                      order = SQLOrder(pk(m)))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [w], order = order))
 end
 
 function find(m::Type{T}, w::Vector{SQLWhereEntity};
-                      order = SQLOrder(pk(m())))::Vector{T} where {T<:AbstractModel}
+                      order = SQLOrder(pk(m)))::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = w, order = order))
 end
 
 function find(m::Type{T};
-                      order = SQLOrder(pk(m())),
+                      order = SQLOrder(pk(m)),
                       limit = SQLLimit(),
                       where_conditions...)::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions], order = order, limit = limit))
@@ -120,7 +119,7 @@ function randone(m::Type{T})::Union{Nothing,T} where {T<:AbstractModel}
 end
 
 
-function Base.all(m::Type{T}; columns::Vector{SQLColumn} = SQLColumn[], order = SQLOrder(pk(m())), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
+function Base.all(m::Type{T}; columns::Vector{SQLColumn} = SQLColumn[], order = SQLOrder(pk(m)), limit::Union{Int,SQLLimit,String} = SQLLimit("ALL"), offset::Int = 0)::Vector{T} where {T<:AbstractModel}
   find(m, SQLQuery(columns = columns, order = order, limit = limit, offset = offset))
 end
 
@@ -129,12 +128,12 @@ function Base.all(m::Type{T}, query::SQLQuery)::Vector{T} where {T<:AbstractMode
 end
 
 
-function Base.first(m::Type{T}; order = SQLOrder(pk(m())))::Union{Nothing,T} where {T<:AbstractModel}
+function Base.first(m::Type{T}; order = SQLOrder(pk(m)))::Union{Nothing,T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> onereduce
 end
 
 
-function Base.last(m::Type{T}; order = SQLOrder(pk(m()), :desc))::Union{Nothing,T} where {T<:AbstractModel}
+function Base.last(m::Type{T}; order = SQLOrder(pk(m), :desc))::Union{Nothing,T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> onereduce
 end
 
@@ -176,7 +175,7 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
 
   n === nothing && throw(SearchLight.Exceptions.UnretrievedModelException(typeof(m), id))
 
-  db_fields = persistable_fields(m)
+  db_fields = persistable_fields(typeof(m))
   @sync Distributed.@distributed for f in fieldnames(typeof(m))
     in(string(f), db_fields) && setfield!(m, f, getfield(n, f))
   end
@@ -320,17 +319,16 @@ function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:Ab
   dfs = dataframes_by_table(m, df)
 
   row_count::Int = 1
-  __m::T = m()
   for row in eachrow(df)
-    main_model::T = to_model!!(m, dfs[table(__m)][row_count, :])
+    main_model::T = to_model!!(m, dfs[table(m)][row_count, :])
 
-    if haskey(models, getfield(main_model, Symbol(pk(__m))).value)
-      main_model = models[getfield(main_model, Symbol(pk(__m))).value]
+    if haskey(models, getfield(main_model, Symbol(pk(m))).value)
+      main_model = models[getfield(main_model, Symbol(pk(m))).value]
     end
 
-    if ! haskey(models, getfield(main_model, Symbol(pk(__m))).value) &&
-          getfield(main_model, Symbol(pk(__m))).value !== nothing
-      models[DbId(getfield(main_model, Symbol(pk(__m))).value)] = main_model
+    if ! haskey(models, getfield(main_model, Symbol(pk(m))).value) &&
+          getfield(main_model, Symbol(pk(m))).value !== nothing
+      models[DbId(getfield(main_model, Symbol(pk(m))).value)] = main_model
     end
 
     row_count += 1
@@ -343,11 +341,11 @@ end
 function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
   _m::T = m()
   obj::T = m()
-  sf = settable_fields(_m, row)
+  sf = settable_fields(m, row)
   set_fields = Symbol[]
 
   for field in sf
-    unq_field = from_fully_qualified(_m, field)
+    unq_field = from_fully_qualified(m, field)
 
     ismissing(row[field]) && continue # if it's NA we just leave the default value of the empty obj
 
@@ -436,32 +434,33 @@ end
 
 
 function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
-  _m::T = m()
-
   sp = if ! isempty(cols)
     table_columns = []
     cols = vcat(cols, columns_from_joins(joins))
 
     for column in cols
-      push!(table_columns, prepare_column_name(column, _m))
+      push!(table_columns, prepare_column_name(column, m))
     end
 
     join(table_columns, ", ")
   else
-    tbl_cols = join(SearchLight.to_fully_qualified_sql_column_names(_m, SearchLight.persistable_fields(_m), escape_columns = true), ", ")
-    table_columns = isempty(tbl_cols) ? String[] : vcat(tbl_cols, map(x -> prepare_column_name(x, _m), columns_from_joins(joins)))
+    tbl_cols = join(SearchLight.to_fully_qualified_sql_column_names(m, SearchLight.persistable_fields(m), escape_columns = true), ", ")
+    table_columns = isempty(tbl_cols) ? String[] : vcat(tbl_cols, map(x -> prepare_column_name(x, m), columns_from_joins(joins)))
 
     join(table_columns, ", ")
   end
 
   string("SELECT ", sp)
 end
+
 function to_select_part(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
   to_select_part(m, [c])
 end
+
 function to_select_part(m::Type{T}, c::String)::String where {T<:AbstractModel}
   to_select_part(m, SQLColumn(c, raw = c == "*"))
 end
+
 function to_select_part(m::Type{T})::String where {T<:AbstractModel}
   to_select_part(m, SQLColumn[])
 end
@@ -516,13 +515,13 @@ end
 function column_data_to_column_name end
 
 
-function prepare_column_name(column::SearchLight.SQLColumn, _m::T)::String where {T<:SearchLight.AbstractModel}
+function prepare_column_name(column::SearchLight.SQLColumn, m::Type{T})::String where {T<:SearchLight.AbstractModel}
   if column.raw
     column.value |> string
   else
     column_data::Dict{Symbol,Any} = SearchLight.from_literal_column_name(column.value)
     if ! haskey(column_data, :table_name)
-      column_data[:table_name] = SearchLight.table(_m)
+      column_data[:table_name] = SearchLight.table(m)
     end
     if ! haskey(column_data, :alias)
       column_data[:alias] = ""
@@ -572,7 +571,7 @@ function dataframes_by_table(tables_names::Vector{String}, tables_columns::Dict{
   sub_dfs
 end
 function dataframes_by_table(m::Type{T}, df::DataFrames.DataFrame)::Dict{String,DataFrames.DataFrame} where {T<:AbstractModel}
-  tables_names = String[table(m())]
+  tables_names = String[table(m)]
 
   dataframes_by_table(tables_names, columns_names_by_table(tables_names, df), df)
 end
@@ -667,15 +666,15 @@ end
 function column_field_name end
 
 
-function persistable_fields(m::T; fully_qualified::Bool = false)::Vector{String} where {T<:AbstractModel}
-  object_fields = [map(x -> string(x), fieldnames(typeof(m)))...]
+function persistable_fields(m::Type{T}; fully_qualified::Bool = false)::Vector{String} where {T<:AbstractModel}
+  object_fields = [map(x -> string(x), fieldnames(m))...]
   fully_qualified ? to_fully_qualified_sql_column_names(m, object_fields) : object_fields
 end
 
 
-function settable_fields(m::T, row::DataFrames.DataFrameRow)::Vector{Symbol} where {T<:AbstractModel}
+function settable_fields(m::Type{T}, row::DataFrames.DataFrameRow)::Vector{Symbol} where {T<:AbstractModel}
   df_cols::Vector{Symbol} = names(row)
-  fields = is_fully_qualified(m, df_cols[1]) ? to_sql_column_names(m, fieldnames(typeof(m))) : fieldnames(typeof(m))
+  fields = is_fully_qualified(m, df_cols[1]) ? to_sql_column_names(m, fieldnames(m)) : fieldnames(m)
 
   intersect(fields, df_cols)
 end
@@ -686,39 +685,32 @@ end
 #
 
 
-function table(m::T)::String where {T<:AbstractModel}
-  SearchLight.Inflector.to_plural(string(typeof(m))) |> lowercase
-end
 function table(m::Type{T})::String where {T<:AbstractModel}
-  table(m())
+  SearchLight.Inflector.to_plural(string(m) |> strip_module_name) |> lowercase
 end
 
 
 function pk(m::T)::String where {T<:AbstractModel}
-  "id"
+  pk(typeof(m))
 end
 
+
 function pk(m::Type{T})::String where {T<:AbstractModel}
-  pk(m())
+  "id"
 end
 
 const primary_key_name = pk
 
 
-function hasfield(m::T, f::Symbol)::Bool where {T<:AbstractModel}
-  isdefined(m, f)
-end
-
-
-function strip_table_name(m::T, f::Symbol)::Symbol where {T<:AbstractModel}
+function strip_table_name(m::Type{T}, f::Symbol)::Symbol where {T<:AbstractModel}
   replace(string(f), Regex("^$(table(m))_") => "", count = 1) |> Symbol
 end
 
 
-function is_fully_qualified(m::T, f::Symbol)::Bool where {T<:AbstractModel}
+function is_fully_qualified(m::Type{T}, f::Symbol)::Bool where {T<:AbstractModel}
   startswith(string(f), table(m)) && hasfield(m, strip_table_name(m, f))
 end
-function is_fully_qualified(t::T)::Bool where {T<:SQLType}
+function is_fully_qualified(t::Type{T})::Bool where {T<:SQLType}
   replace(t |> string, "\""=>"") |> string |> is_fully_qualified
 end
 
@@ -728,7 +720,7 @@ function is_fully_qualified(s::String)::Bool
 end
 
 
-function from_fully_qualified(m::T, f::Symbol)::Symbol where {T<:AbstractModel}
+function from_fully_qualified(m::Type{T}, f::Symbol)::Symbol where {T<:AbstractModel}
   is_fully_qualified(m, f) ? strip_table_name(m, f) : f
 end
 
@@ -740,13 +732,13 @@ function from_fully_qualified(s::String)::Tuple{String,String}
 
   (string(x),string(y))
 end
-function from_fully_qualified(t::T)::Tuple{String,String} where {T<:SQLType}
+function from_fully_qualified(t::Type{T})::Tuple{String,String} where {T<:SQLType}
   replace(t |> string, "\""=>"") |> string |> from_fully_qualified
 end
 
 
-function strip_module_name(s::String)::String
-  split(s, ".") |> last
+function strip_module_name(s::Any)::String
+  split(string(s), ".") |> last
 end
 
 
@@ -755,22 +747,19 @@ function to_fully_qualified(v::String, t::String)::String
 end
 
 
-function to_fully_qualified(m::T, v::String)::String where {T<:AbstractModel}
+function to_fully_qualified(m::Type{T}, v::String)::String where {T<:AbstractModel}
   to_fully_qualified(v, table(m))
 end
-function to_fully_qualified(m::T, c::SQLColumn)::String where {T<:AbstractModel}
+function to_fully_qualified(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
   c.raw && return c.value
   to_fully_qualified(c.value, table(m))
 end
-function to_fully_qualified(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
-  to_fully_qualified(m(), c)
-end
 
 
-function to_sql_column_names(m::T, fields::Vector{Symbol})::Vector{Symbol} where {T<:AbstractModel}
+function to_sql_column_names(m::Type{T}, fields::Vector{Symbol})::Vector{Symbol} where {T<:AbstractModel}
   map(x -> (to_sql_column_name(m, string(x))) |> Symbol, fields)
 end
-function to_sql_column_names(m::T, fields::Tuple)::Vector{Symbol} where {T<:AbstractModel}
+function to_sql_column_names(m::Type{T}, fields::Tuple)::Vector{Symbol} where {T<:AbstractModel}
   to_sql_column_names(m, Symbol[fields...])
 end
 
@@ -783,20 +772,20 @@ function to_sql_column_name(v::String, t::String)::String
     str
   end
 end
-function to_sql_column_name(m::T, v::String)::String where {T<:AbstractModel}
+function to_sql_column_name(m::Type{T}, v::String)::String where {T<:AbstractModel}
   to_sql_column_name(v, table(m))
 end
-function to_sql_column_name(m::T, c::SQLColumn)::String where {T<:AbstractModel}
+function to_sql_column_name(m::Type{T}, c::SQLColumn)::String where {T<:AbstractModel}
   to_sql_column_name(c.value, table(m))
 end
 
 
-function to_fully_qualified_sql_column_names(m::T, persistable_fields::Vector{String}; escape_columns::Bool = false)::Vector{String} where {T<:AbstractModel}
+function to_fully_qualified_sql_column_names(m::Type{T}, persistable_fields::Vector{String}; escape_columns::Bool = false)::Vector{String} where {T<:AbstractModel}
   map(x -> to_fully_qualified_sql_column_name(m, x, escape_columns = escape_columns), persistable_fields)
 end
 
 
-function to_fully_qualified_sql_column_name(m::T, f::String; escape_columns::Bool = false, alias::String = "")::String where {T<:AbstractModel}
+function to_fully_qualified_sql_column_name(m::Type{T}, f::String; escape_columns::Bool = false, alias::String = "")::String where {T<:AbstractModel}
   if escape_columns
     "$(to_fully_qualified(m, f) |> escape_column_name) AS $(isempty(alias) ? (to_sql_column_name(m, f) |> escape_column_name) : alias)"
   else
@@ -829,18 +818,13 @@ function from_literal_column_name(c::String)::Dict{Symbol,String}
 end
 
 
-function to_dict(m::T; all_fields::Bool = false)::Dict{String,Any} where {T<:AbstractModel}
-  Dict( string(f) => Util.expand_nullable( getfield(m, Symbol(f)) ) for f in (all_fields ? fieldnames(typeof(m)) : persistable_fields(m)) )
-end
-
-
 function to_dict(m::Any)::Dict{String,Any}
   Dict(string(f) => getfield(m, Symbol(f)) for f in fieldnames(typeof(m)))
 end
 
 
 function to_string_dict(m::T; all_fields::Bool = false, all_output::Bool = false)::Dict{String,String} where {T<:AbstractModel}
-  fields = all_fields ? fieldnames(typeof(m)) : persistable_fields(m)
+  fields = all_fields ? fieldnames(typeof(m)) : persistable_fields(typeof(m))
   response = Dict{String,String}()
 
   for f in fields
@@ -860,16 +844,6 @@ function to_string_dict(m::Any, fields::Vector{Symbol}; all_output::Bool = false
   end
 
   response
-end
-
-
-function dataframe_to_dict(df::DataFrames.DataFrame)::Vector{Dict{Symbol,Any}}
-  result = Dict{Symbol,Any}[]
-  for r in eachrow(df)
-    push!(result, Dict{Symbol,Any}( [k => r[k] for k in DataFrames.names(df)] ) )
-  end
-
-  result
 end
 
 
