@@ -298,7 +298,6 @@ function upped_migrations() :: Vector{String}
   if DataFrames.nrow(result) > 0
     String[string(x) for x = result[!, :version]]
   else
-    @warn "No migrations available"
     String[]
   end
 end
