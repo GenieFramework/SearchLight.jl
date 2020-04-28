@@ -175,9 +175,9 @@ version = "0.2.0"
 
 [[Revise]]
 deps = ["CodeTracking", "Distributed", "FileWatching", "JuliaInterpreter", "LibGit2", "LoweredCodeUtils", "OrderedCollections", "Pkg", "REPL", "UUIDs", "Unicode"]
-git-tree-sha1 = "fceff536216ee787aee07247172dd7b372c39714"
+git-tree-sha1 = "a0a8be8022bd76a7f7d80f0ae2c3d66427b25f29"
 uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
-version = "2.6.1"
+version = "2.6.4"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"

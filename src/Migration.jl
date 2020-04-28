@@ -4,7 +4,7 @@ Provides functionality for working with database migrations.
 module Migration
 
 import Revise
-import Millboard, Dates, Logging
+import Millboard, Dates, Logging, DataFrames
 using SearchLight
 import Base.showerror
 
@@ -293,9 +293,14 @@ end
 List of all migrations that are `up`.
 """
 function upped_migrations() :: Vector{String}
-  result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC", internal = true)
+  result = SearchLight.query("SELECT version FROM $(SearchLight.config.db_migrations_table_name) ORDER BY version DESC"; internal = true)
 
-  String[string(x) for x = result[!, :version]]
+  if DataFrames.nrow(result) > 0
+    String[string(x) for x = result[!, :version]]
+  else
+    @warn "No migrations available"
+    String[]
+  end
 end
 
 
