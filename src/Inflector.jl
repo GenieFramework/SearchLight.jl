@@ -3,7 +3,6 @@ Handles the functionality for applying various gramatical rules.
 """
 module Inflector
 
-import Revise
 import Unicode
 import SearchLight
 

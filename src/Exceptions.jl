@@ -1,6 +1,5 @@
 module Exceptions
 
-import Revise
 using SearchLight
 
 export NotPersistedException, MissingDatabaseConfigurationException, DatabaseAdapterException

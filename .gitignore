@@ -1,2 +1,6 @@
+docs/build
 .tags
 .DS_Store
+.vscode
+test/build
+Manifest.toml

@@ -3,7 +3,6 @@ Generates various SearchLight files.
 """
 module Generator
 
-import Revise
 import Unicode, Logging
 using SearchLight
 

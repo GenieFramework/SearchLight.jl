@@ -1,7 +1,7 @@
 name = "SearchLight"
 uuid = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
 authors = ["Adrian Salceanu <e@essenciary.com>"]
-version = "0.19.2"
+version = "0.20.0"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -12,17 +12,15 @@ Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Millboard = "39ec1447-df44-5f4c-beaa-866f30b4d3b2"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 Unicode = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
-DataFrames = "0.20"
+DataFrames = "0.21"
 DataStreams = "0.4"
 Millboard = "0.2"
 OrderedCollections = "1"
 Reexport = "0.2"
-Revise = "2"
 YAML = "0.4"
 julia = "1"

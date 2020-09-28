@@ -3,7 +3,6 @@ Core SearchLight configuration / settings functionality.
 """
 module Configuration
 
-import Revise
 import YAML, Logging
 using SearchLight
 

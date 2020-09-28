@@ -1,6 +1,5 @@
 module Validation
 
-import Revise
 using SearchLight
 
 import Base.show

@@ -1,6 +1,5 @@
 module SearchLight
 
-import Revise
 import DataFrames, OrderedCollections, Distributed, Dates, Logging, Millboard, YAML
 
 import DataFrames.DataFrame
@@ -554,7 +553,7 @@ function columns_names_by_table(tables_names::Vector{String}, df::DataFrames.Dat
 
     ! in(table_name, tables_names) && continue
 
-    push!(tables_columns[table_name], dfc)
+    push!(tables_columns[table_name], dfc |> Symbol)
   end
 
   tables_columns
@@ -673,7 +672,7 @@ end
 
 
 function settable_fields(m::Type{T}, row::DataFrames.DataFrameRow)::Vector{Symbol} where {T<:AbstractModel}
-  df_cols::Vector{Symbol} = names(row)
+  df_cols::Vector{Symbol} = map(x -> Symbol(x), names(row))
   fields = is_fully_qualified(m, df_cols[1]) ? to_sql_column_names(m, fieldnames(m)) : fieldnames(m)
 
   intersect(fields, df_cols)

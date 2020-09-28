@@ -3,7 +3,6 @@ Provides functionality for working with database migrations.
 """
 module Migration
 
-import Revise
 import Millboard, Dates, Logging, DataFrames
 using SearchLight
 import Base.showerror
