@@ -5,11 +5,15 @@ using SearchLight
 export NotPersistedException, MissingDatabaseConfigurationException, DatabaseAdapterException
 export UnretrievedModelException, InvalidModelException
 
+abstract type SearchLightException <: Exception end
+
+Base.showerror(io::IO, ex::T) where {T<:SearchLightException} = print(io, ex.msg)
+
 struct NotPersistedException <: Exception
   model
+  msg
 end
-
-Base.showerror(io::IO, ex::NotPersistedException) = print(io, "NotPersistedException: Model is not persisted \n$(ex.model)")
+NotPersistedException(model) = NotPersistedException(model, "NotPersistedException: Model is not persisted \n$model")
 
 
 struct MissingDatabaseConfigurationException <: Exception
@@ -27,20 +31,23 @@ NotConnectedException() = NotConnectedException("SearchLight is not connected to
 struct DatabaseAdapterException <: Exception
   msg::String
 end
+DatabaseAdapterException() = DatabaseAdapterException("The SearchLight database adapter has thrown an unexpected exception")
 
 
 struct UnretrievedModelException <: Exception
   model
   id
+  msg
 end
-
-Base.showerror(io::IO, ex::UnretrievedModelException) = print(io, "UnretrievedModelException: Model can not be retrieved for id $(ex.id)")
+UnretrievedModelException(model, id) = UnretrievedModelException(model, id, "UnretrievedModelException: the $(typeof(model)) data could not be retrieved for id $id. \nModel: \n$model")
 
 
 struct InvalidModelException <: Exception
   model
   errors
+  msg
 end
+InvalidModelException(model, errors) = InvalidModelException("The $(typeof(model)) model has validation errors:\n$errors")
 
 Base.showerror(io::IO, ex::InvalidModelException) =
   print(io, "Validation errors for $(typeof(ex.model)): $(join( map(e -> "$(e.field) $(e.error_message)", ex.errors), ", "))")
