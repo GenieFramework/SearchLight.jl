@@ -86,6 +86,8 @@ function haserrorsfor(mv::ModelValidator, field::Symbol) :: Bool
   ! isempty(errorsfor(mv, field))
 end
 
+const has_errors_for = haserrorsfor # for Genie compatibility
+
 
 function errorsfor(mv::ModelValidator, field::Union{Symbol,Nothing} = nothing) :: Vector{ValidationError}
   result = ValidationError[]
