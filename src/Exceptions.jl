@@ -49,7 +49,4 @@ struct InvalidModelException <: Exception
 end
 InvalidModelException(model, errors) = InvalidModelException("The $(typeof(model)) model has validation errors:\n$errors")
 
-Base.showerror(io::IO, ex::InvalidModelException) =
-  print(io, "Validation errors for $(typeof(ex.model)): $(join( map(e -> "$(e.field) $(e.error_message)", ex.errors), ", "))")
-
 end

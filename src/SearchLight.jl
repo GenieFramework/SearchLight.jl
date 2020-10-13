@@ -183,7 +183,11 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
 end
 
 function _save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::DataFrames.DataFrame where {T<:AbstractModel}
-  skip_validation || SearchLight.Validation.validate(m) || throw(SearchLight.Exceptions.InvalidModelException(m, SearchLight.Validation.errors(m)))
+  if ! skip_validation
+    model_validator = Validation.validate(m)
+    Validation.haserrors(model_validator) &&
+      throw(SearchLight.Exceptions.InvalidModelException(m, model_validator.errors, "Model $(typeof(m)) is not valid: $(Validation.errors_to_string(model_validator))"))
+  end
 
   in(:before_save, skip_callbacks) || invoke_callback(m, :before_save)
 
