@@ -112,6 +112,10 @@ function findone(m::Type{T}; filters...)::Union{Nothing,T} where {T<:AbstractMod
   find(m; filters...) |> onereduce
 end
 
+function Base.one(m::Type{T}; filters...)::Union{Nothing,T} where {T<:AbstractModel}
+  findone(m; filters...)
+end
+
 
 function randone(m::Type{T})::Union{Nothing,T} where {T<:AbstractModel}
   SearchLight.rand(m, limit = 1) |> onereduce
@@ -163,6 +167,8 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
     df[1, SearchLight.LAST_INSERT_ID_LABEL]
   elseif in(Symbol(pk(m)), names(df))
     df[1, Symbol(pk(m))]
+  elseif in(String(pk(m)), names(df))
+    df[1, String(pk(m))]
   end
 
   id === nothing && getfield(m, Symbol(pk(m))).value !== nothing &&
