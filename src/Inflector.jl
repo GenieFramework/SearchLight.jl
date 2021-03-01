@@ -107,7 +107,7 @@ end
 Wether or not `word` has an irregular singular or plural form.
 """
 function irregular(word::String) :: Union{Nothing,Tuple{String,String}}
-  word = Unicode.normalize(word, casefold = true)
+  word = lowercase(Unicode.normalize(word, casefold = true))
 
   for (k, v) in IRREGULAR_NOUNS
     (word == k || word == v) && return (k::String, v::String)
@@ -190,6 +190,7 @@ const IRREGULAR_NOUNS = Vector{Tuple{String,String}}([
   ("louse", "lice"),
   ("mouse", "mice"),
   ("quiz", "quizzes"),
-  ("search", "searches")
+  ("search", "searches"),
+  ("movie", "movies")
 ])
 end
