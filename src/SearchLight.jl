@@ -1,5 +1,6 @@
 module SearchLight
 
+using Base: invokelatest
 import DataFrames, OrderedCollections, Distributed, Dates, Logging, Millboard, YAML
 
 import DataFrames.DataFrame
@@ -10,17 +11,19 @@ haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
 include("Exceptions.jl")
 
+import Inflector
+
 include("Configuration.jl")
 using .Configuration
 
 const config =  SearchLight.Configuration.Settings(app_env = ENV["SEARCHLIGHT_ENV"])
 
-include("Inflector.jl")
 include("model_types.jl")
 include("Migration.jl")
 include("Validation.jl")
 include("Serializer.jl")
 include("Generator.jl")
+include("Relationships.jl")
 
 export find, findone
 export rand, randone
@@ -75,10 +78,6 @@ end
 function DataFrames.DataFrame(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQLOrder(pk(m)))::DataFrames.DataFrame where {T<:AbstractModel}
   DataFrame(m, SQLQuery(where = w, order = order))
 end
-
-# function DataFrames.DataFrame(args...)::DataFrames.DataFrame
-#   DataFrame(args...)
-# end
 
 
 function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
@@ -309,7 +308,7 @@ function findone_or_create(m::Type{T}; filters...)::T where {T<:AbstractModel}
   lookup = findone(m; filters...)
   lookup !== nothing && return lookup
 
-  _m::T = m()
+  _m::T = invokelatest(m)
   for (property, value) in filters
     setfield!(_m, Symbol(is_fully_qualified(string(property)) ? from_fully_qualified(string(property))[end] : property), value)
   end
@@ -348,8 +347,9 @@ end
 
 
 function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
-  _m::T = m()
-  obj::T = m()
+  _m::T = invokelatest(m)
+  obj::T = invokelatest(m)
+
   sf = settable_fields(m, row)
   set_fields = Symbol[]
 
@@ -695,7 +695,7 @@ end
 
 
 function table(m::Type{T})::String where {T<:AbstractModel}
-  SearchLight.Inflector.to_plural(string(m) |> strip_module_name) |> lowercase
+  Inflector.to_plural(string(m) |> strip_module_name) |> lowercase
 end
 
 

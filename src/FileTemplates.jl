@@ -3,6 +3,7 @@ Functionality for handling the default content of the various files (migrations,
 """
 module FileTemplates
 
+import Inflector
 using SearchLight
 
 
@@ -12,6 +13,8 @@ using SearchLight
 Default content for a new SearchLight migration.
 """
 function new_table_migration(module_name::String, resource::String) :: String
+  Inflector.is_plural(resource) || (resource = Inflector.to_plural(resource))
+
   """
   module $module_name
 
@@ -30,6 +33,39 @@ function new_table_migration(module_name::String, resource::String) :: String
 
   function down()
     drop_table(:$resource)
+  end
+
+  end
+  """
+end
+
+
+"""
+    new_relationship_table_migration(module_name::String) :: String
+
+Default content for a new SearchLight migration.
+"""
+function new_relationship_table_migration(module_name::String, table_name::String, r1::String, r2::String) :: String
+  """
+  module $module_name
+
+  import SearchLight.Migrations: create_table, column, primary_key, add_index, drop_table
+
+  function up()
+    create_table(:$table_name) do
+      [
+        primary_key()
+        column(:$(r1)_id, :int)
+        column(:$(r2)_id, :int)
+      ]
+    end
+
+    add_index(:$table_name, :$(r1)_id)
+    add_index(:$table_name, :$(r2)_id)
+  end
+
+  function down()
+    drop_table(:$table_name)
   end
 
   end
@@ -63,7 +99,7 @@ Default content for a new SearchLight model.
 """
 function newmodel(model_name::String, resource_name::String = model_name; pluralize::Bool = true) :: String
   """
-  module $(SearchLight.Inflector.to_plural(model_name))
+  module $(Inflector.to_plural(model_name))
 
   import SearchLight: AbstractModel, DbId
   import Base: @kwdef
@@ -86,7 +122,7 @@ Default content for a new SearchLight validator.
 """
 function newvalidator(validator_name::String; pluralize::Bool = true) :: String
   """
-  module $(SearchLight.Inflector.to_plural(validator_name))Validator
+  module $(Inflector.to_plural(validator_name))Validator
 
   using SearchLight, SearchLight.Validation
 

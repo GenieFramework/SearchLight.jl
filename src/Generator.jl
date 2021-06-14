@@ -4,6 +4,7 @@ Generates various SearchLight files.
 module Generator
 
 import Unicode, Logging
+import Inflector
 using SearchLight
 
 include("FileTemplates.jl")
@@ -16,7 +17,7 @@ Generates a new SearchLight model file and persists it to the resources folder.
 """
 function newmodel(name::Union{String,Symbol}; path::Union{String,Nothing} = nothing, pluralize::Bool = true) :: Nothing
   name = string(name) |> uppercasefirst
-  model_name = SearchLight.Inflector.is_singular(name) ? SearchLight.Inflector.to_plural(name) : name
+  model_name = Inflector.is_singular(name) ? Inflector.to_plural(name) : name
 
   model_path = setup_resource_path(model_name, path)
   mfn = model_file_name(model_name)
@@ -35,15 +36,15 @@ Generates all the files associated with a new resource and persists them to the 
 function newresource(resource_name::Union{String,Symbol}; path::Union{String,Nothing} = nothing, pluralize::Bool = true) :: Nothing
   resource_name = string(resource_name)
 
-  sf = SearchLight.Inflector.tosingular(resource_name)
+  sf = Inflector.to_singular(resource_name)
 
   model_name = (sf === nothing ? resource_name : sf) |> uppercasefirst
   newmodel(model_name, path = path, pluralize = pluralize)
   new_table_migration(resource_name, pluralize = pluralize)
 
   resource_name = uppercasefirst(resource_name)
-  pluralize && SearchLight.Inflector.is_singular(resource_name) &&
-    (resource_name = SearchLight.Inflector.to_plural(resource_name))
+  pluralize && Inflector.is_singular(resource_name) &&
+    (resource_name = Inflector.to_plural(resource_name))
 
   resource_path = setup_resource_path(resource_name, path)
   for (resource_file, resource_type) in [(validator_file_name(resource_name), :validator)]
@@ -60,11 +61,16 @@ function newresource(resource_name::Union{String,Symbol}; path::Union{String,Not
 end
 
 
+"""
+    new_table_migration(migration_name::Union{String,Symbol}; pluralize::Bool = true) :: Nothing
+
+Cretes the migration script for a new table.
+"""
 function new_table_migration(migration_name::Union{String,Symbol}; pluralize::Bool = true) :: Nothing
   resource_name = uppercasefirst(string(migration_name))
 
-  SearchLight.Inflector.is_singular(resource_name) && pluralize &&
-    (resource_name = SearchLight.Inflector.to_plural(resource_name))
+  Inflector.is_singular(resource_name) && pluralize &&
+    (resource_name = Inflector.to_plural(resource_name))
 
   migration_name = "create_table_" * lowercase(resource_name)
   SearchLight.Migration.new_table(migration_name, lowercase(resource_name))
@@ -73,6 +79,11 @@ function new_table_migration(migration_name::Union{String,Symbol}; pluralize::Bo
 end
 
 
+"""
+    newmigration(migration_name::Union{String,Symbol}) :: Nothing
+
+Creates a new migration script.
+"""
 function newmigration(migration_name::Union{String,Symbol}) :: Nothing
   migration_name = replace(uppercasefirst(string(migration_name)) |> lowercase, " "=>"_")
 
@@ -107,7 +118,7 @@ end
 Generates all resouce files and persists them to disk.
 """
 function write_resource_file(resource_path::String, file_name::String, resource_name::String, resource_type::Symbol; pluralize::Bool = true) :: Bool
-  resource_name = (pluralize ? SearchLight.Inflector.tosingular(resource_name) : resource_name) |> SearchLight.Inflector.from_underscores
+  resource_name = (pluralize ? Inflector.to_singular(resource_name) : resource_name) |> Inflector.from_underscores
 
   try
     if resource_type == :model
@@ -135,8 +146,8 @@ function write_resource_file(resource_path::String, file_name::String, resource_
     if resource_type == :test
       resource_does_not_exist(resource_path, file_name) || return true
       open(joinpath(resource_path, file_name), "w") do f
-        uname = SearchLight.Inflector.from_underscores(resource_name)
-        uname = pluralize ? SearchLight.Inflector.to_plural(uname) : uname
+        uname = Inflector.from_underscores(resource_name)
+        uname = pluralize ? Inflector.to_plural(uname) : uname
 
         write(f, FileTemplates.newtest(resource_name))
       end
@@ -149,6 +160,11 @@ function write_resource_file(resource_path::String, file_name::String, resource_
 end
 
 
+"""
+    newconfig(path::String = SearchLight.DB_PATH; filename = SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME) :: Nothing
+
+Creates a new configuration file.
+"""
 function newconfig(path::String = SearchLight.DB_PATH; filename = SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME) :: Nothing
   ispath(path) || mkpath(path)
   filepath = joinpath(path, filename) |> abspath
@@ -162,6 +178,11 @@ function newconfig(path::String = SearchLight.DB_PATH; filename = SearchLight.SE
 end
 
 
+"""
+    resource_does_not_exist(resource_path::String, file_name::String) :: Bool
+
+Checks if a given resource **does not exist** at `resource_path`.
+"""
 function resource_does_not_exist(resource_path::String, file_name::String) :: Bool
   if isfile(joinpath(resource_path, file_name))
     @warn "File already exists, $(joinpath(resource_path, file_name)) - skipping"
@@ -173,12 +194,22 @@ function resource_does_not_exist(resource_path::String, file_name::String) :: Bo
 end
 
 
-function model_file_name(resource_name::Union{String,Symbol})
+"""
+    model_file_name(resource_name::Union{String,Symbol}) :: String
+
+Generates the file name for the model corresponding to `resource_name`.
+"""
+function model_file_name(resource_name::Union{String,Symbol}) :: String
   "$resource_name.jl"
 end
 
 
-function validator_file_name(resource_name::Union{String,Symbol})
+"""
+    validator_file_name(resource_name::Union{String,Symbol}) :: String
+
+Generates the file name for the validator corresponding to `resource_name`.
+"""
+function validator_file_name(resource_name::Union{String,Symbol}) :: String
   string(resource_name, SearchLight.SEARCHLIGHT_VALIDATOR_FILE_POSTFIX)
 end
 

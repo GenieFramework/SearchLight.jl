@@ -4,6 +4,7 @@ Provides functionality for working with database migrations.
 module Migration
 
 import Millboard, Dates, Logging, DataFrames
+using Inflector
 using SearchLight
 import Base.showerror
 
@@ -33,11 +34,11 @@ Base.showerror(io::IO, e::MigrationNotFoundException) = print(io, "Migration $(e
 
 
 """
-    newtable(migration_name::String, resource::String) :: Nothing
+    newtable(migration_name::String, resource::String) :: String
 
 Creates a new default migration file and persists it to disk in the configured migrations folder.
 """
-function new_table(migration_name::String, resource::String) :: Nothing
+function new_table(migration_name::String, resource::String) :: String
   mfn = migration_file_name(migration_name)
 
   ispath(mfn) && throw(ExistingMigrationException(migration_name))
@@ -49,7 +50,7 @@ function new_table(migration_name::String, resource::String) :: Nothing
 
   @info "New table migration created at $(abspath(mfn))"
 
-  nothing
+  mfn
 end
 
 const newtable = new_table
@@ -57,7 +58,43 @@ const newtable = new_table
 
 """
 """
-function new(migration_name::String) :: Nothing
+function relationship_table_name(r1::String, r2::String)::String
+  names = String[string(r1), string(r2)] |> sort
+  names = map(s -> Inflector.to_plural(s), names)
+
+  join(names)
+end
+
+
+"""
+    new_relationship_table(migration_name::String,  r1::String, r2::String) :: String
+
+Creates a new relationship migration file and persists it to disk in the configured migrations folder.
+"""
+function new_relationship_table(migration_name::String, r1::String, r2::String) :: String
+  mfn = migration_file_name(migration_name)
+  r1 = Inflector.to_plural(r1)
+  r2 = Inflector.to_plural(r2)
+
+  ispath(mfn) && throw(ExistingMigrationException(migration_name))
+  ispath(SearchLight.config.db_migrations_folder) || mkpath(SearchLight.config.db_migrations_folder)
+
+  open(mfn, "w") do f
+    write(f, SearchLight.Generator.FileTemplates.new_relationship_table_migration(migration_module_name(migration_name), relationship_table_name(r1, r2), r1, r2))
+  end
+
+  @info "New relationship table migration created at $(abspath(mfn))"
+
+  mfn
+end
+
+
+"""
+    new(migration_name::String) :: String
+
+Creates a new migration file and returns the path to it.
+"""
+function new(migration_name::String) :: String
   mfn = migration_file_name(migration_name)
 
   ispath(mfn) && throw(ExistingMigrationException(migration_name))
@@ -69,7 +106,7 @@ function new(migration_name::String) :: Nothing
 
   @info "New migration created at $(abspath(mfn))"
 
-  nothing
+  mfn
 end
 
 
@@ -200,11 +237,16 @@ Returns the list of all the migrations.
 function all_migrations() :: Tuple{Vector{String},Dict{String,DatabaseMigration}}
   migrations = String[]
   migrations_files = Dict{String,DatabaseMigration}()
-  for f in readdir(SearchLight.config.db_migrations_folder)
-    if occursin(r"\d{16,17}_.*\.jl", f)
-      parts = map(x -> String(x), split(f, "_", limit = 2))
-      push!(migrations, parts[1])
-      migrations_files[parts[1]] = DatabaseMigration(parts[1], f, migration_module_name(parts[2]))
+
+  if ! isdir(SearchLight.config.db_migrations_folder)
+    @warn "Migrations folder $(SearchLight.config.db_migrations_folder) does not exist."
+  else
+    for f in readdir(SearchLight.config.db_migrations_folder)
+      if occursin(r"\d{16,17}_.*\.jl", f)
+        parts = map(x -> String(x), split(f, "_", limit = 2))
+        push!(migrations, parts[1])
+        migrations_files[parts[1]] = DatabaseMigration(parts[1], f, migration_module_name(parts[2]))
+      end
     end
   end
 
@@ -324,7 +366,6 @@ function status() :: Nothing
   arr_output = []
 
   for m in migrations
-    # sts = ( findfirst(up_migrations, m) > 0 ) ? :up : :down
     sts = something(findfirst(isequal(m), up_migrations), 0) > 0 ? :up : :down
     push!(arr_output, [migrations_files[m].migration_module_name * ": " * uppercase(string(sts)); migrations_files[m].migration_file_name])
   end
@@ -367,9 +408,10 @@ Runs all migrations `down`.
 """
 function all_down!!(; confirm = true) :: Nothing
   if confirm
-    printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss! You have 10 seconds to cancel this. ", color = :yellow)
+    printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss!
+                  You have 10 seconds to cancel this. ", color = :yellow)
     sleep(5)
-    printstyled("Running down all the migrations in 5 seconds. ", :yellow)
+    printstyled("Running down all the migrations in 5 seconds. ", color = :yellow)
     sleep(5)
   end
 
