@@ -518,7 +518,7 @@ SQLJoin(model_name::Type{T},
         columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin(model_name, SQLOn(on_column_1, on_column_2), join_type = join_type, outer = outer, where = where, natural = natural, columns = columns)
 
 function string(j::SQLJoin)
-  sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(add_quotes(table(j.model_name))) $(join(string.(j.on), " AND ")) """
+  sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $( escape_column_name(table(j.model_name), SearchLight.connection())) $(join(string.(j.on), " AND ")) """
   sql *=  if ! isempty(j.where)
           SearchLight.to_where_part(j.where)
         else

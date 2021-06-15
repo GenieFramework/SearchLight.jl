@@ -122,7 +122,7 @@ end
 
 """
 """
-function DataFrames.DataFrame(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function DataFrames.DataFrame(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SearchLight.SQLJoin}} = nothing)::DataFrames.DataFrame where {T<:SearchLight.AbstractModel}
   SearchLight.DataFrame(m, qp.query, j)
 end
 
@@ -130,7 +130,7 @@ end
 """
 """
 function SearchLight.find(m::Type{T}, qp::QueryBuilder.QueryPart,
-                      j::Union{Nothing,Vector{SearchLight.SQLJoin{N}}} = nothing)::Vector{T} where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+                      j::Union{Nothing,Vector{SearchLight.SQLJoin}} = nothing)::Vector{T} where {T<:SearchLight.AbstractModel}
   SearchLight.find(m, qp.query, j)
 end
 
