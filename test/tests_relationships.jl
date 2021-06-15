@@ -1,8 +1,18 @@
 using SearchLight, SearchLightSQLite
 using SearchLight.Migrations, SearchLight.Relationships
 
+cd(@__DIR__)
+
 const conndata = Dict("database" => "db/testdb.sqlite", "adapter" => "SQLite")
 const conn = SearchLight.connect(conndata)
+
+try
+  Migrations.status()
+catch _
+  Migrations.create_migrations_table()
+end
+
+isempty(Migrations.downed_migrations()) || Migrations.all_up!!()
 
 Base.@kwdef mutable struct User <: AbstractModel
   id::DbId = DbId()
