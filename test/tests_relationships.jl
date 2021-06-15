@@ -7,12 +7,12 @@ const conndata = Dict("database" => "db/testdb.sqlite", "adapter" => "SQLite")
 const conn = SearchLight.connect(conndata)
 
 try
-  Migrations.status()
+  SearchLight.Migrations.status()
 catch _
-  Migrations.create_migrations_table()
+  SearchLight.Migrations.create_migrations_table()
 end
 
-isempty(Migrations.downed_migrations()) || Migrations.all_up!!()
+isempty(SearchLight.Migrations.downed_migrations()) || SearchLight.Migrations.all_up!!()
 
 Base.@kwdef mutable struct User <: AbstractModel
   id::DbId = DbId()
