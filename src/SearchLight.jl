@@ -63,7 +63,7 @@ Base.showerror(io::IO, e::UnsupportedException) = print(io, "Method $(e.method_n
 #
 
 
-function DataFrames.DataFrame(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel, N<:Union{AbstractModel,Nothing}}
+function DataFrames.DataFrame(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin}} = nothing)::DataFrames.DataFrame where {T<:AbstractModel}
   query(sql(m, q, j))::DataFrames.DataFrame
 end
 
@@ -80,7 +80,7 @@ function DataFrames.DataFrame(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQL
 end
 
 
-function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{T} where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
+function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin}} = nothing)::Vector{T} where {T<:AbstractModel}
   to_models(m, DataFrame(m, q, j))
 end
 
@@ -442,7 +442,7 @@ end
 #
 
 
-function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:SearchLight.AbstractModel, N<:Union{Nothing,SearchLight.AbstractModel}}
+function to_select_part(m::Type{T}, cols::Vector{SearchLight.SQLColumn}, joins::Union{Nothing,Vector{SQLJoin}} = nothing)::String where {T<:SearchLight.AbstractModel}
   sp = if ! isempty(cols)
     table_columns = []
     cols = vcat(cols, columns_from_joins(joins))
@@ -508,7 +508,7 @@ function to_join_part end
 
 Extracts columns from joins param and adds to be used for the SELECT part
 """
-function columns_from_joins(joins::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::Vector{SearchLight.SQLColumn} where {N<:Union{Nothing,SearchLight.AbstractModel}}
+function columns_from_joins(joins::Union{Nothing,Vector{SQLJoin}} = nothing)::Vector{SearchLight.SQLColumn}
   jcols = SearchLight.SQLColumn[]
 
   joins === nothing && return jcols
@@ -875,7 +875,7 @@ function index_name(table_name::Union{String,Symbol}, column_name::Union{String,
 end
 
 
-function sql(m::Type{T}, q::SQLQuery = SQLQuery(), j::Union{Nothing,Vector{SQLJoin{N}}} = nothing)::String where {T<:AbstractModel, N<:Union{Nothing,AbstractModel}}
+function sql(m::Type{T}, q::SQLQuery = SQLQuery(), j::Union{Nothing,Vector{SQLJoin}} = nothing)::String where {T<:AbstractModel}
   to_fetch_sql(m, q, j)
 end
 

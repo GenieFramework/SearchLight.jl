@@ -106,6 +106,7 @@ convert(::Type{SQLInput}, s::Symbol) = SQLInput(string(s))
 convert(::Type{SQLInput}, d::Dates.DateTime) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Date) = SQLInput(string(d))
 convert(::Type{SQLInput}, d::Dates.Time) = SQLInput(string(d))
+convert(::Type{SQLInput}, id::DbId) = SQLInput(id.value)
 
 
 """
@@ -447,6 +448,8 @@ function string(o::SQLOn)
   on
 end
 
+convert(::Type{Vector{SQLOn}}, j::SQLOn) = [j]
+
 #
 # SQLJoin - SQLJoinType
 #
@@ -489,7 +492,7 @@ Builds and manipulates SQL `join` expressions.
 """
 struct SQLJoin{T<:AbstractModel} <: SQLType
   model_name::Type{T}
-  on::SQLOn
+  on::Vector{SQLOn}
   join_type::SQLJoinType
   outer::Bool
   where::Vector{SQLWhereEntity}
@@ -498,7 +501,7 @@ struct SQLJoin{T<:AbstractModel} <: SQLType
 end
 
 SQLJoin(model_name::Type{T},
-        on::SQLOn;
+        on::Vector{SQLOn};
         join_type = SQLJoinType("INNER"),
         outer = false,
         where = SQLWhereEntity[],
@@ -515,14 +518,16 @@ SQLJoin(model_name::Type{T},
         columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin(model_name, SQLOn(on_column_1, on_column_2), join_type = join_type, outer = outer, where = where, natural = natural, columns = columns)
 
 function string(j::SQLJoin)
-  sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(add_quotes(table(j.model_name))) $(string(j.on)) """
+  sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $(add_quotes(table(j.model_name))) $(join(string.(j.on), " AND ")) """
   sql *=  if ! isempty(j.where)
           SearchLight.to_where_part(j.where)
         else
           ""
         end
 
-  sql
+  sql = replace(sql, "  " => " ")
+
+  replace(sql, " AND ON " => " AND ")
 end
 
 convert(::Type{Vector{SQLJoin}}, j::SQLJoin) = [j]
