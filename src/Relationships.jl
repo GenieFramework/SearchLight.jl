@@ -40,10 +40,9 @@ function Relationship(r1::Type{T}, r2::Type{R}; context::Module = @__MODULE__)::
 end
 
 
-function Relationship!(r1::T, r2::R; context::Module = @__MODULE__)::M where {T<:AbstractModel, R<:AbstractModel, M<:AbstractModel}
+function Relationship!(r1::T, r2::R; context::Module = @__MODULE__)::AbstractModel where {T<:AbstractModel, R<:AbstractModel}
   relationship = Relationship(typeof(r1), typeof(r2); context = context)
 
-  # invokelatest(relationship, DbId(), getfield(r1, Symbol(pk(r1))), getfield(r2, Symbol(pk(r2))))
   findone_or_create(relationship;
                     NamedTuple{ (Symbol(relationship_field_name(typeof(r1))), Symbol(relationship_field_name(typeof(r2)))) }(
                       (getfield(r1, pk(r1) |> Symbol), getfield(r2, pk(r2) |> Symbol)) )...) |> save!
