@@ -10,18 +10,18 @@ export Relationship, Relationship!, related, isrelated
 
 
 function create_relationship_migration(r1::Type{T}, r2::Type{R})::String where {T<:AbstractModel, R<:AbstractModel}
-  names = map(x -> string(x) |> lowercase |> Inflector.to_plural, [r1, r2]) |> sort
+  names = map(x -> split(string(x), '.')[end] |> string |> lowercase |> Inflector.to_plural, [r1, r2]) |> sort
   Migration.new_relationship_table("create_relationship_table_$(names[1])_$(names[2])", names...)
 end
 
 
 function relationship_name(r1::Type{T}, r2::Type{R})::String where {T<:AbstractModel, R<:AbstractModel}
-  map(x -> string(x) |> Inflector.to_plural, [r1, r2]) |> sort |> join
+  map(x -> split(string(x), '.')[end] |> string |> Inflector.to_plural, [r1, r2]) |> sort |> join
 end
 
 
 function relationship_field_name(x::Type{T})::String where {T<:AbstractModel}
-  (string(x) |> lowercase |> Inflector.to_plural) * "_id"
+  (split(string(x), '.')[end] |> string |> lowercase |> Inflector.to_plural) * "_id"
 end
 
 
@@ -29,12 +29,17 @@ function Relationship(r1::Type{T}, r2::Type{R}; context::Module = @__MODULE__)::
   isdefined(context, Symbol(relationship_name(r1, r2))) &&
     return getfield(context, Symbol(relationship_name(r1, r2)))
 
-  Core.eval(context,
-            Meta.parse("Base.@kwdef mutable struct $(relationship_name(r1, r2)) <: AbstractModel;
-                          id::DbId = DbId();
-                          $(relationship_field_name(r1))::DbId = DbId();
-                          $(relationship_field_name(r2))::DbId = DbId();
-                        end"))
+  struct_str = "mutable struct $(relationship_name(r1, r2)) <: AbstractModel;
+                  id::DbId;
+                  $(relationship_field_name(r1))::DbId;
+                  $(relationship_field_name(r2))::DbId;
+                end"
+
+  Core.eval(context, Meta.parse(struct_str))
+
+  kwd_constructor_str = "$(relationship_name(r1, r2))(; id::DbId = DbId(), $(relationship_field_name(r1))::DbId = DbId(), $(relationship_field_name(r2))::DbId = DbId()) = $(relationship_name(r1, r2))(id, $(relationship_field_name(r1)), $(relationship_field_name(r2)))"
+
+  Core.eval(context, Meta.parse(kwd_constructor_str))
 
   getfield(context, Symbol(relationship_name(r1, r2)))
 end
