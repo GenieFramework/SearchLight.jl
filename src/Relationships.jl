@@ -6,7 +6,7 @@ using SearchLight
 using SearchLight.Migration
 
 
-export Relationship, Relationship!, related
+export Relationship, Relationship!, related, isrelated
 
 
 function create_relationship_migration(r1::Type{T}, r2::Type{R})::String where {T<:AbstractModel, R<:AbstractModel}
@@ -40,7 +40,7 @@ function Relationship(r1::Type{T}, r2::Type{R}; context::Module = @__MODULE__)::
 end
 
 
-function Relationship!(r1::T, r2::R; context::Module = @__MODULE__) where {T<:AbstractModel, R<:AbstractModel}
+function Relationship!(r1::T, r2::R; context::Module = @__MODULE__)::M where {T<:AbstractModel, R<:AbstractModel, M<:AbstractModel}
   relationship = Relationship(typeof(r1), typeof(r2); context = context)
 
   # invokelatest(relationship, DbId(), getfield(r1, Symbol(pk(r1))), getfield(r2, Symbol(pk(r2))))
@@ -75,6 +75,11 @@ function related(m::T, r::Type{R}; through::Vector = [], context::Module = @__MO
   find(r, SQLQuery(
     where = SQLWhereEntity[SQLWhereExpression("$(SearchLight.table(typeof(m))).$(pk(m)) = ?", SQLInput[getfield(m, Symbol(pk(m)))])],
   ), joins)
+end
+
+
+function isrelated(m::T, r::R; through::Vector = [], context::Module = @__MODULE__)::Bool where {T<:AbstractModel, R<:AbstractModel}
+  r in related(m, typeof(r), through = through)
 end
 
 

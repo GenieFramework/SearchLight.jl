@@ -4,6 +4,7 @@ import Base.show
 import Base.convert
 import Base.length
 import Base.==
+import Base.hash
 
 import Dates
 
@@ -16,7 +17,16 @@ export @sql_str
 
 abstract type SearchLightAbstractType end
 abstract type SQLType <: SearchLightAbstractType end
+
 abstract type AbstractModel <: SearchLightAbstractType end
+
+function hash(a::T) where {T<:AbstractModel}
+  Base.hash(string(typeof(a)) * string(getfield(a, pk(a) |> Symbol)))
+end
+
+function ==(a::A, b::B) where {A<:AbstractModel,B<:AbstractModel}
+  hash(a) == hash(b)
+end
 
 function Base.print(io::IO, t::T) where {T<:SearchLightAbstractType}
   props = []

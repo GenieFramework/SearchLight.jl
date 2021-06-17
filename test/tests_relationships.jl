@@ -3,16 +3,16 @@ using SearchLight, SearchLight.Migrations, SearchLight.Relationships
 cd(joinpath(pathof(SearchLight) |> dirname, "..", "test"))
 
 ### SQLite
-# using SearchLightSQLite
-# const conndata = Dict("database" => "db/testdb.sqlite", "adapter" => "SQLite")
+using SearchLightSQLite
+const conndata = Dict("database" => "db/testdb.sqlite", "adapter" => "SQLite")
 
 ### MySQL
 # using SearchLightMySQL
 # const conndata = Dict{String,Any}("host" => "localhost", "database" => "testdb", "username" => "root", "password" => "root", "adapter" => "MySQL")
 
 ### Postgres
-using SearchLightPostgreSQL
-const conndata = Dict{String,Any}("host" => "localhost", "database" => "testdb", "username" => "postgres", "adapter" => "PostgreSQL")
+# using SearchLightPostgreSQL
+# const conndata = Dict{String,Any}("host" => "localhost", "database" => "testdb", "username" => "postgres", "adapter" => "PostgreSQL")
 
 
 const conn = SearchLight.connect(conndata)
