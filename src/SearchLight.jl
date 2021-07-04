@@ -1,8 +1,6 @@
 module SearchLight
 
-using Base: invokelatest
 import DataFrames, OrderedCollections, Distributed, Dates, Logging, Millboard, YAML
-
 import DataFrames.DataFrame
 
 include("constants.jl")
@@ -308,7 +306,12 @@ function findone_or_create(m::Type{T}; filters...)::T where {T<:AbstractModel}
   lookup = findone(m; filters...)
   lookup !== nothing && return lookup
 
-  _m::T = invokelatest(m)
+  _m::T = try
+    m()
+  catch ex
+    isa(ex, MethodError) ? Base.invokelatest(m) : rethrow(ex)
+  end
+
   for (property, value) in filters
     setfield!(_m, Symbol(is_fully_qualified(string(property)) ? from_fully_qualified(string(property))[end] : property), value)
   end
@@ -347,8 +350,17 @@ end
 
 
 function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
-  _m::T = invokelatest(m)
-  obj::T = invokelatest(m)
+  _m::T = try
+    m()
+  catch ex
+    isa(ex, MethodError) ? Base.invokelatest(m) : rethrow(ex)
+  end
+
+  obj::T = try
+    m()
+  catch ex
+    isa(ex, MethodError) ? Base.invokelatest(m) : rethrow(ex)
+  end
 
   sf = settable_fields(m, row)
   set_fields = Symbol[]

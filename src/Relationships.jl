@@ -1,6 +1,5 @@
 module Relationships
 
-using Base: invokelatest, NamedTuple, Symbol
 using Inflector
 using SearchLight
 using SearchLight.Migration
