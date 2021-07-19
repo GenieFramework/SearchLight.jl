@@ -17,7 +17,7 @@ Generates a new SearchLight model file and persists it to the resources folder.
 """
 function newmodel(name::Union{String,Symbol}; path::Union{String,Nothing} = nothing, pluralize::Bool = true) :: Nothing
   name = string(name) |> uppercasefirst
-  model_name = Inflector.is_singular(name) ? Inflector.to_plural(name) : name
+  model_name = (Inflector.is_singular(name) ? Inflector.to_plural(name) : name) |> uppercasefirst
 
   model_path = setup_resource_path(model_name, path)
   mfn = model_file_name(model_name)
@@ -39,12 +39,13 @@ function newresource(resource_name::Union{String,Symbol}; path::Union{String,Not
   sf = Inflector.to_singular(resource_name)
 
   model_name = (sf === nothing ? resource_name : sf) |> uppercasefirst
+
   newmodel(model_name, path = path, pluralize = pluralize)
   new_table_migration(resource_name, pluralize = pluralize)
 
   resource_name = uppercasefirst(resource_name)
   pluralize && Inflector.is_singular(resource_name) &&
-    (resource_name = Inflector.to_plural(resource_name))
+    (resource_name = Inflector.to_plural(resource_name) |> uppercasefirst)
 
   resource_path = setup_resource_path(resource_name, path)
   for (resource_file, resource_type) in [(validator_file_name(resource_name), :validator)]
