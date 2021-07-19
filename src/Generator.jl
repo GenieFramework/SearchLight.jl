@@ -119,7 +119,7 @@ end
 Generates all resouce files and persists them to disk.
 """
 function write_resource_file(resource_path::String, file_name::String, resource_name::String, resource_type::Symbol; pluralize::Bool = true) :: Bool
-  resource_name = (pluralize ? Inflector.to_singular(resource_name) : resource_name) |> Inflector.from_underscores
+  resource_name = (pluralize ? Inflector.to_singular(resource_name) : resource_name) |> Inflector.from_underscores |> uppercasefirst
 
   try
     if resource_type == :model

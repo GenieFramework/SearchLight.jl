@@ -99,7 +99,7 @@ Default content for a new SearchLight model.
 """
 function newmodel(model_name::String, resource_name::String = model_name; pluralize::Bool = true) :: String
   """
-  module $(Inflector.to_plural(model_name))
+  module $(Inflector.to_plural(model_name) |> uppercasefirst)
 
   import SearchLight: AbstractModel, DbId
   import Base: @kwdef
@@ -122,7 +122,7 @@ Default content for a new SearchLight validator.
 """
 function newvalidator(validator_name::String; pluralize::Bool = true) :: String
   """
-  module $(Inflector.to_plural(validator_name))Validator
+  module $(Inflector.to_plural(validator_name) |> uppercasefirst)Validator
 
   using SearchLight, SearchLight.Validation
 
@@ -159,7 +159,7 @@ Default content for a new test file.
 """
 function newtest(resource_name::String) :: String
   """
-  using Test, SearchLight, $resource_name
+  using Test, SearchLight, $(Inflector.to_plural(resource_name) |> uppercasefirst)
 
   @testset "$resource_name unit tests" begin
 
