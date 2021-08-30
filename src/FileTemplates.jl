@@ -18,7 +18,7 @@ function new_table_migration(module_name::String, resource::String) :: String
   """
   module $module_name
 
-  import SearchLight.Migrations: create_table, column, primary_key, add_index, drop_table
+  import SearchLight.Migrations: create_table, column, columns, pk, add_index, drop_table
 
   function up()
     create_table(:$resource) do
@@ -49,7 +49,7 @@ function new_relationship_table_migration(module_name::String, table_name::Strin
   """
   module $module_name
 
-  import SearchLight.Migrations: create_table, column, primary_key, add_index, drop_table
+  import SearchLight.Migrations: create_table, column, columns, pk, add_index, drop_table
 
   function up()
     create_table(:$table_name) do
@@ -76,8 +76,6 @@ end
 function newmigration(module_name::String) :: String
   """
   module $module_name
-
-  import SearchLight.Migrations: add_column, add_index
 
   function up()
 
@@ -128,6 +126,19 @@ function newvalidator(validator_name::String; pluralize::Bool = true) :: String
 
   function not_empty(field::Symbol, m::T, args::Vararg{Any})::ValidationResult where {T<:AbstractModel}
     isempty(getfield(m, field)) && return ValidationResult(invalid, :not_empty, "should not be empty")
+
+    ValidationResult(valid)
+  end
+
+  function is_int(field::Symbol, m::T, args::Vararg{Any})::ValidationResult where {T<:AbstractModel}
+    isa(getfield(m, field), Int) || return ValidationResult(invalid, :is_int, "should be an int")
+
+    ValidationResult(valid)
+  end
+
+  function is_unique(field::Symbol, m::T, args::Vararg{Any})::ValidationResult where {T<:AbstractModel}
+    findone(typeof(m); NamedTuple(field => getfield(m, field))... ) === nothing ||
+      return ValidationResult(invalid, :is_unique, "already exists")
 
     ValidationResult(valid)
   end

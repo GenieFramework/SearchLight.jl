@@ -8,7 +8,7 @@ const valid = true
 const invalid = false
 export valid, invalid
 
-export validator, validate, haserrors, haserrorsfor, errorsfor, errors_messages_for, errors_to_string
+export validate, haserrors, haserrorsfor, errorsfor, errors_messages_for, errors_to_string
 
 abstract type ValidationAbstractType end
 
@@ -37,6 +37,7 @@ struct ValidationRule <: ValidationAbstractType
 
   ValidationRule(field, validator_function, validator_arguments = ()) = new(field, validator_function, validator_arguments)
 end
+ValidationRule(validator_function::Function, field::Symbol, validator_arguments::Tuple = ()) = ValidationRule(field, validator_function, validator_arguments)
 
 
 """
@@ -47,11 +48,12 @@ struct ModelValidator
   errors::Vector{ValidationError}
 end
 ModelValidator(rules::Vector{ValidationRule}) = ModelValidator(rules, ValidationError[])
+ModelValidator() = ModelValidator(ValidationRule[])
 
 
 # overwrite!
-function validator(m::Type{T})::ModelValidator where {T<:SearchLight.AbstractModel}
-  ModelValidator(ValidationRule[])
+function validator(m::AbstractModel) :: ModelValidator
+  ModelValidator()
 end
 
 

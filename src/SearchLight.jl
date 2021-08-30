@@ -214,7 +214,7 @@ end
 
 function updatewith!(m::T, w::T)::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
-    ( startswith(string(fieldname), "_") || string(fieldname) == pk(m) ) && continue
+    string(fieldname) == pk(m) && continue
     setfield!(m, fieldname, getfield(w, fieldname))
   end
 
@@ -223,7 +223,7 @@ end
 
 function updatewith!(m::T, w::Dict)::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
-    ( startswith(string(fieldname), "_") || string(fieldname) == pk(m) ) && continue
+    string(fieldname) == pk(m) && continue
 
     value = if haskey(w, fieldname)
               w[fieldname]
@@ -243,24 +243,32 @@ function updatewith!(m::T, w::Dict)::T where {T<:AbstractModel}
               end
             else
               try
-                convert(typeof(getfield(m, fieldname)), value)
+                parse(typeof(getfield(m, fieldname)), value)
               catch ex
-                if isdefined(m, :on_error!)
-                  m = m.on_error!(ex, model = m, data = w, field = fieldname, value = value)::T
-                  getfield(m, fieldname)
-                else
-                  rethrow(ex)
+                try
+                  convert(typeof(getfield(m, fieldname)), value)
+                catch ex
+                  if isdefined(m, :on_error!)
+                    m = m.on_error!(ex, model = m, data = w, field = fieldname, value = value)::T
+                    getfield(m, fieldname)
+                  else
+                    rethrow(ex)
+                  end
                 end
               end
             end
 
     try
-      setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
+      setfield!(m, fieldname, parse(typeof(getfield(m, fieldname)), value))
     catch ex
-      @error ex
-      @error "obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $(typeof(getfield(m, fieldname)))"
+      try
+        setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
+      catch ex
+        @error ex
+        @error "obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $(typeof(getfield(m, fieldname)))"
 
-      rethrow(ex)
+        rethrow(ex)
+      end
     end
   end
 
@@ -285,7 +293,7 @@ function updateby_or_create(m::T; ignore = Symbol[], skip_update = false, filter
     skip_update && return existing
 
     for fieldname in fieldnames(typeof(m))
-      ( startswith(string(fieldname), "_") || string(fieldname) == pk(m) || in(fieldname, ignore) ) && continue
+      ( string(fieldname) == pk(m) || in(fieldname, ignore) ) && continue
       setfield!(existing, fieldname, getfield(m, fieldname))
     end
 
@@ -943,6 +951,11 @@ Returns `value` if it is not `nothing` - otherwise `default`.
 """
 function expand_nullable(value::Union{Nothing,T}, default::T)::T where T
   value === nothing ? default : value
+end
+
+
+function Core.NamedTuple(p::Pair) :: NamedTuple
+  @eval ($(p[1]) = $(p[2]), )
 end
 
 

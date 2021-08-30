@@ -452,8 +452,14 @@ function create_table end
 function column end
 
 
+function columns(cols::Vector{Pair{Symbol,Symbol}})
+  [column(ct...) for ct in cols]
+end
+
+
 function column_id end
 const primary_key = column_id
+const pk = column_id
 
 
 function add_index end
@@ -490,6 +496,8 @@ const drop_sequence = remove_sequence
 
 
 function create_migrations_table end
+
+const init = create_migrations_table
 
 end
 
