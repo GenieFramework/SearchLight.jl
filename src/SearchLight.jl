@@ -281,6 +281,9 @@ function updatewith!!(m::T, w::Union{T,Dict})::T where {T<:AbstractModel}
 end
 
 
+const updatewith = updatewith!
+
+
 function createwith(m::Type{T}, w::Dict)::T where {T<:AbstractModel}
   updatewith!(m(), w)
 end

@@ -53,6 +53,14 @@ end
 DbId() = DbId(nothing)
 DbId(id::Number) = DbId(Int(id))
 
+function hash(a::DbId)
+  Base.hash(a.value)
+end
+
+function ==(a::DbId, b::DbId)
+  hash(a) == hash(b)
+end
+
 Base.convert(::Type{DbId}, v::Union{Number,String}) = DbId(v)
 
 Base.show(io::IO, dbid::DbId) = print(io, (dbid.value === nothing ? "NULL" : string(dbid.value)))
