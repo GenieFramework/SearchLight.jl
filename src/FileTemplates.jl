@@ -18,7 +18,7 @@ function new_table_migration(module_name::String, resource::String) :: String
   """
   module $module_name
 
-  import SearchLight.Migrations: create_table, column, columns, pk, add_index, drop_table
+  import SearchLight.Migrations: create_table, column, columns, primary_key, add_index, drop_table
 
   function up()
     create_table(:$resource) do
