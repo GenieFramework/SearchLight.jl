@@ -8,7 +8,7 @@ const valid = true
 const invalid = false
 export valid, invalid
 
-export validate, haserrors, haserrorsfor, errorsfor, errors_messages_for, errors_to_string
+export validate, validator, haserrors, haserrorsfor, errorsfor, errors_messages_for, errors_to_string
 
 abstract type ValidationAbstractType end
 
@@ -52,7 +52,7 @@ ModelValidator() = ModelValidator(ValidationRule[])
 
 
 # overwrite!
-function validator(m::AbstractModel) :: ModelValidator
+function validator(m) :: ModelValidator
   ModelValidator()
 end
 
@@ -68,6 +68,8 @@ end
 Validates `m`'s data. A `bool` is return and existing errors are pushed to the validator's error stack.
 """
 function validate(m::T)::ModelValidator where {T<:SearchLight.AbstractModel}
+  hasmethod(validator, Tuple{typeof(m)}) || return ModelValidator()
+
   mv = validator(typeof(m))
 
   for r in mv.rules

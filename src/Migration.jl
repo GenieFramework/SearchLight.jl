@@ -453,7 +453,9 @@ function column end
 
 
 function columns(cols::Vector{Pair{Symbol,Symbol}})
-  [column(ct...) for ct in cols]
+  for ct in cols
+    column(ct...)
+  end
 end
 
 
@@ -465,7 +467,32 @@ const pk = column_id
 function add_index end
 
 
+function add_indexes(indexes::Vector{Pair{Symbol,Symbol}})
+  for i in indexes
+    add_index(i...)
+  end
+end
+function add_indexes(table_name::Symbol, indexes::Vector{Symbol})
+  for i in indexes
+    add_index(table_name, i)
+  end
+end
+const add_indices = add_indexes
+
+
 function add_column end
+
+
+function add_columns(table_name::Symbol, cols::Vector{Pair{Symbol,Symbol}})
+  for c in cols
+    add_column(table_name, c[1], c[2])
+  end
+end
+function add_columns(cols::Vector{Tuple{Symbol,Symbol,Symbol}})
+  for c in cols
+    add_column(c[1], c[2], c[3])
+  end
+end
 
 
 function drop_table end
@@ -474,7 +501,32 @@ function drop_table end
 function remove_column end
 
 
+function remove_columns(cols::Vector{Pair{Symbol,Symbol}})
+  for c in cols
+    remove_column(c...)
+  end
+end
+function remove_columns(table_name::Symbol, cols::Vector{Symbol})
+  for c in cols
+    remove_column(table_name, c)
+  end
+end
+
+
 function remove_index end
+
+
+function remove_indexes(indexes::Vector{Pair{Symbol,Symbol}})
+  for i in indexes
+    remove_index(i...)
+  end
+end
+function remove_indexes(table_name::Symbol, indexes::Vector{Symbol})
+  for i in indexes
+    remove_index(table_name, i)
+  end
+end
+const remove_indices = remove_indexes
 
 
 function create_sequence end
@@ -490,13 +542,10 @@ function column_id_sequence end
 
 
 function remove_sequence end
-
-
 const drop_sequence = remove_sequence
 
 
 function create_migrations_table end
-
 const init = create_migrations_table
 
 end

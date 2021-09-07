@@ -8,6 +8,7 @@ include("constants.jl")
 haskey(ENV, "SEARCHLIGHT_ENV") || (ENV["SEARCHLIGHT_ENV"] = "dev")
 
 include("Exceptions.jl")
+using .Exceptions
 
 import Inflector
 
@@ -22,6 +23,8 @@ include("Validation.jl")
 include("Serializer.jl")
 include("Generator.jl")
 include("Relationships.jl")
+include("Transactions.jl")
+include("Callbacks.jl")
 
 export find, findone
 export rand, randone
@@ -141,7 +144,7 @@ end
 # TODO: max(), min(), avg(), mean(), etc
 
 
-function save(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::Bool where {T<:AbstractModel}
+function save(m::T; conflict_strategy::Symbol = :error, skip_validation::Bool = false, skip_callbacks::Vector{Symbol} = Symbol[])::Bool where {T<:AbstractModel}
   try
     _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
@@ -154,10 +157,10 @@ function save(m::T; conflict_strategy = :error, skip_validation = false, skip_ca
 end
 
 
-function save!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
+function save!(m::T; conflict_strategy::Symbol = :error, skip_validation::Bool = false, skip_callbacks::Vector{Symbol} = Symbol[])::T where {T<:AbstractModel}
   save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 end
-function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::T where {T<:AbstractModel}
+function save!!(m::T; conflict_strategy::Symbol = :error, skip_validation::Bool = false, skip_callbacks::Vector{Symbol} = Symbol[])::T where {T<:AbstractModel}
   df::DataFrames.DataFrame = _save!!(m, conflict_strategy = conflict_strategy, skip_validation = skip_validation, skip_callbacks = skip_callbacks)
 
   id = if in(SearchLight.LAST_INSERT_ID_LABEL, names(df))
@@ -185,30 +188,20 @@ function save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_
   m
 end
 
-function _save!!(m::T; conflict_strategy = :error, skip_validation = false, skip_callbacks = Vector{Symbol}())::DataFrames.DataFrame where {T<:AbstractModel}
+function _save!!(m::T; conflict_strategy::Symbol = :error, skip_validation::Bool = false, skip_callbacks::Vector{Symbol} = Symbol[])::DataFrames.DataFrame where {T<:AbstractModel}
   if ! skip_validation
     model_validator = Validation.validate(m)
     Validation.haserrors(model_validator) &&
       throw(SearchLight.Exceptions.InvalidModelException(m, model_validator.errors, "Model $(typeof(m)) is not valid: $(Validation.errors_to_string(model_validator))"))
   end
 
-  in(:before_save, skip_callbacks) || invoke_callback(m, :before_save)
+  ! in(:before_save, skip_callbacks) && hasmethod(Callbacks.before_save, Tuple{typeof(m)}) &&  Callbacks.before_save(m)
 
   result = query(to_store_sql(m, conflict_strategy = conflict_strategy))
 
-  in(:after_save, skip_callbacks) || invoke_callback(m, :after_save)
+  ! in(:after_save, skip_callbacks) && hasmethod(Callbacks.after_save, Tuple{typeof(m)}) && Callbacks.after_save(m)
 
   result
-end
-
-
-function invoke_callback(m::T, callback::Symbol)::Tuple{Bool,T} where {T<:AbstractModel}
-  if isdefined(m, callback)
-    getfield(m, callback)(m)
-    (true, m)
-  else
-    (false, m)
-  end
 end
 
 
@@ -221,7 +214,7 @@ function updatewith!(m::T, w::T)::T where {T<:AbstractModel}
   m
 end
 
-function updatewith!(m::T, w::Dict)::T where {T<:AbstractModel}
+function updatewith!(m::T, w::Dict; skip_callbacks::Vector{Symbol} = Symbol[])::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
     string(fieldname) == pk(m) && continue
 
@@ -235,6 +228,14 @@ function updatewith!(m::T, w::Dict)::T where {T<:AbstractModel}
 
     value === nothing && continue
 
+    mthd =  if hasmethod(parse, Tuple{typeof(getfield(m, fieldname)), value})
+              parse
+            elseif hasmethod(convert, Tuple{typeof(getfield(m, fieldname)), value})
+              convert
+            else
+              MissingConversionMethodException
+            end
+
     value = if typeof(getfield(m, fieldname)) == Bool
               if lowercase(string(value)) == "on" || value == :on || value == "1" || value == 1 || lowercase(string(value)) == "true" || value == :true
                 true
@@ -243,30 +244,24 @@ function updatewith!(m::T, w::Dict)::T where {T<:AbstractModel}
               end
             else
               try
-                parse(typeof(getfield(m, fieldname)), value)
+                mthd(typeof(getfield(m, fieldname)), value)
               catch ex
-                try
-                  convert(typeof(getfield(m, fieldname)), value)
-                catch ex
-                  if isdefined(m, :on_error!)
-                    m = m.on_error!(ex, model = m, data = w, field = fieldname, value = value)::T
-                    getfield(m, fieldname)
-                  else
-                    rethrow(ex)
-                  end
+                if ! in(:on_exception, skip_update) && hasmethod(Callbacks.on_exception, Tuple{typeof{m}, TypeConversionException})
+                  m::T = Callbacks.on_exception(m, TypeConversionException(m, fieldname, value, ex))::T
+                  getfield(m, fieldname)
+                else
+                  rethrow(ex)
                 end
               end
             end
 
     try
-      setfield!(m, fieldname, parse(typeof(getfield(m, fieldname)), value))
+      setfield!(m, fieldname, mthd(typeof(getfield(m, fieldname)), value))
     catch ex
-      try
-        setfield!(m, fieldname, convert(typeof(getfield(m, fieldname)), value))
-      catch ex
-        @error ex
-        @error "obj = $(typeof(m)) -- field = $fieldname -- value = $value -- type = $(typeof(getfield(m, fieldname)))"
-
+      if ! in(:on_exception, skip_callbacks) && hasmethod(Callbacks.on_exception, Tuple{typeof{m}, TypeConversionException})
+        m = Callbacks.on_exception(m, TypeConversionException(fieldname, value, ex))::T
+        setfield!(m, fieldname, parse(typeof(getfield(m, fieldname)), value))
+      else
         rethrow(ex)
       end
     end
@@ -360,7 +355,7 @@ function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:Ab
 end
 
 
-function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:AbstractModel}
+function to_model(m::Type{T}, row::DataFrames.DataFrameRow; skip_callbacks::Vector{Symbol} = Symbol[])::T where {T<:AbstractModel}
   _m::T = try
     m()
   catch ex
@@ -373,33 +368,19 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
     isa(ex, MethodError) ? Base.invokelatest(m) : rethrow(ex)
   end
 
-  sf = settable_fields(m, row)
   set_fields = Symbol[]
 
-  for field in sf
+  for field in settable_fields(m, row)
     unq_field = from_fully_qualified(m, field)
 
     ismissing(row[field]) && continue # if it's NA we just leave the default value of the empty obj
 
-    value = if isdefined(_m, :on_find!)
+    value = if ! in(:on_find, skip_callbacks) && hasmethod(Callbacks.on_find, Tuple{typeof(_m),Symbol,typeof(row[field])})
               try
-                _m, value = _m.on_find!(_m, unq_field, row[field])
-                value === nothing && (value = row[field])
-                value
-              catch ex
-                @error "Failed to process on_find! the field $unq_field ($field)"
-                @error ex
+                _m = Callbacks.on_find(_m, unq_field, row[field])
 
-                row[field]
-              end
-
-            elseif isdefined(_m, :on_find)
-              try
-                value = _m.on_find(_m, unq_field, row[field])
-                value === nothing && (value = row[field])
-                value
+                getfield(_m, unq_field)
               catch ex
-                @error "Failed to process on_find the field $unq_field ($field)"
                 @error ex
 
                 row[field]
@@ -418,9 +399,10 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
       setfield!(obj, unq_field, oftype(getfield(_m, unq_field), value))
     catch ex
       @error ex
-      @error "obj = $(typeof(obj)) -- field = $unq_field -- value = $value -- type = $(typeof(getfield(_m, unq_field)))"
 
-      isdefined(_m, :on_error!) ? obj = _m.on_error!(ex, model = obj, data = _m, field = unq_field, value = value)::T : rethrow(ex)
+      ! in(:on_exception, skip_callbacks) && hasmethod(Callbacks.on_exception, Tuple{typeof(_m),TypeConversionException}) ?
+        (obj = Callbacks.on_exception(obj, TypeConversionException(obj, unq_field, value, ex))::T) :
+        rethrow(ex)
     end
 
     push!(set_fields, unq_field)
@@ -437,8 +419,9 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow)::T where {T<:Abstrac
     end
   end
 
-  status = invoke_callback(obj, :after_find)
-  status[1] && (obj = status[2])
+  if ! in(:after_find, skip_callbacks) && hasmethod(Callbacks.after_find, Tuple{typeof(obj)})
+    obj = Callbacks.after_find(obj)
+  end
 
   obj
 end
@@ -616,13 +599,13 @@ const to_fetch_sql = to_find_sql
 function to_store_sql end
 
 
-function to_sqlinput(m::T, field::Symbol, value)::SQLInput where {T<:AbstractModel}
-  value = if isdefined(m, :on_save)
+function to_sqlinput(m::T, field::Symbol, value; skip_callbacks::Vector{Symbol} = Symbol[])::SQLInput where {T<:AbstractModel}
+  value = if ! in(:on_save, skip_callbacks) && hasmethod(Callbacks.on_save, Tuple{typeof(m),Symbol,typeof(value)})
             try
-              r = m.on_save(m, field, value)
-              r === nothing ? value : r
+              m = Callbacks.on_save(m, field, value)
+
+              getfield(m, field)
             catch ex
-              @error "Failed to persist field $field"
               @error ex
 
               value

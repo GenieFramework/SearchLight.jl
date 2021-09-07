@@ -63,6 +63,8 @@ function ==(a::DbId, b::DbId)
 end
 
 Base.convert(::Type{DbId}, v::Union{Number,String}) = DbId(v)
+Base.convert(::Type{DbId}, v::Nothing) = DbId(nothing)
+
 Base.convert(::Type{String}, id::DbId) = string(id.value)
 
 Base.show(io::IO, dbid::DbId) = print(io, (dbid.value === nothing ? "NULL" : string(dbid.value)))
