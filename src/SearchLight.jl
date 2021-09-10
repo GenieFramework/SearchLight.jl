@@ -223,30 +223,16 @@ function updatewith!(m::T, w::Dict; skip_callbacks::Vector{Symbol} = Symbol[])::
             elseif haskey(w, string(fieldname))
               w[string(fieldname)]
             else
-              nothing
-            end
-
-    value === nothing && continue
-
-    mthd =  if hasmethod(parse, Tuple{typeof(getfield(m, fieldname)), value})
-              parse
-            elseif hasmethod(convert, Tuple{typeof(getfield(m, fieldname)), value})
-              convert
-            else
-              MissingConversionMethodException
+              continue
             end
 
     value = if typeof(getfield(m, fieldname)) == Bool
-              if lowercase(string(value)) == "on" || value == :on || value == "1" || value == 1 || lowercase(string(value)) == "true" || value == :true
-                true
-              elseif lowercase(string(value)) == "off" || value == :off || value == "0" || value == 0 || lowercase(string(value)) == "false" || value == :false || value == ""
-                false
-              end
+              booltypes(value)
             else
               try
-                mthd(typeof(getfield(m, fieldname)), value)
+                autoconvert(convertmethod(m, fieldname, value), m, fieldname, value)
               catch ex
-                if ! in(:on_exception, skip_update) && hasmethod(Callbacks.on_exception, Tuple{typeof{m}, TypeConversionException})
+                if ! in(:on_exception, skip_callbacks) && hasmethod(Callbacks.on_exception, Tuple{typeof(m),TypeConversionException})
                   m::T = Callbacks.on_exception(m, TypeConversionException(m, fieldname, value, ex))::T
                   getfield(m, fieldname)
                 else
@@ -256,9 +242,9 @@ function updatewith!(m::T, w::Dict; skip_callbacks::Vector{Symbol} = Symbol[])::
             end
 
     try
-      setfield!(m, fieldname, mthd(typeof(getfield(m, fieldname)), value))
+      setfield!(m, fieldname, autoconvert(convertmethod(m, fieldname, value), m, fieldname, value))
     catch ex
-      if ! in(:on_exception, skip_callbacks) && hasmethod(Callbacks.on_exception, Tuple{typeof{m}, TypeConversionException})
+      if ! in(:on_exception, skip_callbacks) && hasmethod(Callbacks.on_exception, Tuple{typeof(m),TypeConversionException})
         m = Callbacks.on_exception(m, TypeConversionException(fieldname, value, ex))::T
         setfield!(m, fieldname, parse(typeof(getfield(m, fieldname)), value))
       else
@@ -268,6 +254,44 @@ function updatewith!(m::T, w::Dict; skip_callbacks::Vector{Symbol} = Symbol[])::
   end
 
   m
+end
+
+
+function convertmethod(m::T, fieldname::Symbol, value::Any) where {T<:AbstractModel}
+  # @show fieldname, typeof(getfield(m, fieldname)), typeof(value)
+  if typeof(getfield(m, fieldname)) == typeof(value)
+    identity
+  elseif hasmethod(parse, Tuple{Type{typeof(getfield(m, fieldname))},typeof(value)})
+    parse
+  elseif hasmethod(convert, Tuple{Type{typeof(getfield(m, fieldname))},typeof(value)})
+    convert
+  elseif hasmethod(typeof(getfield(m, fieldname)), Tuple{typeof(value)})
+    typeof(getfield(m, fieldname)) # constructor
+  else
+    MissingConversionMethodException
+  end
+end
+
+
+function booltypes(value::Any) :: Bool
+  if lowercase(string(value)) == "on" || value == :on || value == "1" || value == 1 || lowercase(string(value)) == "true" || value == :true
+    true
+  elseif lowercase(string(value)) == "off" || value == :off || value == "0" || value == 0 || lowercase(string(value)) == "false" || value == :false || value == ""
+    false
+  end
+end
+
+
+function autoconvert(mthd, m::T, fieldname::Symbol, value::Any) where {T<:AbstractModel, R}
+  @show mthd, fieldname, value
+
+  if Symbol(mthd) in [:convert, :parse]
+    mthd(typeof(getfield(m, fieldname)), value)
+  elseif occursin("MissingConversionMethodException", string(mthd))
+    mthd(typeof(getfield(m, fieldname)), value) |> throw
+  else
+    mthd(value) # constructor
+  end
 end
 
 
