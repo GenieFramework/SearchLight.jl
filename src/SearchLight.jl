@@ -376,6 +376,25 @@ function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:Ab
   models |> values |> collect
 end
 
+"""
+    _union_convert(t::Type, x)
+
+Convert x to t. If u is a union type that x is not an instance of, try conversion to the
+types inside the union.
+"""
+_union_convert(t, x) = convert(t, x)
+function _union_convert(u::UT, x) where {UT <: Union}
+    if x isa u
+        return x
+    else
+        try
+            _union_convert(u.a, x)
+        catch e
+            _union_convert(u.b, x)
+        end
+    end
+end
+
 
 function to_model(m::Type{T}, row::DataFrames.DataFrameRow; skip_callbacks::Vector{Symbol} = Symbol[])::T where {T<:AbstractModel}
   _m::T = try
@@ -418,7 +437,7 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow; skip_callbacks::Vect
             end
 
     try
-      setfield!(obj, unq_field, oftype(getfield(_m, unq_field), value))
+      setfield!(obj, unq_field, _union_convert(fieldtype(typeof(_m), unq_field), value))
     catch ex
       @error ex
 
