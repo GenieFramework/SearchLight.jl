@@ -452,10 +452,18 @@ function create_table end
 function column end
 
 
+function column(def::Pair, args...; kwargs...)
+  column(def[1], def[2], args...; kwargs...)
+end
+
+
 function columns(cols::Vector{Pair{Symbol,Symbol}})
+  result = String[]
   for ct in cols
-    column(ct...)
+    push!(result, column(ct...))
   end
+
+  result
 end
 
 
@@ -472,10 +480,13 @@ function add_indexes(indexes::Vector{Pair{Symbol,Symbol}})
     add_index(i...)
   end
 end
-function add_indexes(table_name::Symbol, indexes::Vector{Symbol})
+function add_indexes(table_name::Union{Symbol,String}, indexes::Vector{Symbol})
   for i in indexes
     add_index(table_name, i)
   end
+end
+function add_indexes(table_name::Union{Symbol,String}, indexes...)
+  add_indexes(table_name, [indexes...])
 end
 const add_indices = add_indexes
 

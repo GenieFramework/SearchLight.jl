@@ -307,7 +307,7 @@ end
 
 
 function updateby_or_create(m::T; ignore = Symbol[], skip_update = false, filters...)::T where {T<:AbstractModel}
-  existing = findone(typeof(m), filters...)
+  existing = findone(typeof(m); filters...)
 
   if existing !== nothing
     skip_update && return existing
@@ -325,8 +325,9 @@ function updateby_or_create(m::T; ignore = Symbol[], skip_update = false, filter
 end
 
 
-function update_or_create(m::T; ignore = Symbol[], skip_update = false)::T where {T<:AbstractModel}
-  updateby_or_create(m; ignore = ignore, skip_update = skip_update, NamedTuple{ (Symbol(pk(m)),) }( (getfield(m, Symbol(pk(m))),) )...)
+function update_or_create(m::T; ignore = Symbol[], skip_update = false, filters...)::T where {T<:AbstractModel}
+  isempty(filters) && (filters = NamedTuple{ (Symbol(pk(m)),) }( (getfield(m, Symbol(pk(m))),) ))
+  updateby_or_create(m; ignore = ignore, skip_update = skip_update, filters...)
 end
 
 
@@ -636,11 +637,20 @@ function to_sqlinput(m::T, field::Symbol, value; skip_callbacks::Vector{Symbol} 
             value
           end
 
+          # @show field, value
+
   value = if in(field, Serializer.serializables(typeof(m)))
             Serializer.serialize(value)
           else
             value
           end
+
+  if isa(value, AbstractArray)
+    @warn "to_sqlinput: value '$(value)' is an array. You probably want to declare the field `$(field)` as serializable.
+            Converting the value to its string representation."
+
+    value = "'$(string(value))'"
+  end
 
   SQLInput(value)
 end

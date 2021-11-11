@@ -68,6 +68,18 @@ Base.convert(::Type{DbId}, v::Nothing) = DbId(nothing)
 Base.convert(::Type{String}, id::DbId) = string(id.value)
 Base.convert(::Type{Union{Int,String}}, v::DbId) = v.value
 
+function Base.convert(::Type{Int}, v::DbId)
+  isa(v.value, Int) && return v.value
+
+  x = if isa(v.value, Number) || isa(v.value, String)
+    tryparse(Int, v.value)
+  else
+    nothing
+  end
+
+  x === nothing && return 0
+end
+
 Base.show(io::IO, dbid::DbId) = print(io, (dbid.value === nothing ? "NULL" : string(dbid.value)))
 
 
