@@ -19,6 +19,7 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 
 [compat]
 DataFrames = "1"
+JSON3 = "1.9"
 Inflector = "1.0"
 Millboard = "0.2"
 OrderedCollections = "1"
