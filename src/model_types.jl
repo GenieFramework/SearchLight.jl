@@ -110,13 +110,13 @@ string(io::IO, t::SQLRaw) = t.value
 Provides safe input into SQL queries and operations related to that.
 """
 mutable struct SQLInput <: SQLType
-  value::Union{String,Real}
+  value::Union{AbstractString,Real}
   escaped::Bool
   raw::Bool
-  SQLInput(v::Union{String,Real}; escaped = false, raw = false) = new(v, escaped, raw)
+  SQLInput(v::Union{AbstractString,Real}; escaped = false, raw = false) = new(v, escaped, raw)
 end
 SQLInput(a::Dates.Date) = string(a) |> SQLInput
-SQLInput(a::Vector{T}) where {T} = map(x -> SQLInput(x), a)
+SQLInput(a::Vector{T}) where {T} = SQLInput.(a)
 SQLInput(s::SubString{T}) where {T} = convert(String, s) |> SQLInput
 SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
