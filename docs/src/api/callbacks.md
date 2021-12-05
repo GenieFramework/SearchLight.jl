@@ -1,9 +1,7 @@
-@```@meta
+```@meta
 CurrentModule = Callbacks
 ```
 
-```@contents
-```
 
 ```@docs
 on_exception

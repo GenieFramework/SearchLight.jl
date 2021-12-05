@@ -1,8 +1,5 @@
-@```@meta
+```@meta
 CurrentModule = Configuration
-```
-
-```@contents
 ```
 
 ```@docs
