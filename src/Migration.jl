@@ -56,8 +56,6 @@ end
 const newtable = new_table
 
 
-"""
-"""
 function relationship_table_name(r1::String, r2::String)::String
   names = String[string(r1), string(r2)] |> sort
   names = map(s -> Inflector.to_plural(s), names)

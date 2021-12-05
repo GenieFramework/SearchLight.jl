@@ -17,22 +17,16 @@ struct QueryPart{T<:SearchLight.AbstractModel}
 end
 
 
-"""
-"""
 function from(model::Type{T})::QueryPart{T} where {T<:SearchLight.AbstractModel}
   QueryPart(model, SearchLight.SQLQuery())
 end
 
 
-"""
-"""
 function select(columns::Vararg{Union{Symbol,String,SearchLight.SQLColumn,SearchLight.SQLRaw}}) :: QueryPart
   QueryPart(MissingModel, SearchLight.SQLQuery(columns = SearchLight.SQLColumns([columns...])))
 end
 
 
-"""
-"""
 function where(sql_expression::String)::QueryPart
   QueryPart(MissingModel, SearchLight.SQLQuery(where = [SearchLight.SQLWhereExpression(sql_expression)]))
 end
@@ -41,22 +35,16 @@ function where(sql_expression::String, values::Vararg{Any})::QueryPart
 end
 
 
-"""
-"""
 function limit(lim::Int)
   QueryPart(MissingModel, SearchLight.SQLQuery(limit = SearchLight.SQLLimit(lim)))
 end
 
 
-"""
-"""
 function offset(off::Int)
   QueryPart(MissingModel, SearchLight.SQLQuery(offset = off))
 end
 
 
-"""
-"""
 function order(ordering::Union{Symbol,String})
   QueryPart(MissingModel, SearchLight.SQLQuery(order = SearchLight.SQLOrder(ordering)))
 end
@@ -65,15 +53,11 @@ function order(column::Union{Symbol,String}, direction::Union{Symbol,String})
 end
 
 
-"""
-"""
 function group(columns::Vararg{Union{Symbol,String}})
   QueryPart(MissingModel, SearchLight.SQLQuery(group = SearchLight.SQLColumns([columns...])))
 end
 
 
-"""
-"""
 function having(sql_expression::String)::QueryPart
   QueryPart(MissingModel, SearchLight.SQLQuery(having = [SearchLight.SQLWhereExpression(sql_expression)]))
 end
@@ -82,8 +66,6 @@ function having(sql_expression::String, values::Vararg{Any})::QueryPart
 end
 
 
-"""
-"""
 function prepare(qb::QueryPart{T}) where {T<:SearchLight.AbstractModel}
   (qb.model::Type{T}, qb)
 end
@@ -92,8 +74,6 @@ function prepare(model::Type{T}, qb::QueryPart) where {T<:SearchLight.AbstractMo
 end
 
 
-"""
-"""
 function (+)(q::SearchLight.SQLQuery, r::SearchLight.SQLQuery)
   SearchLight.SQLQuery(
     columns = vcat(q.columns, r.columns),
@@ -107,8 +87,6 @@ function (+)(q::SearchLight.SQLQuery, r::SearchLight.SQLQuery)
 end
 
 
-"""
-"""
 function (+)(q::QueryPart, r::QueryPart)
   QueryPart(
     r.model == MissingModel ? q.model : r.model,
@@ -120,15 +98,11 @@ end
 ### API
 
 
-"""
-"""
 function DataFrames.DataFrame(m::Type{T}, qp::QueryBuilder.QueryPart, j::Union{Nothing,Vector{SearchLight.SQLJoin}} = nothing)::DataFrames.DataFrame where {T<:SearchLight.AbstractModel}
   SearchLight.DataFrame(m, qp.query, j)
 end
 
 
-"""
-"""
 function SearchLight.find(m::Type{T}, qp::QueryBuilder.QueryPart,
                       j::Union{Nothing,Vector{SearchLight.SQLJoin}} = nothing)::Vector{T} where {T<:SearchLight.AbstractModel}
   SearchLight.find(m, qp.query, j)
