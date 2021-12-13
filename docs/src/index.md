@@ -1,5 +1,6 @@
 ![SearchLight Logo](https://dl.dropboxusercontent.com/s/sy04ofyyi8es388/searchlight-logo.png)
-# Genie / SearchLight
-#### SearchLight is the ORM layer of Genie.jl, the high-performance high-productivity Julia web framework.
 
-At the moment SearchLight does not work outside Genie.
+# SearchLight - Concise, secure, cross-platform query builder and ORM for Julia
+
+SearchLight supports SQLite, MySQL/MariaDB and Postgres, offering powerful features like data modelling,
+query generation, validation, database schema migrations, relationships, data serialisation, and more.

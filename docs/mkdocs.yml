@@ -1,7 +1,7 @@
 site_name:        SearchLight.jl
-repo_url:         https://github.com/essenciary/SearchLight.jl
+repo_url:         https://github.com/GenieFramework/SearchLight.jl
 site_description: SearchLight is the ORM layer of Genie.jl, the high-performance high-productivity Julia web framework.
-site_author:      essenciary
+site_author:      Adrian Salceanu
 
 theme: readthedocs
 
