@@ -18,12 +18,12 @@ function new_table_migration(module_name::String, resource::String) :: String
   """
   module $module_name
 
-  import SearchLight.Migrations: create_table, column, columns, primary_key, add_index, drop_table, add_indices
+  import SearchLight.Migrations: create_table, column, columns, pk, add_index, drop_table, add_indices
 
   function up()
     create_table(:$resource) do
       [
-        primary_key()
+        pk()
         column(:column_name, :column_type)
         columns([
           :column_name => :column_type
@@ -58,7 +58,7 @@ function new_relationship_table_migration(module_name::String, table_name::Strin
   function up()
     create_table(:$table_name) do
       [
-        primary_key()
+        pk()
         column(:$(r1)_id, :int)
         column(:$(r2)_id, :int)
       ]

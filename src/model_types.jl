@@ -178,12 +178,16 @@ mutable struct SQLColumn <: SQLType
 end
 SQLColumn(v::Union{String,Symbol}; escaped = false, raw = false, table_name = "", column_name = "") = begin
   v = string(v)
-  v == "*" && (raw = true)
-  is_fully_qualified(v) && ((table_name, v) = from_fully_qualified(v))
+
+  if ! raw
+    v == "*" && (raw = true)
+    is_fully_qualified(v) && ((table_name, v) = from_fully_qualified(v))
+  end
 
   SQLColumn(string(v), escaped, raw, string(table_name), string(v))
 end
 SQLColumn(a::Array) = map(x -> SQLColumn(x), a)
+SQLColumn(t::Tuple) = SQLColumn([t...])
 SQLColumn(c::SQLColumn) = c
 SQLColumn(r::SQLRaw) = SQLColumn(r.value, raw = true)
 SQLColumn(a::Any) = SQLColumn(string(a))
@@ -204,7 +208,15 @@ show(io::IO, a::Vector{SQLColumn}) = print(io, string(a))
 print(io::IO, s::SQLColumn) = print(io, string(s))
 show(io::IO, s::SQLColumn) = print(io, string(s))
 
-const SQLColumns = SQLColumn # so we can use both
+
+function SQLColumns(m::Type{T}, substitutes = NamedTuple())::Vector{SQLColumn} where {T<:AbstractModel}
+  isempty(substitutes) && return SQLColumn(fieldnames(m))
+
+  cols = Any[fieldnames(m)...]
+  setdiff!(cols, substitutes |> keys |> collect)
+
+  push!(cols, (substitutes |> values |> collect)...) |> SQLColumn
+end
 
 
 """
@@ -532,7 +544,7 @@ struct SQLJoin{T<:AbstractModel} <: SQLType
   outer::Bool
   where::Vector{SQLWhereEntity}
   natural::Bool
-  columns::Vector{SQLColumns}
+  columns::Vector{SQLColumn}
 end
 
 SQLJoin(model_name::Type{T},
@@ -541,7 +553,7 @@ SQLJoin(model_name::Type{T},
         outer = false,
         where = SQLWhereEntity[],
         natural = false,
-        columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin{T}(model_name, on, join_type, outer, where, natural, columns)
+        columns = SQLColumn[]) where {T<:AbstractModel} = SQLJoin{T}(model_name, on, join_type, outer, where, natural, columns)
 
 SQLJoin(model_name::Type{T},
         on_column_1::Union{String,SQLColumn},
@@ -550,7 +562,7 @@ SQLJoin(model_name::Type{T},
         outer = false,
         where = SQLWhereEntity[],
         natural = false,
-        columns = SQLColumns[]) where {T<:AbstractModel} = SQLJoin(model_name, SQLOn(on_column_1, on_column_2), join_type = join_type, outer = outer, where = where, natural = natural, columns = columns)
+        columns = SQLColumn[]) where {T<:AbstractModel} = SQLJoin(model_name, SQLOn(on_column_1, on_column_2), join_type = join_type, outer = outer, where = where, natural = natural, columns = columns)
 
 function string(j::SQLJoin)
   sql = """ $(j.natural ? "NATURAL " : "") $(string(j.join_type)) $(j.outer ? "OUTER " : "") JOIN $( escape_column_name(table(j.model_name), SearchLight.connection())) $(join(string.(j.on), " AND ")) """

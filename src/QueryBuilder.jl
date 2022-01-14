@@ -23,7 +23,7 @@ end
 
 
 function select(columns::Vararg{Union{Symbol,String,SearchLight.SQLColumn,SearchLight.SQLRaw}}) :: QueryPart
-  QueryPart(MissingModel, SearchLight.SQLQuery(columns = SearchLight.SQLColumns([columns...])))
+  QueryPart(MissingModel, SearchLight.SQLQuery(columns = SearchLight.SQLColumn([columns...])))
 end
 
 
@@ -54,7 +54,7 @@ end
 
 
 function group(columns::Vararg{Union{Symbol,String}})
-  QueryPart(MissingModel, SearchLight.SQLQuery(group = SearchLight.SQLColumns([columns...])))
+  QueryPart(MissingModel, SearchLight.SQLQuery(group = SearchLight.SQLColumn([columns...])))
 end
 
 
