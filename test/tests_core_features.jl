@@ -14,27 +14,3 @@
     @test conn_info["username"] == "root"
     @test conn_info["database"] == "searchlight_tests"
   end;
-
-  @safetestset "MySQL connection" begin
-    using SearchLight
-
-    conn_info = SearchLight.Configuration.load("mysql_connection.yml")
-    conn = SearchLight.connect()
-
-    @test conn.host == "127.0.0.1"
-    @test conn.port == "3306"
-    @test conn.db == "searchlight_tests"
-    @test conn.user == "root"
-  end;
-
-  @safetestset "MySQL query" begin
-    using SearchLight
-
-    conn_info = SearchLight.Configuration.load("mysql_connection.yml")
-    conn = SearchLight.connect()
-
-    @test isempty(SearchLight.query("SHOW TABLES")) == true
-    @test SearchLight.Migration.create_migrations_table() == true
-    @test Array(SearchLight.query("SHOW TABLES"))[1] == SearchLight.config.db_migrations_table_name
-  end;
-end
