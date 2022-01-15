@@ -1,3 +1,5 @@
+#==
+
 using SearchLight, SearchLight.Migrations, SearchLight.Relationships
 
 cd(joinpath(pathof(SearchLight) |> dirname, "..", "test"))
@@ -59,3 +61,5 @@ end
 Relationships.related(u1, Role)
 Relationships.related(findone(Role, id = 1), Ability)
 Relationships.related(u1, Ability, through = [Role])
+
+=#
