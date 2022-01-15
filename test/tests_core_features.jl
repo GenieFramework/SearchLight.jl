@@ -14,3 +14,5 @@
     @test conn_info["username"] == "root"
     @test conn_info["database"] == "searchlight_tests"
   end;
+
+end

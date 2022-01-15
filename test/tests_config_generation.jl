@@ -1,4 +1,7 @@
 @safetestset "Create new config file" begin
+
+#===============================================================================
+
   using SearchLight
   using YAML
 
@@ -56,4 +59,7 @@ end;
   end;
 
   cd(workdir)
+
+=#
+
 end
