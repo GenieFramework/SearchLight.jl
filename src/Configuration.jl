@@ -54,7 +54,7 @@ function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
 
   if  haskey(db_conn_data, "env") && db_conn_data["env"] !== nothing
     ENV["SEARCHLIGHT_ENV"] =  if strip(uppercase(string(db_conn_data["env"]))) == """ENV["GENIE_ENV"]"""
-                                ENV["GENIE_ENV"]
+                                haskey(ENV, "GENIE_ENV") ? ENV["GENIE_ENV"] : DEV
                               else
                                 db_conn_data["env"]
                               end
