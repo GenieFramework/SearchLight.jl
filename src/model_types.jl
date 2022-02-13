@@ -6,7 +6,7 @@ import Base.length
 import Base.==
 import Base.hash
 
-import Dates, Intervals, TimeZones
+import Dates, Intervals
 
 export DbId, SQLType, AbstractModel
 export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
