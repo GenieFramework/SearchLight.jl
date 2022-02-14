@@ -640,4 +640,5 @@ mutable struct SQLQuery <: SQLType
     new(columns, where, limit, offset, order, group, having)
 end
 
-string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)b
+string(q::SQLQuery, m::Type{T}) where {T<:AbstractModel} = to_fetch_sql(m, q)
+bb
