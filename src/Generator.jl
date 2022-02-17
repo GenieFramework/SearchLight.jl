@@ -19,8 +19,8 @@ function newmodel(name::Union{String,Symbol}; path::Union{String,Nothing} = noth
   name = string(name) |> uppercasefirst
   model_name = (Inflector.is_singular(name) ? Inflector.to_plural(name) : name) |> uppercasefirst
 
-  model_path = setup_resource_path(model_name, path)
-  mfn = model_file_name(model_name)
+  model_path = setup_resource_path(model_name, path; pluralize)
+  mfn = model_file_name(model_name; pluralize)
   write_resource_file(model_path, mfn, model_name, :model, pluralize = pluralize) &&
     @info "New model created at $(abspath(joinpath(model_path, mfn)))"
 
@@ -99,7 +99,7 @@ end
 
 Computes and creates the directories structure needed to persist a new resource.
 """
-function setup_resource_path(resource_name::String, path::Union{String,Nothing} = nothing) :: String
+function setup_resource_path(resource_name::String, path::Union{String,Nothing} = nothing; pluralize::Bool = true) :: String
   resource_path = path === nothing ?
                   joinpath(SearchLight.RESOURCES_PATH, lowercase(resource_name)) :
                   path
@@ -200,7 +200,7 @@ end
 
 Generates the file name for the model corresponding to `resource_name`.
 """
-function model_file_name(resource_name::Union{String,Symbol}) :: String
+function model_file_name(resource_name::Union{String,Symbol}; pluralize::Bool = true) :: String
   "$resource_name.jl"
 end
 
