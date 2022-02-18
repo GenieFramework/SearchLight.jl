@@ -6,7 +6,7 @@ import Base.length
 import Base.==
 import Base.hash
 
-import Dates
+import Dates, Intervals
 
 export DbId, SQLType, AbstractModel
 export SQLInput, SQLColumn, SQLColumns, SQLLogicOperator
@@ -122,6 +122,7 @@ SQLInput(i::SQLInput) = i
 SQLInput(s::Symbol) = string(s) |> SQLInput
 SQLInput(r::SQLRaw) = SQLInput(r.value, raw = true)
 SQLInput(n::Nothing) = SQLInput("NULL", escaped = true, raw = true)
+SQLInput(i::Intervals.Interval) = SQLInput(replace(string(i),".."=>","))
 SQLInput(a::Any) = string(a) |> SQLInput
 
 ==(a::SQLInput, b::SQLInput) = a.value == b.value
