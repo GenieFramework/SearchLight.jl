@@ -412,11 +412,13 @@ function to_model(m::Type{T}, row::DataFrames.DataFrameRow; skip_callbacks::Vect
               row[field]
             end
 
-    value = if in(unq_field, Serializer.serializables(m))
-              Serializer.deserialize(typeof(getfield(_m, unq_field)), value)
-            else
-              value
-            end
+      value = if isdefined(Serializer, :serializables) &&
+                  hasmethod(Serializer.serializables, Tuple{typeof(m)}) &&
+                  in(unq_field, Serializer.serializables(m))
+                Serializer.deserialize(typeof(getfield(_m, unq_field)), value)
+              else
+                value
+              end
 
     try
       setfield!(obj, unq_field, oftype(getfield(_m, unq_field), value))
@@ -637,20 +639,13 @@ function to_sqlinput(m::T, field::Symbol, value; skip_callbacks::Vector{Symbol} 
             value
           end
 
-          # @show field, value
-
-  value = if in(field, Serializer.serializables(typeof(m)))
+  value = if hasmethod(Serializer.serializables, Tuple{typeof(m)}) &&
+              in(field, Serializer.serializables(typeof(m))) &&
+              hasmethod(Serializer.serialize, Tuple{typeof(value)})
             Serializer.serialize(value)
           else
             value
           end
-
-  if isa(value, AbstractArray)
-    @warn "to_sqlinput: value '$(value)' is an array. You probably want to declare the field `$(field)` as serializable.
-            Converting the value to its string representation."
-
-    value = "'$(string(value))'"
-  end
 
   SQLInput(value)
 end
