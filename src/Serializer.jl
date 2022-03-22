@@ -10,9 +10,9 @@ function serializables(::T)::Vector{Symbol} where {T<:SearchLight.AbstractModel}
   Symbol[]
 end
 
-function serializables(::Any)::Vector{Symbol}
-  Symbol[]
-end
+# function serializables(::Any)::Vector{Symbol}
+#   Symbol[]
+# end
 
 include("../serializers/JsonSerializer.jl")
 
