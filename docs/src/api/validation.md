@@ -2,9 +2,6 @@
 CurrentModule = Validation
 ```
 
-```@contents
-```
-
 ```@docs
 ValidationAbstractType
 ValidationResult

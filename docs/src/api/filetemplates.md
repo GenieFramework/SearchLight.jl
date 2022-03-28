@@ -2,9 +2,6 @@
 CurrentModule = FileTemplates
 ```
 
-```@contents
-```
-
 ```@docs
 new_table_migration
 new_relationship_table_migration

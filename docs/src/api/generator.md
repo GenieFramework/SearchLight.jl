@@ -2,9 +2,6 @@
 CurrentModule = Generator
 ```
 
-```@contents
-```
-
 ```@docs
 newmodel
 newresource

@@ -2,9 +2,6 @@
 CurrentModule = Migration
 ```
 
-```@contents
-```
-
 ```@docs
 DatabaseMigration
 IrreversibleMigrationException

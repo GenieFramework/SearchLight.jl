@@ -2,9 +2,6 @@
 CurrentModule = Relationships
 ```
 
-```@contents
-```
-
 ```@docs
 create_relationship_migration
 relationship_name

@@ -2,9 +2,6 @@
 CurrentModule = SearchLight
 ```
 
-```@contents
-```
-
 ```@docs
 connect
 disconnect
