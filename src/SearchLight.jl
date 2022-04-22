@@ -80,18 +80,74 @@ function DataFrames.DataFrame(m::Type{T}, w::Vector{SQLWhereEntity}; order = SQL
   DataFrame(m, SQLQuery(where = w, order = order))
 end
 
+"""
+    find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin}} = nothing)::Vector{T} where {T<:AbstractModel}
 
+# Examples
+```julia
+
+```
+"""
 function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin}} = nothing)::Vector{T} where {T<:AbstractModel}
+  @show "doing it"
   to_models(m, DataFrame(m, q, j))
 end
 
+"""
+    find(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(pk(m)))::Vector{T} where {T<:AbstractModel}
+
+Return a vector of `AbstractModel` given Model instance where `query` and `order` by 
+  
+# Examples
+```julia
+julia> using Dates, Stats
+
+julia> startdate = Dates.Date("2021-11-25")
+2021-11-25
+
+julia> enddate = Dates.Date("2021-11-25")
+2021-11-25
+
+julia> find(Stat, SQLWhereExpression("date >= ? AND date <= ?", startdate, enddate), order=["stats.date"])
+8160-element Vector{Stat}:
+ Stat
+| KEY                  | VALUE                                |
+|----------------------|--------------------------------------|
+| date::Date           | 2021-11-25                           |
+| id::DbId             | 1                                    |
+| month::String        | 2021-11                              |
+| package_name::String | REPLTreeViews                        |
+| package_uuid::String | 00000000-1111-2222-3333-444444444444 |
+| region::String       | cn-northeast                         |
+| request_count::Int64 | 1                                    |
+| status::Int64        | 200                                  |
+| year::Int64          | 2021                                 |
+  
+  ⋮
+Stat
+| KEY                  | VALUE                                |
+|----------------------|--------------------------------------|
+| date::Date           | 2021-11-25                           |
+| id::DbId             | 623498                               |
+| month::String        | 2021-11                              |
+| package_name::String | SimpleANOVA                          |
+| package_uuid::String | fff527a3-8410-504e-9ca3-60d5e79bb1e4 |
+| region::String       | eu-central                           |
+| request_count::Int64 | 1                                    |
+| status::Int64        | 200                                  |
+| year::Int64          | 2021                                 |
+```
+"""
 function find(m::Type{T}, w::SQLWhereEntity;
                       order = SQLOrder(pk(m)))::Vector{T} where {T<:AbstractModel}
+  @show "2nd find"
   find(m, SQLQuery(where = [w], order = order))
 end
 
+
 function find(m::Type{T}, w::Vector{SQLWhereEntity};
                       order = SQLOrder(pk(m)))::Vector{T} where {T<:AbstractModel}
+  @show "3rd find"
   find(m, SQLQuery(where = w, order = order))
 end
 
@@ -99,6 +155,7 @@ function find(m::Type{T};
                       order = SQLOrder(pk(m)),
                       limit = SQLLimit(),
                       where_conditions...)::Vector{T} where {T<:AbstractModel}
+  @show "4th find"
   find(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions], order = order, limit = limit))
 end
 
@@ -324,7 +381,15 @@ function updateby_or_create(m::T; ignore = Symbol[], skip_update = false, filter
   end
 end
 
+"""
+    update_or_create(m::T; ignore = Symbol[], skip_update = false, filters...)::T where {T<:AbstractModel}
 
+
+# Examples
+```julia
+julia> 
+```
+"""
 function update_or_create(m::T; ignore = Symbol[], skip_update = false, filters...)::T where {T<:AbstractModel}
   isempty(filters) && (filters = NamedTuple{ (Symbol(pk(m)),) }( (getfield(m, Symbol(pk(m))),) ))
   updateby_or_create(m; ignore = ignore, skip_update = skip_update, filters...)
@@ -353,7 +418,56 @@ end
 # Object generation
 #
 
+"""
+    to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:AbstractModel}
 
+Return an array of type `Model`
+
+# Examples
+```julia
+julia> DataFrame(Stat, SQLWhereExpression("date >= ? AND date <= ?", startdate, enddate), order=["stats.date"])
+8160×9 DataFrame
+  Row │ stats_id  stats_package_uuid                 stats_package_name   stats_status  stats_region  stats_date  stats_request_count  stats_year  stats_month
+      │ Int64     String                             String               Int64         String        String      Int64                Int64       String
+──────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    1 │        1  00000000-1111-2222-3333-44444444…  REPLTreeViews                 200  cn-northeast  2021-11-25                    1        2021  2021-11
+    2 │       17  00701ae9-d1dc-5365-b64a-a3a3ebf5…  BioAlignments                 200  au            2021-11-25                    1        2021  2021-11
+    3 │      217  00701ae9-d1dc-5365-b64a-a3a3ebf5…  BioAlignments                 200  us-west       2021-11-25                    1        2021  2021-11
+    4 │      314  009559a3-9522-5dbb-924b-0b6ed2b2…  XGBoost                       200  cn-northeast  2021-11-25                    1        2021  2021-11
+    5 │      406  009559a3-9522-5dbb-924b-0b6ed2b2…  XGBoost                       200  eu-central    2021-11-25                    5        2021  2021-11
+    6 │      461  009559a3-9522-5dbb-924b-0b6ed2b2…  XGBoost                       200  sa            2021-11-25                    1        2021  2021-11
+    ⋮
+ 8160 │   623498  fff527a3-8410-504e-9ca3-60d5e79b…  SimpleANOVA                   200  eu-central    2021-11-25                    1        2021  2021-11
+
+julia> SearchLight.to_models(Stat, DataFrame(Stat, SQLWhereExpression("date >= ? AND date <= ?", startdate, enddate), order=["stats.date"]))
+8160-element Vector{Stat}:
+ Stat
+| KEY                  | VALUE                                |
+|----------------------|--------------------------------------|
+| date::Date           | 2021-11-25                           |
+| id::DbId             | 1                                    |
+| month::String        | 2021-11                              |
+| package_name::String | REPLTreeViews                        |
+| package_uuid::String | 00000000-1111-2222-3333-444444444444 |
+| region::String       | cn-northeast                         |
+| request_count::Int64 | 1                                    |
+| status::Int64        | 200                                  |
+| year::Int64          | 2021                                 |
+ ⋮
+ Stat
+| KEY                  | VALUE                                |
+|----------------------|--------------------------------------|
+| date::Date           | 2021-11-25                           |
+| id::DbId             | 623498                               |
+| month::String        | 2021-11                              |
+| package_name::String | SimpleANOVA                          |
+| package_uuid::String | fff527a3-8410-504e-9ca3-60d5e79bb1e4 |
+| region::String       | eu-central                           |
+| request_count::Int64 | 1                                    |
+| status::Int64        | 200                                  |
+| year::Int64          | 2021                                 |
+```
+"""
 function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:AbstractModel}
   models = OrderedCollections.OrderedDict{DbId,T}()
   dfs = dataframes_by_table(m, df)
