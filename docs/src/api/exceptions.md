@@ -2,9 +2,6 @@
 CurrentModule = Exceptions
 ```
 
-```@contents
-```
-
 ```@docs
 SearchLightException
 NotPersistedException
@@ -14,3 +11,4 @@ UnretrievedModelException
 InvalidModelException
 TypeConversionException
 MissingConversionMethodException
+```

@@ -2,9 +2,6 @@
 CurrentModule = QueryBuilder
 ```
 
-```@contents
-```
-
 ```@docs
 MissingModel
 QueryPart

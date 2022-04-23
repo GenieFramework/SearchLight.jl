@@ -2,9 +2,6 @@
 CurrentModule = Transactions
 ```
 
-```@contents
-```
-
 ```@docs
 begin_transaction
 commit_transaction
