@@ -20,6 +20,7 @@ makedocs(
           "FileTemplates" => "api/filetemplates.md",
           "Generator" => "api/generator.md",
           "Migrations" => "api/migrations.md",
+          "ModelTypes" => "api/modeltypes.md",
           "QueryBuilder" => "api/querybuilder.md",
           "Relationships" => "api/relationships.md",
           "SearchLight" => "api/searchlight.md",

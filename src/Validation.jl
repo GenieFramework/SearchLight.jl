@@ -29,7 +29,38 @@ struct ValidationError <: ValidationAbstractType
   error_message::String
 end
 
+"""
+Creates Validation rule for a Model's field
 
+# Examples
+```julia
+julia> function not_empty(field::Symbol, m::T, args::Vararg{Any})::ValidationResult where {T<:AbstractModel}
+         isempty(getfield(m, field)) && return ValidationResult(invalid, :not_empty, "should not be empty")
+         
+         ValidationResult(valid)
+       end
+
+julia> function is_int(field::Symbol, m::T, args::Vararg{Any})::ValidationResult where {T<:AbstractModel}
+         isa(getfield(m, field), Int) || return ValidationResult(invalid, :is_int, "should be an int")
+         
+         ValidationResult(valid)
+       end
+
+julia> function is_unique(field::Symbol, m::T, args::Vararg{Any})::ValidationResult where {T<:AbstractModel}
+         obj = findone(typeof(m); NamedTuple(field => getfield(m, field))... )
+         if ( obj !== nothing && ! ispersisted(m) )
+           return ValidationResult(invalid, :is_unique, "already exists")
+         end
+
+         ValidationResult(valid)
+       end
+
+julia> ValidationRule(:username, not_empty)
+julia> ValidationRule(:username, is_unique)
+julia> ValidationRule(:age, is_int)
+julia> ValidationRule(:email, not_empty)
+```
+"""
 struct ValidationRule <: ValidationAbstractType
   field::Symbol
   validator_function::Function

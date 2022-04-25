@@ -89,7 +89,6 @@ end
 ```
 """
 function find(m::Type{T}, q::SQLQuery, j::Union{Nothing,Vector{SQLJoin}} = nothing)::Vector{T} where {T<:AbstractModel}
-  @show "doing it"
   to_models(m, DataFrame(m, q, j))
 end
 
@@ -140,14 +139,12 @@ Stat
 """
 function find(m::Type{T}, w::SQLWhereEntity;
                       order = SQLOrder(pk(m)))::Vector{T} where {T<:AbstractModel}
-  @show "2nd find"
   find(m, SQLQuery(where = [w], order = order))
 end
 
 
 function find(m::Type{T}, w::Vector{SQLWhereEntity};
                       order = SQLOrder(pk(m)))::Vector{T} where {T<:AbstractModel}
-  @show "3rd find"
   find(m, SQLQuery(where = w, order = order))
 end
 
@@ -155,7 +152,6 @@ function find(m::Type{T};
                       order = SQLOrder(pk(m)),
                       limit = SQLLimit(),
                       where_conditions...)::Vector{T} where {T<:AbstractModel}
-  @show "4th find"
   find(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions], order = order, limit = limit))
 end
 
@@ -1021,7 +1017,9 @@ function index_name(table_name::Union{String,Symbol}, column_name::Union{String,
   string(table_name) * "__" * "idx_" * string(column_name)
 end
 
+"""
 
+"""
 function sql(m::Type{T}, q::SQLQuery = SQLQuery(), j::Union{Nothing,Vector{SQLJoin}} = nothing)::String where {T<:AbstractModel}
   to_fetch_sql(m, q, j)
 end
