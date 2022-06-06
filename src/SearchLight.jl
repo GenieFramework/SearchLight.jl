@@ -140,6 +140,10 @@ function Base.last(m::Type{T}; order = SQLOrder(pk(m), :desc))::Union{Nothing,T}
   find(m, SQLQuery(order = order, limit = 1)) |> onereduce
 end
 
+function Base.count(m::Type{T}; where_conditions...)::Int where {T<:AbstractModel}
+  Base.count(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions]))
+end
+
 
 # TODO: max(), min(), avg(), mean(), etc
 
