@@ -95,8 +95,8 @@ end
 """
     find(m::Type{T}, w::SQLWhereEntity; order = SQLOrder(pk(m)))::Vector{T} where {T<:AbstractModel}
 
-Return a vector of `AbstractModel` given Model instance where `query` and `order` by 
-  
+Return a vector of `AbstractModel` given Model instance where `query` and `order` by
+
 # Examples
 ```julia
 julia> using Dates, Stats
@@ -121,7 +121,7 @@ julia> find(Stat, SQLWhereExpression("date >= ? AND date <= ?", startdate, endda
 | request_count::Int64 | 1                                    |
 | status::Int64        | 200                                  |
 | year::Int64          | 2021                                 |
-  
+
   ⋮
 Stat
 | KEY                  | VALUE                                |
@@ -194,7 +194,7 @@ function Base.last(m::Type{T}; order = SQLOrder(pk(m), :desc))::Union{Nothing,T}
 end
 
 function Base.count(m::Type{T}; where_conditions...)::Int where {T<:AbstractModel}
-  Base.count(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions]))
+  SearchLight.count(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions]))
 end
 
 
@@ -387,7 +387,7 @@ end
 
 # Examples
 ```julia
-julia> 
+julia>
 ```
 """
 function update_or_create(m::T; ignore = Symbol[], skip_update = false, filters...)::T where {T<:AbstractModel}
