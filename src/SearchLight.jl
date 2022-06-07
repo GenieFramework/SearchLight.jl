@@ -28,7 +28,7 @@ include("Callbacks.jl")
 
 export find, findone
 export rand, randone
-export all, count # min, max, mean, median
+export all # min, max, mean, median
 export findone_or_create, createwith, updateby_or_create, update_or_create
 export save, save!, save!!, updatewith!, updatewith!!
 export deleteall, delete
@@ -192,6 +192,8 @@ end
 function Base.last(m::Type{T}; order = SQLOrder(pk(m), :desc))::Union{Nothing,T} where {T<:AbstractModel}
   find(m, SQLQuery(order = order, limit = 1)) |> onereduce
 end
+
+function count end
 
 function Base.count(m::Type{T}; where_conditions...)::Int where {T<:AbstractModel}
   SearchLight.count(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions]))
