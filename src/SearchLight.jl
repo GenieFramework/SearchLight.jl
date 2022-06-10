@@ -1075,16 +1075,6 @@ function isquoted(str::String) :: Bool
 end
 
 
-"""
-    expand_nullable{T}(value::Union{Nothing,T}, default::T) :: T
-
-Returns `value` if it is not `nothing` - otherwise `default`.
-"""
-function expand_nullable(value::Union{Nothing,T}, default::T)::T where T
-  value === nothing ? default : value
-end
-
-
 function Core.NamedTuple(p::Pair) :: NamedTuple
   @eval ($(p[1]) = $(p[2]), )
 end
