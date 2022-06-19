@@ -176,7 +176,7 @@ Default content for a new test file.
 """
 function newtest(resource_name::String) :: String
   """
-  using Test, SearchLight, $(Inflector.to_plural(resource_name) |> uppercasefirst)
+  using Test, SearchLight, Main.UserApp, Main.UserApp.$(Inflector.to_plural(resource_name) |> uppercasefirst)
 
   @testset "$resource_name unit tests" begin
 

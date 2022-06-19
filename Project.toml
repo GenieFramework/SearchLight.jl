@@ -1,7 +1,7 @@
 name = "SearchLight"
 uuid = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
 authors = ["Adrian Salceanu <e@essenciary.com>"]
-version = "2.3.1"
+version = "2.4.0"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -21,10 +21,10 @@ YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
 [compat]
 DataFrames = "1"
 Inflector = "1"
+Intervals = "1.5.0"
 JSON3 = "1.9"
 Millboard = "0.2"
 OrderedCollections = "1"
 Reexport = "0.2, 1"
 YAML = "0.4"
 julia = "1"
-Intervals = "1.5.0"
