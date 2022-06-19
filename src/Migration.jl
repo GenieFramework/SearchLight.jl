@@ -283,7 +283,12 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   end
 
   try
-    m = include(abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))::Module
+    m = if isdefined(@__MODULE__, Symbol(migration.migration_module_name))
+          getfield(@__MODULE__, Symbol(migration.migration_module_name))
+        else
+          include(abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))::Module
+        end
+
     if in(:disabled, names(m, all = true)) && m.disabled && ! force
       @warn "Skipping, migration is disabled"
 
