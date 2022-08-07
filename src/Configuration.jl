@@ -86,9 +86,12 @@ function read_db_connection_data(db_settings_file::String) :: Dict{String,Any}
 end
 
 
-function load(path::Union{String,Nothing} = nothing) :: Dict{String,Any}
+function load(path::Union{String,Nothing} = nothing; context = @__MODULE__) :: Dict{String,Any}
   db_config_file = path === nothing ? joinpath(SearchLight.DB_PATH, SearchLight.SEARCHLIGHT_DB_CONFIG_FILE_NAME) : path
   SearchLight.config.db_config_settings = read_db_connection_data(db_config_file)
+  Base.eval(context, Meta.parse("using SearchLight$(SearchLight.config.db_config_settings["adapter"])"))
+
+  SearchLight.config.db_config_settings
 end
 
 
