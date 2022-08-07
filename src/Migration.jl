@@ -428,6 +428,7 @@ function all_down!!(; confirm = true) :: Nothing
 
   nothing
 end
+const alldown = all_down!!
 
 
 """
@@ -447,6 +448,7 @@ function all_up!!() :: Nothing
 
   nothing
 end
+const allup = all_up!!
 
 
 function create_table end
