@@ -409,7 +409,7 @@ end
 
 Runs all migrations `down`.
 """
-function all_down!!(; confirm = true) :: Nothing
+function all_down!!(; confirm::Bool = true) :: Nothing
   if confirm
     printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss!
                   You have 10 seconds to cancel this. ", color = :yellow)
@@ -428,7 +428,7 @@ function all_down!!(; confirm = true) :: Nothing
 
   nothing
 end
-const alldown = all_down!!
+const alldown! = all_down!!
 
 
 """
