@@ -4,3 +4,4 @@ docs/build
 .vscode
 test/build
 Manifest.toml
+sessions
