@@ -151,8 +151,9 @@ end
 function find(m::Type{T};
                       order = SQLOrder(pk(m)),
                       limit = SQLLimit(),
+                      offset::Int = 0,
                       where_conditions...)::Vector{T} where {T<:AbstractModel}
-  find(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions], order = order, limit = limit))
+  find(m, SQLQuery(where = [SQLWhereExpression("$(SQLColumn(x)) = ?", y) for (x,y) in where_conditions], order = order, limit = limit, offset = offset))
 end
 
 
@@ -471,7 +472,7 @@ julia> SearchLight.to_models(Stat, DataFrame(Stat, SQLWhereExpression("date >= ?
 ```
 """
 function to_models(m::Type{T}, df::DataFrames.DataFrame)::Vector{T} where {T<:AbstractModel}
-  models = OrderedCollections.OrderedDict{DbId,T}()
+  models = OrderedCollections.LittleDict{DbId,T}()
   dfs = dataframes_by_table(m, df)
 
   row_count::Int = 1

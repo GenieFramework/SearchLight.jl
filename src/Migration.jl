@@ -87,12 +87,18 @@ function new_relationship_table(migration_name::String, r1::String, r2::String) 
 end
 
 
+function validname(migration_name::String)
+  migration_name = replace(migration_name, " " => "_")
+end
+
+
 """
     new(migration_name::String) :: String
 
 Creates a new migration file and returns the path to it.
 """
 function new(migration_name::String) :: String
+  migration_name = validname(migration_name)
   mfn = migration_file_name(migration_name)
 
   ispath(mfn) && throw(ExistingMigrationException(migration_name))
@@ -529,7 +535,9 @@ function remove_columns(table_name::Symbol, cols::Vector{Symbol})
 end
 
 
-function remove_index end
+function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol})
+  SearchLight.index_name(table_name, column_name)
+end
 
 
 function remove_indexes(indexes::Vector{Pair{Symbol,Symbol}})
@@ -537,7 +545,7 @@ function remove_indexes(indexes::Vector{Pair{Symbol,Symbol}})
     remove_index(i...)
   end
 end
-function remove_indexes(table_name::Symbol, indexes::Vector{Symbol})
+function remove_indexes(table_name::Union{Symbol,String}, indexes::Vector{Symbol})
   for i in indexes
     remove_index(table_name, i)
   end
