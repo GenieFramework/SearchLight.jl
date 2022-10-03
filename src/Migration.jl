@@ -186,14 +186,14 @@ const lastdown = last_down
 
 Runs up the migration corresponding to `migration_module_name`.
 """
-function up(migration_module_name::String; force::Bool = false) :: Nothing
+function up(migration_module_name::String; force::Bool = false, context::Module = @__MODULE__) :: Nothing
   migration = migration_by_module_name(migration_module_name)
   migration !== nothing ?
-    run_migration(migration, :up, force = force) :
+    run_migration(migration, :up; force, context) :
     throw(MigrationNotFoundException(migration_module_name))
 end
-function up_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Nothing
-  up(migration_module_name |> string, force = force)
+function up_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false, context::Module = @__MODULE__) :: Nothing
+  up(migration_module_name |> string; force, context)
 end
 
 
@@ -203,14 +203,14 @@ end
 
 Runs down the migration corresponding to `migration_module_name`.
 """
-function down(migration_module_name::String; force::Bool = false) :: Nothing
+function down(migration_module_name::String; force::Bool = false, context::Module = @__MODULE__) :: Nothing
   migration = migration_by_module_name(migration_module_name)
   migration !== nothing ?
-    run_migration(migration, :down, force = force) :
+    run_migration(migration, :down; force, context) :
     throw(MigrationNotFoundException(migration_module_name))
 end
-function down_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false) :: Nothing
-  down(migration_module_name |> string, force = force)
+function down_by_module_name(migration_module_name::Union{String,Symbol,Module}; force::Bool = false, context::Module = @__MODULE__) :: Nothing
+  down(migration_module_name |> string; force, context)
 end
 
 
@@ -238,7 +238,8 @@ end
 
 Returns the list of all the migrations.
 """
-function all_migrations() :: Tuple{Vector{String},Dict{String,DatabaseMigration}}
+function all_migrations(; reversed = false) :: Tuple{Vector{String},Dict{String,DatabaseMigration}}
+  sortf = reversed ? reverse! : identity
   migrations = String[]
   migrations_files = Dict{String,DatabaseMigration}()
 
@@ -254,7 +255,7 @@ function all_migrations() :: Tuple{Vector{String},Dict{String,DatabaseMigration}
     end
   end
 
-  sort!(migrations), migrations_files
+  sort!(migrations) |> sortf, migrations_files
 end
 
 const all = all_migrations
@@ -278,7 +279,7 @@ const last = last_migration
 
 Runs `migration` in up or down, per `directon`. If `force` is true, the migration is run regardless of its current status (already `up` or `down`).
 """
-function run_migration(migration::DatabaseMigration, direction::Symbol; force = false) :: Nothing
+function run_migration(migration::DatabaseMigration, direction::Symbol; force = false, context = @__MODULE__) :: Nothing
   if ! force
     if  ( direction == :up    && in(migration.migration_hash, upped_migrations()) ) ||
         ( direction == :down  && in(migration.migration_hash, downed_migrations()) )
@@ -289,10 +290,10 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   end
 
   try
-    m = if isdefined(@__MODULE__, Symbol(migration.migration_module_name))
-          getfield(@__MODULE__, Symbol(migration.migration_module_name))
+    m = if isdefined(context, Symbol(migration.migration_module_name))
+          getfield(context, Symbol(migration.migration_module_name))
         else
-          include(abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))::Module
+          Base.include(context, abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))::Module
         end
 
     if in(:disabled, names(m, all = true)) && m.disabled && ! force
@@ -390,14 +391,13 @@ end
 
 Returns a list of all the migrations and their status.
 """
-function all_with_status() :: Tuple{Vector{String},Dict{String,Dict{Symbol,Any}}}
-  migrations, migrations_files = all_migrations()
+function all_with_status(; reversed = false) :: Tuple{Vector{String},Dict{String,Dict{Symbol,Any}}}
+  migrations, migrations_files = all_migrations(; reversed)
   up_migrations = upped_migrations()
   indexes = String[]
   result = Dict{String,Dict{Symbol,Any}}()
 
   for m in migrations
-    # status = ( findfirst(up_migrations, m) > 0 ) ? :up : :down
     status = something(findfirst(isequal(m), up_migrations), 0) > 0 ? :up : :down
     push!(indexes, migrations_files[m].migration_hash)
     result[migrations_files[m].migration_hash] = Dict(
@@ -415,20 +415,21 @@ end
 
 Runs all migrations `down`.
 """
-function all_down!!(; confirm::Bool = true) :: Nothing
+function all_down!!(; confirm::Bool = true, context = @__MODULE__) :: Nothing
   if confirm
-    printstyled("!!!WARNING!!! This will run down all the migration, potentially leading to irrecuperable data loss!
+    printstyled("!!!WARNING!!! This will run down all the migrations, potentially leading to irrecuperable data loss!
                   You have 10 seconds to cancel this. ", color = :yellow)
     sleep(5)
     printstyled("Running down all the migrations in 5 seconds. ", color = :yellow)
     sleep(5)
   end
 
-  i, m = all_with_status()
-  for v in values(m)
+  i, m = all_with_status(; reversed = true)
+  for v_hash in i
+    v = m[v_hash]
     if v[:status] == :up
       mm = v[:migration]
-      down_by_module_name(mm.migration_module_name)
+      down_by_module_name(mm.migration_module_name; context)
     end
   end
 
@@ -442,13 +443,13 @@ const alldown! = all_down!!
 
 Runs all migrations `up`.
 """
-function all_up!!() :: Nothing
+function all_up!!(; context = @__MODULE__) :: Nothing
   i, m = all_with_status()
   for v_hash in i
     v = m[v_hash]
     if v[:status] == :down
       mm = v[:migration]
-      up_by_module_name(mm.migration_module_name)
+      up_by_module_name(mm.migration_module_name; context)
     end
   end
 
