@@ -527,20 +527,21 @@ function remove_columns(table_name::Symbol, cols::Vector{Symbol})
   end
 end
 
+function remove_index! end
 
-function remove_index!(table_name::Union{String,Symbol}, column_name::Union{String,Symbol})
-  SearchLight.Migration.remove_index(table_name, SearchLight.index_name(table_name, column_name))
+function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol})
+  SearchLight.Migration.remove_index!(table_name, SearchLight.index_name(table_name, column_name))
 end
 
 
 function remove_indexes(indexes::Vector{Pair{Symbol,Symbol}})
   for i in indexes
-    remove_index!(i...)
+    remove_index(i...)
   end
 end
 function remove_indexes(table_name::Union{Symbol,String}, indexes::Vector{Symbol})
   for i in indexes
-    remove_index!(table_name, i)
+    remove_index(table_name, i)
   end
 end
 const remove_indices = remove_indexes
