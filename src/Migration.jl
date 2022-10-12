@@ -18,7 +18,9 @@ end
 
 struct IrreversibleMigrationException <: Exception
   migration_name::Symbol
+  IrreversibleMigrationException(migration_name) = new(Symbol(migration_name))
 end
+
 Base.showerror(io::IO, e::IrreversibleMigrationException) = print(io, "Migration $(e.migration_name) is not reversible")
 
 
@@ -155,13 +157,10 @@ end
 
 Migrates up the last migration. If `force` is `true`, the migration will be executed even if it's already up.
 """
-function last_up(; force = false) :: Nothing
-  run_migration(last_migration(), :up, force = force)
+function last_up(; force = false, context = @__MODULE__) :: Nothing
+  run_migration(last_migration(), :up; force, context)
 end
-function up(; force = false) :: Nothing
-  last_up(force = force)
-end
-
+const up = last_up
 const lastup = last_up
 
 
@@ -170,13 +169,10 @@ const lastup = last_up
 
 Migrates down the last migration. If `force` is `true`, the migration will be executed even if it's already down.
 """
-function last_down(; force = false) :: Nothing
-  run_migration(last_migration(), :down, force = force)
+function last_down(; force = false, context = @__MODULE__) :: Nothing
+  run_migration(last_migration(), :down; force, context)
 end
-function down(; force = false) :: Nothing
-  last_down(force = force)
-end
-
+const down = last_down
 const lastdown = last_down
 
 
@@ -290,11 +286,7 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   end
 
   try
-    m = if isdefined(context, Symbol(migration.migration_module_name))
-          getfield(context, Symbol(migration.migration_module_name))
-        else
-          Base.include(context, abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))::Module
-        end
+    m = Base.include(context, abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))::Module
 
     if in(:disabled, names(m, all = true)) && m.disabled && ! force
       @warn "Skipping, migration is disabled"
@@ -536,19 +528,19 @@ function remove_columns(table_name::Symbol, cols::Vector{Symbol})
 end
 
 
-function remove_index(table_name::Union{String,Symbol}, column_name::Union{String,Symbol})
-  SearchLight.index_name(table_name, column_name)
+function remove_index!(table_name::Union{String,Symbol}, column_name::Union{String,Symbol})
+  SearchLight.Migration.remove_index(table_name, SearchLight.index_name(table_name, column_name))
 end
 
 
 function remove_indexes(indexes::Vector{Pair{Symbol,Symbol}})
   for i in indexes
-    remove_index(i...)
+    remove_index!(i...)
   end
 end
 function remove_indexes(table_name::Union{Symbol,String}, indexes::Vector{Symbol})
   for i in indexes
-    remove_index(table_name, i)
+    remove_index!(table_name, i)
   end
 end
 const remove_indices = remove_indexes
