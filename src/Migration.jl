@@ -286,13 +286,18 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   end
 
   try
-    m = Base.include(context, abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))::Module
+    m = if isdefined(context, Symbol(migration.migration_module_name)) && SearchLight.Configuration.env() != "dev" # always include in dev to pick up changes -- otherwise reuse
+      getfield(context, Symbol(migration.migration_module_name))
+    else
+      Base.include(context, abspath(joinpath(SearchLight.config.db_migrations_folder, migration.migration_file_name)))::Module
+    end
 
     if in(:disabled, names(m, all = true)) && m.disabled && ! force
       @warn "Skipping, migration is disabled"
 
       return
     end
+
     Base.invokelatest(getfield(m, direction))
 
     store_migration_status(migration, direction, force = force)
