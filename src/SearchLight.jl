@@ -274,6 +274,20 @@ function updatewith!(m::T, w::T)::T where {T<:AbstractModel}
   m
 end
 
+"""
+    updatewith!(m::T, w::T)::T where {T<:AbstractModel}
+
+Update the model `m` with the values from `w` and return the updated model.
+
+# Examples
+```julia
+julia> using UserApp.User
+
+julia> SearchLight.updatewith!(user, Dict("name" => "John Doe", "email" => "foo@bar.com"))
+
+julia> save!(user)
+```
+"""
 function updatewith!(m::T, w::Dict; skip_callbacks::Vector{Symbol} = Symbol[])::T where {T<:AbstractModel}
   for fieldname in fieldnames(typeof(m))
     string(fieldname) == pk(m) && continue
