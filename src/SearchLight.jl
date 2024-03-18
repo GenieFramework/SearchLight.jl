@@ -255,11 +255,11 @@ function _save!!(m::T; conflict_strategy::Symbol = :error, skip_validation::Bool
       throw(SearchLight.Exceptions.InvalidModelException(m, model_validator.errors, "Model $(typeof(m)) is not valid: $(Validation.errors_to_string(model_validator))"))
   end
 
-  ! in(:before_save, skip_callbacks) && hasmethod(Callbacks.before_save, Tuple{typeof(m)}) &&  Callbacks.before_save(m)
+  ! in(:before_save, skip_callbacks) && hasmethod(Callbacks.before_save, Tuple{typeof(m)}) && (m = Callbacks.before_save(m))
 
   result = query(to_store_sql(m, conflict_strategy = conflict_strategy))
 
-  ! in(:after_save, skip_callbacks) && hasmethod(Callbacks.after_save, Tuple{typeof(m)}) && Callbacks.after_save(m)
+  ! in(:after_save, skip_callbacks) && hasmethod(Callbacks.after_save, Tuple{typeof(m)}) && (m = Callbacks.after_save(m))
 
   result
 end
@@ -342,7 +342,7 @@ function booltypes(value::Any) :: Bool
 end
 
 
-function autoconvert(mthd, m::T, fieldname::Symbol, value::Any) where {T<:AbstractModel, R}
+function autoconvert(mthd, m::T, fieldname::Symbol, value::Any) where {T<:AbstractModel}
   if Symbol(mthd) in [:convert, :parse]
     mthd(typeof(getfield(m, fieldname)), value)
   elseif occursin("MissingConversionMethodException", string(mthd))

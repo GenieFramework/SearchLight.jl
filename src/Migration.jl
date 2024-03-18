@@ -275,7 +275,9 @@ const last = last_migration
 
 Runs `migration` in up or down, per `directon`. If `force` is true, the migration is run regardless of its current status (already `up` or `down`).
 """
-function run_migration(migration::DatabaseMigration, direction::Symbol; force = false, context = @__MODULE__) :: Nothing
+function run_migration(migration::DatabaseMigration, direction::Symbol = :up; force::Bool = false, context::Module = @__MODULE__) :: Nothing
+  direction in (:up, :down) || throw(ArgumentError("Invalid direction: $direction. Must be :up or :down."))
+
   if ! force
     if  ( direction == :up    && in(migration.migration_hash, upped_migrations()) ) ||
         ( direction == :down  && in(migration.migration_hash, downed_migrations()) )
@@ -310,6 +312,24 @@ function run_migration(migration::DatabaseMigration, direction::Symbol; force = 
   end
 
   nothing
+end
+
+"""
+    run_migration(migration_name::AbstractString, direction::Symbol; force = false) :: Nothing
+
+Runs the migration corresponding to `migration_name` in `direction`.
+If `force` is true, the migration is run regardless of its current status (already `up` or `down`).
+
+##Arguments
+- `migration_name::AbstractString`: The migration module name.
+- `direction::Symbol`: The direction of the migration. Must be `:up` or `:down`.
+- `force::Bool`: If `true`, the migration is run regardless of its current status (already `up` or `down).
+"""
+function run_migration(migration_name::AbstractString, direction::Symbol = :up; force::Bool = false, context::Module = @__MODULE__) :: Nothing
+  migration = migration_by_module_name(migration_name)
+  migration !== nothing ?
+    run_migration(migration, direction; force, context) :
+    throw(MigrationNotFoundException(migration_name))
 end
 
 

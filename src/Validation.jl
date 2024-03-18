@@ -1,3 +1,24 @@
+"""
+Provides validation rules and validation error handling for AbstractModel objects.
+The user should specialize the `validator` method to return a `ModelValidator` object with the rules for the model's fields.
+
+# Example
+```julia
+@kwdef mutable struct Session <: AbstractModel
+  id::DbId = DbId()
+  user_id::Int = 0
+  hash::String = randstring(32)
+  origin::String = ""
+  metadata::Dict = Dict()
+  created_at::DateTime = now()
+  updated_at::DateTime = now()
+end
+
+SearchLight.Validation.validator(::Type{Session}) = ModelValidator([
+  ValidationRule(:user_id, Validators.is_gt_zero)
+])
+```
+"""
 module Validation
 
 using SearchLight
@@ -99,7 +120,7 @@ end
 Validates `m`'s data. A `bool` is return and existing errors are pushed to the validator's error stack.
 """
 function validate(m::T)::ModelValidator where {T<:SearchLight.AbstractModel}
-  hasmethod(validator, Tuple{typeof(m)}) || return ModelValidator()
+  hasmethod(validator, (typeof(m),)) || return ModelValidator()
 
   mv = validator(typeof(m))
 
@@ -157,5 +178,8 @@ function errors_to_string(mv::ModelValidator, field::Union{Symbol,Nothing} = not
 
   join( map(x ->  (uppercase_first ? uppercasefirst(x) : x), errors), separator)
 end
+
+include("Validators.jl")
+import .Validators
 
 end
