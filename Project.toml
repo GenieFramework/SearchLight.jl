@@ -1,7 +1,7 @@
 name = "SearchLight"
 uuid = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
 authors = ["Adrian Salceanu <e@essenciary.com>"]
-version = "2.11.0"
+version = "2.11.1"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

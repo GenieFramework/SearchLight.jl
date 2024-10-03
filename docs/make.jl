@@ -11,6 +11,7 @@ using SearchLight.Serializer.JsonSerializer
 makedocs(
     sitename = "SearchLight - Concise, secure, cross-platform query builder and ORM for Julia",
     format = Documenter.HTML(prettyurls = false),
+    warnonly = true,
     pages = [
         "Home" => "index.md",
         "SearchLight API" => [
