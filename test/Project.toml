@@ -1,4 +1,5 @@
 [deps]
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
 SearchLight = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
