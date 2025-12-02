@@ -5,3 +5,10 @@ SearchLight = "340e8cb6-72eb-11e8-37ce-c97ebeb32050"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestSetExtensions = "98d24dd4-01ad-11ea-1b02-c9a08f80db04"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
+
+[compat]
+SafeTestsets = "0.1"
+SearchLight = "2"
+TestSetExtensions = "3"
+YAML = "0.4"
+julia = "1.6"
