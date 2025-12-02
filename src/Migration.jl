@@ -300,7 +300,7 @@ function run_migration(migration::DatabaseMigration, direction::Symbol = :up; fo
       return
     end
 
-    Base.invokelatest(getfield(m, direction))
+    Base.invokelatest(() -> getfield(m, direction)())
 
     store_migration_status(migration, direction, force = force)
 
