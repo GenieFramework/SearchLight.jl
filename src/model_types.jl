@@ -54,12 +54,12 @@ DbId() = DbId(nothing)
 DbId(id::Number) = DbId(Int(id))
 DbId(id::AbstractString) = DbId(id)
 
-function hash(a::DbId)
-  Base.hash(a.value)
+function hash(a::DbId, h::UInt)
+  hash(a.value, h)
 end
 
 function ==(a::DbId, b::DbId)
-  hash(a) == hash(b)
+  a.value == b.value
 end
 
 Base.convert(::Type{DbId}, v::Union{Number,String}) = DbId(v)
